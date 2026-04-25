@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -97,7 +98,7 @@ class AgentShadowAdapterConfig:
     model_id: str = "stub_v1"
     api_timeout_s: float = 2.0           # hard timeout for API calls
     api_max_retries: int = 1
-    api_endpoint: str | None = None      # e.g. Gemini endpoint
+    api_endpoint: str | None = field(default_factory=lambda: os.environ.get("AGENT_API_ENDPOINT"))
     api_key_env_var: str = "AGENT_API_KEY"
     local_model_path: str | None = None
     stub_disagree_on_risk: bool = True   # stub may disagree when risk is high + LC is requested

@@ -90,6 +90,9 @@ def _parse_args() -> argparse.Namespace:
                    help="Directory to write JSONL authority log")
     p.add_argument("--no-stage9",    action="store_true",
                    help="Skip Stage 9 arbiter (perception-only dry run)")
+    p.add_argument("--agent-mode",   default="stub",
+                   choices=["stub", "api", "compare"],
+                   help="Agent mode: stub=no LLM, api=real LLM, compare=baseline+agent side-by-side logging")
     return p.parse_args()
 
 
@@ -258,7 +261,7 @@ def _apply_actuator_command(ego_actor, cmd) -> None:
 # ── Stage 9 Arbiter bootstrap ─────────────────────────────────────────────────
 # TODO [Stage 9 hook]: Replace stubs with real Stage 9 components.
 
-def _build_stage9_arbiter(log_dir: Path):
+def _build_stage9_arbiter(log_dir: Path, agent_mode: str = "stub"):
     """
     Build and return the Stage 9 AuthorityArbiter with REAL components.
     Returns None if imports fail (graceful degradation).
@@ -288,8 +291,9 @@ def _build_stage9_arbiter(log_dir: Path):
         )
         mpc_impl = RealMPCAdapter(dt_s=0.1)
         baseline_impl = RealBaselineAdapter()
-        agent_impl = RealAgentAdapter(mode="stub")   # use "api" for LLM mode
-        LOGGER.info("Stage 10: Real MPC + Baseline + Agent adapters loaded.")
+        _adapter_mode = "api" if agent_mode in ("api", "compare") else "stub"
+        agent_impl = RealAgentAdapter(mode=_adapter_mode)
+        LOGGER.info("Stage 10: Real MPC + Baseline + Agent adapters loaded (agent_mode=%s).", _adapter_mode)
     except ImportError as exc:
         LOGGER.warning("stage9_adapters unavailable (%s). Using minimal stubs.", exc)
 
@@ -403,7 +407,21 @@ def run(args: argparse.Namespace) -> int:
         )
 
     # ── 3. Stage 9 Arbiter (optional) ────────────────────────────────────────
-    arbiter = None if args.no_stage9 else _build_stage9_arbiter(log_dir)
+    arbiter = None if args.no_stage9 else _build_stage9_arbiter(log_dir, agent_mode=args.agent_mode)
+
+    # ── 3b. Compare-mode: separate agent adapter for side-by-side logging ────
+    compare_agent = None
+    compare_baseline = None
+    compare_log: List[Dict[str, Any]] = []
+    if args.agent_mode == "compare":
+        try:
+            from carla_bevfusion_stage1.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
+            compare_agent = RealAgentAdapter(mode="api")
+            compare_baseline = RealBaselineAdapter()
+            LOGGER.info("Compare mode: side-by-side Agent vs Baseline logging ENABLED.")
+        except ImportError as exc:
+            LOGGER.warning("Compare mode unavailable (%s). Falling back to normal mode.", exc)
+            compare_agent = None
 
 
     # ── 4. Sensor rig + sync ──────────────────────────────────────────────────
@@ -480,6 +498,59 @@ def run(args: argparse.Namespace) -> int:
                 if not args.samples_root and ego is not None:
                     _apply_actuator_command(ego, cmd)
 
+            # ── F. Compare mode: side-by-side Agent vs Baseline ───────────
+            if compare_agent is not None and compare_baseline is not None and world_state is not None:
+                try:
+                    t_cmp = time.monotonic()
+                    bl_req = compare_baseline.plan(world_state)
+                    baseline_intent = str(getattr(bl_req, "tactical_intent", "keep_lane"))
+
+                    contract = compare_agent.propose_contract(world_state)
+                    if contract is not None:
+                        agent_intent = str(getattr(contract, "tactical_intent", "keep_lane"))
+                        agent_confidence = float(getattr(contract, "agent_confidence", 0.0))
+                        agent_reasoning = str(getattr(contract, "agent_reasoning_summary", ""))
+                        disagreement_useful = True
+                    else:
+                        agent_intent = baseline_intent  # agent agrees (or fallback)
+                        agent_confidence = 0.0
+                        agent_reasoning = "agrees_with_baseline"
+                        disagreement_useful = False
+
+                    agrees = (baseline_intent == agent_intent)
+                    cmp_ms = (time.monotonic() - t_cmp) * 1000
+
+                    ttc_val = float(
+                        ws_builder._prev_detections and
+                        _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
+                    )
+
+                    record = {
+                        "frame_id": live_frame.frame_id,
+                        "frame_idx": frame_idx,
+                        "timestamp_s": live_frame.timestamp_s,
+                        "ego_v_mps": ego_tel.ego_v_mps,
+                        "min_ttc_s": ttc_val,
+                        "num_detections": len(det_list.detections),
+                        "baseline_intent": baseline_intent,
+                        "agent_intent": agent_intent,
+                        "agent_confidence": agent_confidence,
+                        "agent_reasoning": agent_reasoning,
+                        "agrees": agrees,
+                        "disagreement_useful": disagreement_useful and not agrees,
+                        "compare_latency_ms": round(cmp_ms, 1),
+                    }
+                    compare_log.append(record)
+
+                    if not agrees:
+                        LOGGER.info(
+                            "[COMPARE] frame=%d  baseline=%s  agent=%s  conf=%.2f  ttc=%.1f  reason=%s",
+                            live_frame.frame_id, baseline_intent, agent_intent,
+                            agent_confidence, ttc_val, agent_reasoning,
+                        )
+                except Exception as exc:
+                    LOGGER.debug("Compare-mode error frame=%d: %s", frame_idx, exc)
+
             stats["frames"] += 1
             elapsed_ms = (time.monotonic() - t_tick) * 1000
 
@@ -508,6 +579,84 @@ def run(args: argparse.Namespace) -> int:
                 ego.destroy()
             except Exception:
                 pass
+
+        # ── Dump compare-mode evaluation report ──────────────────────────
+        if compare_log:
+            total = len(compare_log)
+            agreements = sum(1 for r in compare_log if r["agrees"])
+            disagreements = total - agreements
+            useful_disagreements = sum(1 for r in compare_log if r["disagreement_useful"])
+            agent_latencies = [r["compare_latency_ms"] for r in compare_log]
+
+            # TTC-based analysis: how does agent behave in danger zones?
+            low_ttc_frames = [r for r in compare_log if r["min_ttc_s"] < 3.0]
+            low_ttc_disagree = [r for r in low_ttc_frames if not r["agrees"]]
+
+            evaluation = {
+                "schema_version": "stage10_agent_live_evaluation_v1",
+                "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+                "stage": "10_live_bridge",
+                "mode": args.agent_mode,
+                "map": args.map,
+                "total_frames": total,
+                "agreement_frames": agreements,
+                "disagreement_frames": disagreements,
+                "agreement_rate": round(agreements / max(total, 1), 4),
+                "disagreement_rate": round(disagreements / max(total, 1), 4),
+                "useful_disagreement_count": useful_disagreements,
+                "useful_disagreement_rate": round(
+                    useful_disagreements / max(disagreements, 1), 4
+                ) if disagreements > 0 else None,
+                "low_ttc_analysis": {
+                    "total_low_ttc_frames": len(low_ttc_frames),
+                    "disagreements_in_low_ttc": len(low_ttc_disagree),
+                    "agent_cautious_rate": round(
+                        len(low_ttc_disagree) / max(len(low_ttc_frames), 1), 4
+                    ) if low_ttc_frames else None,
+                },
+                "latency": {
+                    "mean_compare_ms": round(sum(agent_latencies) / max(len(agent_latencies), 1), 1),
+                    "max_compare_ms": round(max(agent_latencies), 1) if agent_latencies else 0,
+                    "min_compare_ms": round(min(agent_latencies), 1) if agent_latencies else 0,
+                },
+                "intent_distribution": {
+                    "baseline": {},
+                    "agent": {},
+                },
+                "perception_summary": {
+                    "total_detections": stats["total_det"],
+                    "avg_detections_per_frame": round(stats["total_det"] / max(total, 1), 1),
+                    "avg_bev_inference_ms": round(stats["bev_ms_sum"] / max(total, 1), 1),
+                },
+                "frame_log": compare_log,
+            }
+
+            # Count intent distributions
+            for r in compare_log:
+                bi = r["baseline_intent"]
+                ai = r["agent_intent"]
+                evaluation["intent_distribution"]["baseline"][bi] = (
+                    evaluation["intent_distribution"]["baseline"].get(bi, 0) + 1
+                )
+                evaluation["intent_distribution"]["agent"][ai] = (
+                    evaluation["intent_distribution"]["agent"].get(ai, 0) + 1
+                )
+
+            eval_path = log_dir / "stage10_agent_live_evaluation.json"
+            eval_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(eval_path, "w") as f:
+                json.dump(evaluation, f, indent=2, default=str)
+            LOGGER.info("Compare-mode evaluation saved → %s", eval_path)
+            LOGGER.info("  Agreement rate   : %.1f%% (%d/%d)", agreements / max(total, 1) * 100, agreements, total)
+            LOGGER.info("  Disagreement rate: %.1f%% (%d/%d)", disagreements / max(total, 1) * 100, disagreements, total)
+            if disagreements > 0:
+                LOGGER.info("  Useful disagree  : %.1f%% (%d/%d)",
+                            useful_disagreements / max(disagreements, 1) * 100,
+                            useful_disagreements, disagreements)
+            if low_ttc_frames:
+                LOGGER.info("  Low-TTC frames   : %d, agent cautious: %d",
+                            len(low_ttc_frames), len(low_ttc_disagree))
+
         LOGGER.info("=" * 60)
         LOGGER.info("Stage 10 Live Bridge finished.")
         LOGGER.info("  Frames     : %d", stats["frames"])
