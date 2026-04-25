@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/control_trace.schema.json",
+  "title": "Stage3C Control Trace Row",
+  "type": "object",
+  "required": [
+    "carla_frame",
+    "timestamp",
+    "requested_behavior",
+    "executing_behavior",
+    "control_mode",
+    "support_level"
+  ],
+  "properties": {
+    "request_frame": { "type": ["integer", "null"] },
+    "sample_name": { "type": "string" },
+    "carla_frame": { "type": ["integer", "null"] },
+    "timestamp": { "type": ["number", "null"] },
+    "requested_behavior": { "type": "string" },
+    "executing_behavior": { "type": "string" },
+    "execution_status": { "type": "string" },
+    "control_mode": { "type": "string" },
+    "speed_mps": { "type": ["number", "null"] },
+    "target_speed_mps": { "type": ["number", "null"] },
+    "speed_error_mps": { "type": ["number", "null"] },
+    "throttle": { "type": ["number", "null"] },
+    "steer": { "type": ["number", "null"] },
+    "brake": { "type": ["number", "null"] },
+    "hand_brake": { "type": "boolean" },
+    "reverse": { "type": "boolean" },
+    "acceleration_proxy_mps2": { "type": ["number", "null"] },
+    "jerk_proxy_mps3": { "type": ["number", "null"] },
+    "support_level": { "type": "string", "enum": ["direct", "approximate_from_speed_profile"] }
+  },
+  "additionalProperties": false
+}

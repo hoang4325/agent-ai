@@ -1,0 +1,99 @@
+modes:
+  replay_regression:
+    description: Evaluate existing artifacts only; no stage execution.
+    stage_chain:
+      - evaluate
+    uses_existing_artifacts: true
+    execute_stages: false
+    default_gate_usage: hard_gate
+    current_gate_posture: hard_gate
+    baseline_policy: pinned_primary
+    readiness: production_ready
+
+  scenario_replay:
+    description: Execute Stage1 session attach plus Stage2 -> Stage3C replay chain, then evaluate current-run replay artifacts.
+    stage_chain:
+      - spawn
+      - stage1
+      - stage2
+      - stage3a
+      - stage3b
+      - stage3c
+      - evaluate
+    uses_existing_artifacts: false
+    execute_stages: true
+    default_gate_usage: soft_guardrail
+    stage1_contract_mode: session_attach
+    current_gate_posture: soft_guardrail
+    subset_gate_overrides:
+      - Stage 5A gate uses scenario_replay as the authoritative driver for stage5a_core_golden + stage5a_failure_replay via scripts/run_stage5a_gate.py
+    baseline_policy: no_primary_baseline_pin
+    readiness: supported_subset
+    promotion_requirements:
+      - stage1 contract must materialize for every ready replay case
+      - stage2 -> stage3c replay chain must succeed on deterministic ready subset
+      - current-run replay artifacts must be evaluated instead of legacy replay outputs
+
+  online_e2e:
+    description: Execute online integrated Stage1 -> Stage4 loop and evaluate only current-run artifacts materialized from that run.
+    stage_chain:
+      - spawn
+      - stage1
+      - stage2
+      - stage3a
+      - stage3b
+      - stage3c
+      - stage4
+      - evaluate
+    uses_existing_artifacts: false
+    execute_stages: true
+    default_gate_usage: soft_guardrail
+    current_gate_posture: smoke_subset
+    baseline_policy: deferred_until_stable
+    readiness: smoke_subset_only
+    current_run_only: true
+    promotion_requirements:
+      - stage1 worker exit code must stay zero on promoted subset
+      - current-run stage1 -> stage4 artifacts must be complete
+      - online metrics must stabilize before baseline pin and hard gating
+
+online_e2e_defaults:
+  evaluation_case_overrides:
+    mandatory_artifacts:
+      - stage1_session_summary
+      - stage2_evaluation_summary
+      - stage2_world_state_sample
+      - stage2_tracked_objects_sample
+      - stage3a_evaluation_summary
+      - stage3a_lane_world_state_sample
+      - stage3b_evaluation_summary
+      - stage3b_behavior_timeline
+      - stage3b_behavior_request_sample
+      - stage3c_execution_summary
+      - stage3c_execution_timeline
+      - stage3c_lane_change_events
+      - stage4_online_run_summary
+      - stage4_online_stack_state
+      - stage4_online_tick_record
+    primary_metrics:
+      - artifact_completeness
+      - route_option_match
+      - expected_behavior_presence
+      - lane_change_success_count
+      - lane_change_success_rate
+      - stop_success_rate
+      - behavior_execution_mismatch_rate
+      - stale_tick_rate
+      - mean_total_loop_latency_ms
+      - state_reset_count
+    secondary_metrics:
+      - front_hazard_signal_present
+      - route_context_consistency
+      - route_conditioned_override_rate
+    metric_thresholds:
+      stale_tick_rate:
+        max: 0.20
+      mean_total_loop_latency_ms:
+        max: 180.0
+      state_reset_count:
+        max: 0

@@ -1,0 +1,510 @@
+{
+  "schema_version": "stage7_agent_shadow_contract_audit_v1",
+  "generated_at_utc": "2026-04-18T03:19:16+00:00",
+  "audit_scope": "stage7_agentic_shadow_precheck",
+  "baseline_tactical_output": {
+    "artifact": "stage3b_behavior_request_v2",
+    "fields": {
+      "requested_behavior": {
+        "role": "selected tactical intent (canonical behavior set)",
+        "required": true,
+        "reusable_by_agent": true,
+        "notes": "agent shadow must align its intent to same canonical set"
+      },
+      "target_lane": {
+        "role": "target lane for lane-change maneuvers (current/left/right)",
+        "required": true,
+        "reusable_by_agent": true
+      },
+      "route_mode": {
+        "role": "routing mode (corridor_only / graph / none)",
+        "required": true,
+        "reusable_by_agent": true
+      },
+      "route_option": {
+        "role": "selected route option (straight/left/right/unknown)",
+        "required": true,
+        "reusable_by_agent": true
+      },
+      "preferred_lane": {
+        "role": "preferred lane from route (current/left/right)",
+        "required": true,
+        "reusable_by_agent": true
+      },
+      "lane_change_permission.left": {
+        "role": "left lane-change safety gate (bool)",
+        "required": true,
+        "reusable_by_agent": true,
+        "notes": "agent MUST respect this; forbidden to request LC when permission is False"
+      },
+      "lane_change_permission.right": {
+        "role": "right lane-change safety gate (bool)",
+        "required": true,
+        "reusable_by_agent": true
+      },
+      "lane_change_stage": {
+        "role": "LC lifecycle phase (idle/prepare/commit/completing/aborting)",
+        "required": false,
+        "reusable_by_agent": true
+      },
+      "target_speed_mps": {
+        "role": "target speed command from baseline tactical",
+        "required": true,
+        "reusable_by_agent": false,
+        "notes": "agent shadow must NOT emit speed as a control command"
+      },
+      "confidence": {
+        "role": "baseline tactical confidence in its own decision",
+        "required": false,
+        "reusable_by_agent": true,
+        "notes": "agent emits its own confidence field separately"
+      },
+      "stop_reason": {
+        "role": "reason for stop/yield behavior",
+        "required": false,
+        "reusable_by_agent": true
+      },
+      "route_conflict_flags": {
+        "role": "conflict issues detected in route binding",
+        "required": true,
+        "reusable_by_agent": true
+      }
+    }
+  },
+  "agent_readable_inputs": {
+    "world_state": {
+      "artifact": "stage2_world_state",
+      "fields": {
+        "ego.speed_mps": {
+          "role": "current ego speed",
+          "required": true
+        },
+        "ego.route_progress_m": {
+          "role": "distance travelled along route",
+          "required": true
+        },
+        "objects": {
+          "role": "tracked objects list (track_id, class, position, velocity)",
+          "required": true
+        },
+        "risk_summary.highest_risk_level": {
+          "role": "categorical risk level (none/low/medium/high)",
+          "required": true
+        },
+        "risk_summary.front_hazard_track_id": {
+          "role": "track id of front hazard object if any",
+          "required": false
+        },
+        "risk_summary.nearest_front_vehicle_distance_m": {
+          "role": "gap to nearest front vehicle",
+          "required": false
+        },
+        "scene.front_free_space_m": {
+          "role": "free space ahead in meters",
+          "required": false
+        }
+      }
+    },
+    "lane_context": {
+      "artifact": "stage3a_lane_aware_world_state",
+      "fields": {
+        "lane_context.ego_lane_id": {
+          "role": "current lane ID",
+          "required": true
+        },
+        "lane_context.left_lane.exists": {
+          "role": "left lane physically exists",
+          "required": true
+        },
+        "lane_context.right_lane.exists": {
+          "role": "right lane physically exists",
+          "required": true
+        },
+        "lane_context.junction_context": {
+          "role": "junction topology (type/distance/branch count)",
+          "required": false
+        },
+        "lane_scene.current_lane_blocked": {
+          "role": "blocking indicator for current lane",
+          "required": true
+        },
+        "lane_relative_objects": {
+          "role": "per-object lane assignments + distances",
+          "required": true
+        }
+      }
+    },
+    "stop_fallback_context": {
+      "artifact": "stage3c_stop_target + stage3c_fallback_events",
+      "fields": {
+        "stop_target.binding_status": {
+          "role": "stop target contract binding status",
+          "required": false
+        },
+        "stop_target.distance_to_stop_m": {
+          "role": "remaining distance to stop target",
+          "required": false
+        },
+        "fallback_events": {
+          "role": "recent fallback activations and reasons",
+          "required": false
+        }
+      }
+    }
+  },
+  "agent_shadow_output_contract": {
+    "artifact": "agent_shadow_intent.jsonl / agent_shadow_summary.json",
+    "fields": {
+      "case_id": {
+        "role": "benchmark case identifier",
+        "required": true,
+        "agent_emits": true
+      },
+      "frame_id": {
+        "role": "per-frame tick identifier",
+        "required": true,
+        "agent_emits": true
+      },
+      "shadow_mode": {
+        "role": "always True \u2014 marks this as non-authoritative",
+        "required": true,
+        "agent_emits": true
+      },
+      "model_id": {
+        "role": "model or provider identifier (e.g. gemini-2.5-pro / stub_v1)",
+        "required": true,
+        "agent_emits": true
+      },
+      "tactical_intent": {
+        "role": "selected tactical intent from ALLOWED_AGENT_INTENTS",
+        "required": true,
+        "agent_emits": true
+      },
+      "target_lane": {
+        "role": "target lane for LC intents (current/left/right)",
+        "required": false,
+        "agent_emits": true
+      },
+      "target_speed_mps": {
+        "role": "FORBIDDEN \u2014 agent must NOT emit direct speed control",
+        "required": false,
+        "agent_emits": false,
+        "forbidden": true
+      },
+      "reason_tags": {
+        "role": "list of structured reason codes explaining intent choice",
+        "required": true,
+        "agent_emits": true
+      },
+      "route_context_summary": {
+        "role": "brief structured summary of route context agent consumed",
+        "required": true,
+        "agent_emits": true
+      },
+      "stop_context_summary": {
+        "role": "brief structured summary of stop context agent consumed",
+        "required": false,
+        "agent_emits": true
+      },
+      "confidence": {
+        "role": "agent confidence in its intent [0.0 \u2013 1.0]",
+        "required": true,
+        "agent_emits": true
+      },
+      "timeout_flag": {
+        "role": "True if agent did not respond within budget; force-fallback",
+        "required": true,
+        "agent_emits": true
+      },
+      "validation_status": {
+        "role": "contract validation result (valid/invalid_intent/forbidden_field/malformed)",
+        "required": true,
+        "agent_emits": true
+      },
+      "fallback_to_baseline": {
+        "role": "True if agent timed-out/invalid \u2192 baseline is authority",
+        "required": true,
+        "agent_emits": true
+      },
+      "provenance": {
+        "role": "dict: model_id, provider, call_latency_ms, input_token_count, fallback_reason",
+        "required": true,
+        "agent_emits": true
+      },
+      "baseline_intent": {
+        "role": "copied from Stage 3B baseline for comparison",
+        "required": true,
+        "agent_emits": true
+      },
+      "agrees_with_baseline": {
+        "role": "True if agent intent == baseline intent",
+        "required": true,
+        "agent_emits": true
+      },
+      "disagreement_useful": {
+        "role": "True if disagreement is structurally valid and on a clean contract boundary",
+        "required": false,
+        "agent_emits": true
+      }
+    },
+    "binding_rules": [
+      "tactical_intent MUST be one of ALLOWED_AGENT_INTENTS",
+      "target_speed_mps MUST NOT appear in agent output \u2014 forbidden field",
+      "shadow_mode MUST be True always",
+      "fallback_to_baseline MUST be True when timeout_flag is True",
+      "fallback_to_baseline MUST be True when validation_status != 'valid'",
+      "agent MUST NOT request prepare/commit_lane_change when lane_change_permission is False",
+      "reason_tags MUST be a non-empty list of strings",
+      "provenance MUST include model_id and call_latency_ms"
+    ]
+  },
+  "allowed_agent_intents": [
+    "commit_lane_change_left",
+    "commit_lane_change_right",
+    "follow",
+    "keep_lane",
+    "keep_route_through_junction",
+    "prepare_lane_change_left",
+    "prepare_lane_change_right",
+    "slow_down",
+    "stop",
+    "yield"
+  ],
+  "forbidden_agent_outputs": [
+    "bypass_fallback",
+    "control_authority_claim",
+    "direct_brake",
+    "direct_steering",
+    "direct_throttle",
+    "mpc_override",
+    "trajectory_override"
+  ],
+  "minimum_input_bundle_for_agent": [
+    "ego_state (ego.speed_mps, ego.route_progress_m)",
+    "tracked_objects_summary (objects list simplified)",
+    "lane_context (ego_lane_id, left/right exists, junction_context)",
+    "route_context_summary (route_option, preferred_lane, route_mode, route_conflict_flags)",
+    "stop_context_summary (stop_target.distance_to_stop_m if available)",
+    "baseline_tactical_context (baseline requested_behavior + lane_change_permission)"
+  ],
+  "contracts_to_reuse": [
+    "lane_change_permission gate (must not request LC when permission=False)",
+    "fallback spine \u2014 if agent timeout/invalid \u2192 baseline authority unchanged",
+    "route/session binding \u2014 agent reads route_option but does NOT rebind route",
+    "stop contract \u2014 agent reads stop context but does NOT set stop target",
+    "MPC safety spine \u2014 agent has NO path to modify trajectory authority"
+  ],
+  "new_contracts_for_stage7": [
+    "agent_shadow_intent.jsonl \u2014 per-frame agent shadow intent with full provenance",
+    "agent_shadow_summary.json \u2014 per-case summary incl. timeout/validity/disagreement rates",
+    "agent_baseline_comparison.json \u2014 per-case baseline vs agent intent comparison",
+    "agent_disagreement_events.jsonl \u2014 frames where agent != baseline, with structured context",
+    "agent_shadow_intent.schema.json \u2014 JSON Schema for contract enforcement"
+  ],
+  "per_case_artifact_coverage": {
+    "adjacent_right_unsafe_hold": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "arbitration_stop_during_prepare_right": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "fr_arbitration_missing_cancel": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "fr_blocker_binding_wrong_lane": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "fr_lc_commit_no_permission": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "fr_right_commit_superseded_by_stop": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "fr_route_session_mismatch": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "fr_stop_overshoot_false_pass": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "junction_straight_core": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "ml_left_positive_core": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "ml_right_positive_core": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    },
+    "stop_follow_ambiguity_core": {
+      "world_state": {
+        "artifact": "stage2_world_state",
+        "status": "artifact_missing"
+      },
+      "lane_context": {
+        "artifact": "stage3a_lane_aware_world_state",
+        "status": "artifact_missing"
+      },
+      "behavior_request": {
+        "artifact": "stage3b_behavior_request_v2",
+        "status": "artifact_missing"
+      },
+      "stop_target_available": false,
+      "fallback_events_available": false
+    }
+  },
+  "summary": {
+    "total_cases_audited": 12,
+    "world_state_artifact_available": 0,
+    "lane_context_artifact_available": 0,
+    "behavior_request_artifact_available": 0,
+    "fraction_world_state_ready": 0.0,
+    "fraction_lane_context_ready": 0.0,
+    "fraction_behavior_request_ready": 0.0,
+    "stage7a_replay_readiness": "no_ready_cases",
+    "stage7b_scenario_replay_readiness": "design_complete_pending_execution",
+    "stage7c_online_readiness": "design_only_not_rollout_yet"
+  }
+}

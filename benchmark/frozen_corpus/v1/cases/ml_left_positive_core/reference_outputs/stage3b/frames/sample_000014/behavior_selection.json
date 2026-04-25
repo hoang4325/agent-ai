@@ -1,0 +1,82 @@
+{
+  "frame_id": 3934,
+  "sample_name": "sample_000014",
+  "requested_intent_stage2": {
+    "frame_id": 3934,
+    "timestamp": 40.531086567789316,
+    "maneuver": "slow_down",
+    "target_speed_mps": 7.119780376749102,
+    "lane_preference": "prefer_right",
+    "constraints": [],
+    "confidence": 0.65,
+    "reasoning_tags": [
+      "medium_risk_scene"
+    ]
+  },
+  "validated_maneuver_stage3a": {
+    "frame_id": 3934,
+    "requested_intent": {
+      "frame_id": 3934,
+      "timestamp": 40.531086567789316,
+      "maneuver": "slow_down",
+      "target_speed_mps": 7.119780376749102,
+      "lane_preference": "prefer_right",
+      "constraints": [],
+      "confidence": 0.65,
+      "reasoning_tags": [
+        "medium_risk_scene"
+      ]
+    },
+    "valid_maneuvers": [
+      "keep_lane",
+      "slow_down",
+      "lane_change_left"
+    ],
+    "invalid_maneuvers": [
+      {
+        "maneuver": "follow",
+        "reason": "no_front_object_in_current_lane"
+      },
+      {
+        "maneuver": "stop",
+        "reason": "no_immediate_stop_condition"
+      },
+      {
+        "maneuver": "yield",
+        "reason": "no_vru_yield_condition"
+      },
+      {
+        "maneuver": "lane_change_right",
+        "reason": "no_right_lane"
+      }
+    ],
+    "selected_behavior": "slow_down",
+    "selected_maneuver": "slow_down",
+    "lane_change_permission": {
+      "left": true,
+      "right": false,
+      "left_reason": null,
+      "right_reason": "no_right_lane"
+    },
+    "reasoning_tags": []
+  },
+  "route_conditioned_behavior": "prepare_lane_change_left",
+  "lane_change_stage": "prepare",
+  "selected_behavior": "prepare_lane_change_left",
+  "target_lane": "left",
+  "override_reason": "route_conditioned_prepare_left",
+  "route_influence": true,
+  "reasoning_tags": [
+    "medium_risk_scene",
+    "prepare_left_lane_change",
+    "route_conditioned_override",
+    "route_lane_preference_active"
+  ],
+  "behavior_constraints": [
+    "minimal_route_hint_applied",
+    "prepare_stage_only_no_lateral_commit",
+    "route_conditioned_behavior_v2",
+    "route_mode_minimal_route_hint"
+  ],
+  "scene_constraints": []
+}

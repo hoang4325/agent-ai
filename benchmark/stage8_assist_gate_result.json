@@ -1,0 +1,49 @@
+{
+  "schema_version": "stage8_assist_gate_result_v1",
+  "generated_at_utc": "2026-04-18T04:18:49+00:00",
+  "stage": "8_assist_sandbox",
+  "canary_case": "ml_right_positive_core",
+  "adapter_mode": "api",
+  "memory_window_size": 5,
+  "overall_status": "pass",
+  "hard_failures": [],
+  "soft_warnings": [
+    "brp_mean_latency_ms: value 2817.0 > max 1500.0",
+    "agent_useful_assist_rate: value 0.0 < min 0.1"
+  ],
+  "agent_authority": "shadow_only \u2014 MPC + baseline tactical remain guardian",
+  "no_control_authority": true,
+  "no_takeover": true,
+  "metrics": {
+    "total_frames": 60,
+    "ae_approved": 60,
+    "ae_vetoed": 0,
+    "ae_approval_rate": 1.0,
+    "ae_veto_rate": 0.0,
+    "assist_timeout_rate": 0.0,
+    "brp_contract_breach_count": 0,
+    "assist_forbidden_field_count": 0,
+    "mpc_guardian_override_rate": 1.0,
+    "rollback_contract_breach_count": 0,
+    "temporal_conflict_veto_rate": 0.0,
+    "brp_mean_latency_ms": 2817.0,
+    "agent_useful_assist_rate": 0.0
+  },
+  "ae_stats": {
+    "total_brps": 60,
+    "total_approved": 60,
+    "total_vetoed": 0,
+    "total_discarded": 0,
+    "ae_approval_rate": 1.0,
+    "ae_veto_rate": 0.0,
+    "contract_breach_count": 0,
+    "veto_counts_by_code": {},
+    "assist_disabled_frames_remaining": 0
+  },
+  "artifacts": {
+    "stage8_brp_audit": "D:\\Agent-AI\\benchmark\\reports\\stage8_assist_smoke_20260418_111830\\ml_right_positive_core\\stage8_assist\\stage8_brp_audit.jsonl",
+    "stage8_veto_events": "D:\\Agent-AI\\benchmark\\reports\\stage8_assist_smoke_20260418_111830\\ml_right_positive_core\\stage8_assist\\stage8_veto_events.jsonl",
+    "stage8_binding_advisory": "D:\\Agent-AI\\benchmark\\reports\\stage8_assist_smoke_20260418_111830\\ml_right_positive_core\\stage8_assist\\stage8_binding_advisory.jsonl",
+    "agent_temporal_memory": "D:\\Agent-AI\\benchmark\\reports\\stage8_assist_smoke_20260418_111830\\ml_right_positive_core\\stage8_assist\\agent_temporal_memory.json"
+  }
+}

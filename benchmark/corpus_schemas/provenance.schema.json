@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen Case Bundle Provenance",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "bundle_version",
+    "case_id",
+    "build",
+    "source_artifact_paths",
+    "source_run_ids",
+    "source_baseline",
+    "semantic_hardening_version",
+    "trace_lineage",
+    "artifact_lineage"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "frozen_case_bundle_v1.schema.provenance",
+      "x-population": "derived"
+    },
+    "bundle_version": {
+      "type": "string",
+      "const": "frozen_case_bundle_v1",
+      "x-population": "derived"
+    },
+    "case_id": {
+      "type": "string",
+      "x-population": "existing_case_spec"
+    },
+    "build": {
+      "type": "object",
+      "x-population": "derived"
+    },
+    "source_case_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "x-population": "existing_case_spec"
+    },
+    "source_artifact_paths": {
+      "type": "object",
+      "x-population": "existing_case_spec"
+    },
+    "source_run_ids": {
+      "type": "object",
+      "x-population": "derived_from_source_paths"
+    },
+    "source_baseline": {
+      "type": "object",
+      "x-population": "existing_benchmark_config"
+    },
+    "semantic_hardening_version": {
+      "type": "string",
+      "x-population": "existing_or_derived_semantic_artifact"
+    },
+    "trace_lineage": {
+      "type": "object",
+      "x-population": "derived"
+    },
+    "artifact_lineage": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "x-population": "derived"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "derived"
+    }
+  }
+}

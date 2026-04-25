@@ -1,0 +1,165 @@
+{
+  "frame": 2190,
+  "timestamp": 33.54063230380416,
+  "sample_name": "sample_000013",
+  "sequence_index": 13,
+  "ego": {
+    "frame_id": 2190,
+    "timestamp": 33.54063230380416,
+    "sample_name": "sample_000013",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      -58.90531539916992,
+      -23.420467376708984,
+      -0.006409187335520983
+    ],
+    "velocity_world": [
+      6.950716972351074,
+      2.0833871364593506,
+      -0.0003071689570788294
+    ],
+    "speed_mps": 7.2562365234635475,
+    "yaw_deg": -14.118093490600586,
+    "route_progress_m": 1.3480339961819725,
+    "world_from_ego_bevfusion": [
+      [
+        0.9697473645210266,
+        -0.24400807917118073,
+        -0.007078750059008598,
+        -58.90531539916992
+      ],
+      [
+        0.24390926957130432,
+        0.9697174429893494,
+        -0.01250336691737175,
+        -23.420467376708984
+      ],
+      [
+        0.009915309026837349,
+        0.010398534126579762,
+        0.999896764755249,
+        -0.006409187335520983
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "objects": [
+    {
+      "track_id": 2,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000013_det_0000",
+      "age_frames": 1,
+      "hits": 1,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.1126708984375,
+      "mean_score": 0.1126708984375,
+      "position_ego": [
+        -7.184909820556641,
+        -24.515478134155273,
+        -0.6533203125
+      ],
+      "velocity_ego": [
+        -0.0115814208984375,
+        0.07403564453125
+      ],
+      "speed_mps": 0.07493601251190493,
+      "bbox": [
+        -7.184909820556641,
+        -24.515478134155273,
+        -0.6533203125,
+        2.130859375,
+        4.9140625,
+        1.8251953125,
+        -3.009765625,
+        -0.0115814208984375,
+        0.07403564453125
+      ],
+      "size_xyz": [
+        2.130859375,
+        4.9140625,
+        1.8251953125
+      ],
+      "yaw_rad": -3.009765625,
+      "distance_m": 25.54665530506443,
+      "bearing_deg": -106.33461948796486,
+      "ttc_seconds": null,
+      "relative_sector": "rear_right",
+      "source_confidence": 0.1126708984375,
+      "risk_score": 0.15840008521201676,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "vehicle"
+      ]
+    }
+  ],
+  "scene": {
+    "active_object_count": 1,
+    "front_free_space_m": null,
+    "left_side_occupancy": 0.0,
+    "right_side_occupancy": 0.148444823164519,
+    "rear_gap_m": 7.184909820556641,
+    "nearest_front_vehicle": null,
+    "nearest_vru": null,
+    "nearest_any_object": {
+      "track_id": 2,
+      "class": "car",
+      "distance_m": 25.54665530506443,
+      "bearing_deg": -106.33461948796486,
+      "position_ego": [
+        -7.184909820556641,
+        -24.515478134155273,
+        -0.6533203125
+      ],
+      "velocity_ego": [
+        -0.0115814208984375,
+        0.07403564453125
+      ],
+      "risk_level": "low",
+      "risk_score": 0.15840008521201676
+    },
+    "abnormal_flags": []
+  },
+  "risk_summary": {
+    "highest_risk_level": "low",
+    "highest_risk_score": 0.15840008521201676,
+    "urgent_track_ids": [],
+    "front_hazard_track_id": null,
+    "nearest_front_vehicle_distance_m": null,
+    "nearest_vru_distance_m": null,
+    "minimum_ttc_seconds": null,
+    "flags": []
+  },
+  "decision_context": {
+    "recommended_maneuvers": [
+      "keep_lane"
+    ],
+    "hard_constraints": [],
+    "soft_constraints": [
+      "prefer_keep_lane"
+    ]
+  }
+}

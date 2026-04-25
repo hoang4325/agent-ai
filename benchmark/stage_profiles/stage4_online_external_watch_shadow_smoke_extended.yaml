@@ -1,0 +1,17 @@
+name: stage4_online_external_watch_shadow_smoke_extended
+runner_script: scripts/run_stage4_online.py
+python_executable: "{stage4_python_executable}"
+args:
+  --output-dir: "{stage4_output_dir}"
+  --scenario-manifest: "{scenario_manifest}"
+  --spawn-ego-if-missing: "true"
+  --carla-pythonapi-root: "D:/carla/PythonAPI"
+  --num-ticks: "10"
+  --warmup-ticks: "2"
+  --fixed-delta-seconds: "0.10"
+  --route-option: "{route_option}"
+  --preferred-lane: "{preferred_lane}"
+  --route-priority: "{route_priority}"
+  --stage1-launch-mode: "external_watch"
+  --stage1-session-root: "{stage1_session_dir}"
+  --shadow-mode: "true"

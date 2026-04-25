@@ -1,0 +1,45 @@
+{
+  "frame_id": 60013,
+  "requested_intent": {
+    "frame_id": 60013,
+    "timestamp": 436.21970076859,
+    "maneuver": "slow_down",
+    "target_speed_mps": 5.3371638326292405,
+    "lane_preference": "keep_current",
+    "constraints": [],
+    "confidence": 0.72,
+    "reasoning_tags": [
+      "high_risk_scene",
+      "precautionary_brake"
+    ]
+  },
+  "valid_maneuvers": [
+    "keep_lane",
+    "slow_down",
+    "stop",
+    "lane_change_right"
+  ],
+  "invalid_maneuvers": [
+    {
+      "maneuver": "follow",
+      "reason": "no_front_object_in_current_lane"
+    },
+    {
+      "maneuver": "yield",
+      "reason": "no_vru_yield_condition"
+    },
+    {
+      "maneuver": "lane_change_left",
+      "reason": "no_left_lane"
+    }
+  ],
+  "selected_behavior": "slow_down",
+  "selected_maneuver": "slow_down",
+  "lane_change_permission": {
+    "left": false,
+    "right": true,
+    "left_reason": "no_left_lane",
+    "right_reason": null
+  },
+  "reasoning_tags": []
+}

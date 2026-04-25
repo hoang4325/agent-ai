@@ -1,0 +1,2188 @@
+{
+  "schema_version": "stage1.v1",
+  "sample_name": "sample_000069",
+  "sequence_index": 69,
+  "previous_sample_name": "sample_000068",
+  "frame_id": 726342,
+  "timestamp": 5004.094624821097,
+  "platform_timestamp": 16813398.0342423,
+  "delta_seconds": 0.10000000149011612,
+  "town": "Carla/Maps/Town10HD_Opt",
+  "weather": {
+    "cloudiness": 20.0,
+    "dust_storm": 0.0,
+    "fog_density": 2.0,
+    "fog_distance": 0.75,
+    "fog_falloff": 0.10000000149011612,
+    "mie_scattering_scale": 0.029999999329447746,
+    "precipitation": 0.0,
+    "precipitation_deposits": 0.0,
+    "rayleigh_scattering_scale": 0.03310000151395798,
+    "scattering_intensity": 1.0,
+    "sun_altitude_angle": 45.0,
+    "sun_azimuth_angle": 300.0,
+    "wetness": 0.0,
+    "wind_intensity": 10.0
+  },
+  "sensor_names": [
+    "CAM_FRONT",
+    "CAM_FRONT_RIGHT",
+    "CAM_FRONT_LEFT",
+    "CAM_BACK",
+    "CAM_BACK_LEFT",
+    "CAM_BACK_RIGHT",
+    "LIDAR_TOP",
+    "RADAR_FRONT",
+    "RADAR_FRONT_LEFT",
+    "RADAR_FRONT_RIGHT",
+    "RADAR_BACK_LEFT",
+    "RADAR_BACK_RIGHT"
+  ],
+  "camera_order_for_model": [
+    "CAM_FRONT",
+    "CAM_FRONT_RIGHT",
+    "CAM_FRONT_LEFT",
+    "CAM_BACK",
+    "CAM_BACK_LEFT",
+    "CAM_BACK_RIGHT"
+  ],
+  "radar_order_for_model": [
+    "RADAR_FRONT",
+    "RADAR_FRONT_LEFT",
+    "RADAR_FRONT_RIGHT",
+    "RADAR_BACK_LEFT",
+    "RADAR_BACK_RIGHT"
+  ],
+  "coordinate_notes": {
+    "carla_world": "left-handed x-forward y-right z-up",
+    "bevfusion_lidar": "x-forward y-left z-up",
+    "camera_frame_for_model": "OpenCV style x-right y-down z-forward"
+  },
+  "ego": {
+    "actor_id": 49,
+    "transform_carla": {
+      "location": {
+        "x": 103.61872100830078,
+        "y": -37.356040954589844,
+        "z": -0.004499893169850111
+      },
+      "rotation": {
+        "roll": -3.051757266803179e-05,
+        "pitch": -0.0002458867966197431,
+        "yaw": -109.1600341796875
+      }
+    },
+    "velocity_carla": [
+      -1.7240661520645517e-07,
+      3.174638152358966e-07,
+      -8.583068478174027e-08
+    ],
+    "angular_velocity_carla": [
+      -9.70084365690127e-05,
+      -5.131966099725105e-05,
+      5.199621710971769e-08
+    ],
+    "matrix_world_from_ego_carla": [
+      [
+        -0.3282078504562378,
+        0.9446055293083191,
+        -1.91164235729957e-06,
+        103.61872100830078
+      ],
+      [
+        -0.9446055293083191,
+        -0.3282078504562378,
+        -3.8789926293247845e-06,
+        -37.356040954589844
+      ],
+      [
+        -4.291533969080774e-06,
+        5.326321002030454e-07,
+        1.0,
+        -0.004499893169850111
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "matrix_world_from_ego_bevfusion": [
+      [
+        -0.3282078504562378,
+        -0.9446055293083191,
+        -1.91164235729957e-06,
+        103.61872100830078
+      ],
+      [
+        0.9446055293083191,
+        -0.3282078504562378,
+        3.8789926293247845e-06,
+        37.356040954589844
+      ],
+      [
+        -4.291533969080774e-06,
+        -5.326321002030454e-07,
+        1.0,
+        -0.004499893169850111
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "sensors": {
+    "CAM_FRONT": {
+      "type_id": "sensor.camera.rgb",
+      "blueprint_attributes": {
+        "role_name": "front",
+        "ros_name": "sensor.camera.rgb",
+        "chromatic_aberration_offset": "0.0",
+        "sensor_tick": "0.100000",
+        "fstop": "1.4",
+        "image_size_x": "960",
+        "image_size_y": "540",
+        "fov": "70.00",
+        "lens_circle_falloff": "5.0",
+        "lens_circle_multiplier": "0.0",
+        "exposure_compensation": "0.0",
+        "lens_y_size": "0.08",
+        "lens_k": "-1.0",
+        "exposure_mode": "histogram",
+        "lens_kcube": "0.0",
+        "lens_x_size": "0.08",
+        "exposure_max_bright": "12.0",
+        "shutter_speed": "200.0",
+        "bloom_intensity": "0.675",
+        "iso": "100.0",
+        "enable_postprocess_effects": "false",
+        "gamma": "2.2",
+        "motion_blur_intensity": "0.0",
+        "motion_blur_max_distortion": "0.35",
+        "lens_flare_intensity": "0.1",
+        "motion_blur_min_object_screen_size": "0.1",
+        "exposure_min_bright": "10.0",
+        "exposure_speed_up": "3.0",
+        "exposure_speed_down": "1.0",
+        "tint": "0.0",
+        "calibration_constant": "16.0",
+        "focal_distance": "1000.0",
+        "min_fstop": "1.2",
+        "blade_count": "5",
+        "blur_amount": "0.0",
+        "blur_radius": "0.0",
+        "slope": "0.88",
+        "toe": "0.55",
+        "white_clip": "0.04",
+        "shoulder": "0.26",
+        "black_clip": "0.0",
+        "temp": "6500.0",
+        "chromatic_aberration_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 103.11000061035156,
+          "y": -38.820186614990234,
+          "z": 1.695493459701538
+        },
+        "rotation": {
+          "roll": -3.051757266803179e-05,
+          "pitch": -0.0002458867966197431,
+          "yaw": -109.1600341796875
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.3282078504562378,
+          0.9446055293083191,
+          -1.91164235729957e-06,
+          103.11000061035156
+        ],
+        [
+          -0.9446055293083191,
+          -0.3282078504562378,
+          -3.8789926293247845e-06,
+          -38.820186614990234
+        ],
+        [
+          -4.291533969080774e-06,
+          5.326321002030454e-07,
+          1.0,
+          1.695493459701538
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          0.9446055293083191,
+          1.91164235729957e-06,
+          -0.3282078504562378,
+          103.11000061035156
+        ],
+        [
+          0.3282078504562378,
+          -3.8789926293247845e-06,
+          0.9446055293083191,
+          38.820186614990234
+        ],
+        [
+          5.326321002030454e-07,
+          -1.0,
+          -4.291533969080774e-06,
+          1.695493459701538
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          1.0,
+          6.617450143409087e-09,
+          0.0,
+          1.549999475479126
+        ],
+        [
+          6.617450143409087e-09,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          6.617450143409087e-09,
+          0.0,
+          1.0,
+          1.549999475479126
+        ],
+        [
+          -1.0,
+          0.0,
+          -6.617450143409087e-09,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "camera_intrinsics": [
+        [
+          685.5110473632812,
+          0.0,
+          480.0
+        ],
+        [
+          0.0,
+          685.5110473632812,
+          270.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\images\\CAM_FRONT.png",
+      "raw_layout": "bgra8"
+    },
+    "CAM_FRONT_RIGHT": {
+      "type_id": "sensor.camera.rgb",
+      "blueprint_attributes": {
+        "role_name": "front",
+        "ros_name": "sensor.camera.rgb",
+        "chromatic_aberration_offset": "0.0",
+        "sensor_tick": "0.100000",
+        "fstop": "1.4",
+        "image_size_x": "960",
+        "image_size_y": "540",
+        "fov": "70.00",
+        "lens_circle_falloff": "5.0",
+        "lens_circle_multiplier": "0.0",
+        "exposure_compensation": "0.0",
+        "lens_y_size": "0.08",
+        "lens_k": "-1.0",
+        "exposure_mode": "histogram",
+        "lens_kcube": "0.0",
+        "lens_x_size": "0.08",
+        "exposure_max_bright": "12.0",
+        "shutter_speed": "200.0",
+        "bloom_intensity": "0.675",
+        "iso": "100.0",
+        "enable_postprocess_effects": "false",
+        "gamma": "2.2",
+        "motion_blur_intensity": "0.0",
+        "motion_blur_max_distortion": "0.35",
+        "lens_flare_intensity": "0.1",
+        "motion_blur_min_object_screen_size": "0.1",
+        "exposure_min_bright": "10.0",
+        "exposure_speed_up": "3.0",
+        "exposure_speed_down": "1.0",
+        "tint": "0.0",
+        "calibration_constant": "16.0",
+        "focal_distance": "1000.0",
+        "min_fstop": "1.2",
+        "blade_count": "5",
+        "blur_amount": "0.0",
+        "blur_radius": "0.0",
+        "slope": "0.88",
+        "toe": "0.55",
+        "white_clip": "0.04",
+        "shoulder": "0.26",
+        "black_clip": "0.0",
+        "temp": "6500.0",
+        "chromatic_aberration_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 103.71157836914062,
+          "y": -38.764549255371094,
+          "z": 1.6954950094223022
+        },
+        "rotation": {
+          "roll": -0.0002174924302380532,
+          "pitch": -0.00011611320951487869,
+          "yaw": -54.16004943847656
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          0.5855230689048767,
+          0.8106557726860046,
+          -1.890619728328602e-06,
+          103.71157836914062
+        ],
+        [
+          -0.8106557726860046,
+          0.5855230689048767,
+          -3.8654625313938595e-06,
+          -38.764549255371094
+        ],
+        [
+          -2.026557694989606e-06,
+          3.7959589462843724e-06,
+          1.0,
+          1.6954950094223022
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          0.8106557726860046,
+          1.890619728328602e-06,
+          0.5855230689048767,
+          103.71157836914062
+        ],
+        [
+          -0.5855230689048767,
+          -3.8654625313938595e-06,
+          0.8106557726860046,
+          38.764549255371094
+        ],
+        [
+          3.7959589462843724e-06,
+          -1.0,
+          -2.026557694989606e-06,
+          1.6954950094223022
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          0.5735766291618347,
+          -0.8191519379615784,
+          -1.9680555851664394e-08,
+          1.2999992370605469
+        ],
+        [
+          0.8191518783569336,
+          0.5735766887664795,
+          1.5417413123941515e-08,
+          0.5499954223632812
+        ],
+        [
+          -1.3405951904132962e-09,
+          -2.4964720068965107e-08,
+          1.0,
+          1.7000001668930054
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          -0.8191519379615784,
+          1.9680555851664394e-08,
+          0.5735766291618347,
+          1.2999992370605469
+        ],
+        [
+          -0.5735766887664795,
+          1.5417413123941515e-08,
+          -0.8191518783569336,
+          -0.5499954223632812
+        ],
+        [
+          -2.4964720068965107e-08,
+          -1.0,
+          -1.3405951904132962e-09,
+          1.7000001668930054
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "camera_intrinsics": [
+        [
+          685.5110473632812,
+          0.0,
+          480.0
+        ],
+        [
+          0.0,
+          685.5110473632812,
+          270.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\images\\CAM_FRONT_RIGHT.png",
+      "raw_layout": "bgra8"
+    },
+    "CAM_FRONT_LEFT": {
+      "type_id": "sensor.camera.rgb",
+      "blueprint_attributes": {
+        "role_name": "front",
+        "ros_name": "sensor.camera.rgb",
+        "chromatic_aberration_offset": "0.0",
+        "sensor_tick": "0.100000",
+        "fstop": "1.4",
+        "image_size_x": "960",
+        "image_size_y": "540",
+        "fov": "70.00",
+        "lens_circle_falloff": "5.0",
+        "lens_circle_multiplier": "0.0",
+        "exposure_compensation": "0.0",
+        "lens_y_size": "0.08",
+        "lens_k": "-1.0",
+        "exposure_mode": "histogram",
+        "lens_kcube": "0.0",
+        "lens_x_size": "0.08",
+        "exposure_max_bright": "12.0",
+        "shutter_speed": "200.0",
+        "bloom_intensity": "0.675",
+        "iso": "100.0",
+        "enable_postprocess_effects": "false",
+        "gamma": "2.2",
+        "motion_blur_intensity": "0.0",
+        "motion_blur_max_distortion": "0.35",
+        "lens_flare_intensity": "0.1",
+        "motion_blur_min_object_screen_size": "0.1",
+        "exposure_min_bright": "10.0",
+        "exposure_speed_up": "3.0",
+        "exposure_speed_down": "1.0",
+        "tint": "0.0",
+        "calibration_constant": "16.0",
+        "focal_distance": "1000.0",
+        "min_fstop": "1.2",
+        "blade_count": "5",
+        "blur_amount": "0.0",
+        "blur_radius": "0.0",
+        "slope": "0.88",
+        "toe": "0.55",
+        "white_clip": "0.04",
+        "shoulder": "0.26",
+        "black_clip": "0.0",
+        "temp": "6500.0",
+        "chromatic_aberration_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 102.6725082397461,
+          "y": -38.40352249145508,
+          "z": 1.695494294166565
+        },
+        "rotation": {
+          "roll": 0.00018248411652166396,
+          "pitch": -0.00016392453107982874,
+          "yaw": -164.16001892089844
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.9620277285575867,
+          0.2729516327381134,
+          -1.883046252260101e-06,
+          102.6725082397461
+        ],
+        [
+          -0.2729516327381134,
+          -0.9620277285575867,
+          -3.844929779006634e-06,
+          -38.40352249145508
+        ],
+        [
+          -2.8610227218450746e-06,
+          -3.184948582202196e-06,
+          1.0,
+          1.695494294166565
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          0.2729516327381134,
+          1.883046252260101e-06,
+          -0.9620277285575867,
+          102.6725082397461
+        ],
+        [
+          0.9620277285575867,
+          -3.844929779006634e-06,
+          0.2729516327381134,
+          38.40352249145508
+        ],
+        [
+          -3.184948582202196e-06,
+          -1.0,
+          -2.8610227218450746e-06,
+          1.695494294166565
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          0.5735766887664795,
+          0.8191518187522888,
+          -4.156163413426839e-08,
+          1.3000054359436035
+        ],
+        [
+          -0.8191518187522888,
+          0.5735766887664795,
+          1.5832370081625413e-08,
+          -0.5500106811523438
+        ],
+        [
+          3.680770532810129e-08,
+          2.4964037947938778e-08,
+          1.0,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          0.8191518187522888,
+          4.156163413426839e-08,
+          0.5735766887664795,
+          1.3000054359436035
+        ],
+        [
+          -0.5735766887664795,
+          1.5832370081625413e-08,
+          0.8191518187522888,
+          0.5500106811523438
+        ],
+        [
+          2.4964037947938778e-08,
+          -1.0,
+          3.680770532810129e-08,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "camera_intrinsics": [
+        [
+          685.5110473632812,
+          0.0,
+          480.0
+        ],
+        [
+          0.0,
+          685.5110473632812,
+          270.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\images\\CAM_FRONT_LEFT.png",
+      "raw_layout": "bgra8"
+    },
+    "CAM_BACK": {
+      "type_id": "sensor.camera.rgb",
+      "blueprint_attributes": {
+        "role_name": "front",
+        "ros_name": "sensor.camera.rgb",
+        "chromatic_aberration_offset": "0.0",
+        "sensor_tick": "0.100000",
+        "fstop": "1.4",
+        "image_size_x": "960",
+        "image_size_y": "540",
+        "fov": "70.00",
+        "lens_circle_falloff": "5.0",
+        "lens_circle_multiplier": "0.0",
+        "exposure_compensation": "0.0",
+        "lens_y_size": "0.08",
+        "lens_k": "-1.0",
+        "exposure_mode": "histogram",
+        "lens_kcube": "0.0",
+        "lens_x_size": "0.08",
+        "exposure_max_bright": "12.0",
+        "shutter_speed": "200.0",
+        "bloom_intensity": "0.675",
+        "iso": "100.0",
+        "enable_postprocess_effects": "false",
+        "gamma": "2.2",
+        "motion_blur_intensity": "0.0",
+        "motion_blur_max_distortion": "0.35",
+        "lens_flare_intensity": "0.1",
+        "motion_blur_min_object_screen_size": "0.1",
+        "exposure_min_bright": "10.0",
+        "exposure_speed_up": "3.0",
+        "exposure_speed_down": "1.0",
+        "tint": "0.0",
+        "calibration_constant": "16.0",
+        "focal_distance": "1000.0",
+        "min_fstop": "1.2",
+        "blade_count": "5",
+        "blur_amount": "0.0",
+        "blur_radius": "0.0",
+        "slope": "0.88",
+        "toe": "0.55",
+        "white_clip": "0.04",
+        "shoulder": "0.26",
+        "black_clip": "0.0",
+        "temp": "6500.0",
+        "chromatic_aberration_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 104.12744140625,
+          "y": -35.89190673828125,
+          "z": 1.6955065727233887
+        },
+        "rotation": {
+          "roll": 3.051766543649137e-05,
+          "pitch": 0.0002458867966197431,
+          "yaw": 70.8399658203125
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          0.3282078802585602,
+          -0.9446055293083191,
+          -1.911643948915298e-06,
+          104.12744140625
+        ],
+        [
+          0.9446055293083191,
+          0.3282078802585602,
+          -3.878992174577434e-06,
+          -35.89190673828125
+        ],
+        [
+          4.291533969080774e-06,
+          -5.326337486621924e-07,
+          1.0,
+          1.6955065727233887
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.9446055293083191,
+          1.911643948915298e-06,
+          0.3282078802585602,
+          104.12744140625
+        ],
+        [
+          -0.3282078802585602,
+          -3.878992174577434e-06,
+          -0.9446055293083191,
+          35.89190673828125
+        ],
+        [
+          -5.326337486621924e-07,
+          -1.0,
+          4.291533969080774e-06,
+          1.6955065727233887
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          -1.0,
+          -3.4768891765679655e-08,
+          0.0,
+          -1.550004482269287
+        ],
+        [
+          2.3184872688375435e-08,
+          -1.0,
+          -1.6484591469634324e-12,
+          0.0
+        ],
+        [
+          0.0,
+          -1.7621459846850485e-12,
+          1.0,
+          1.6999998092651367
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          -3.4768891765679655e-08,
+          0.0,
+          -1.0,
+          -1.550004482269287
+        ],
+        [
+          1.0,
+          -1.6484591469634324e-12,
+          -2.3184872688375435e-08,
+          0.0
+        ],
+        [
+          -1.7621459846850485e-12,
+          -1.0,
+          0.0,
+          1.6999998092651367
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "camera_intrinsics": [
+        [
+          685.5110473632812,
+          0.0,
+          480.0
+        ],
+        [
+          0.0,
+          685.5110473632812,
+          270.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\images\\CAM_BACK.png",
+      "raw_layout": "bgra8"
+    },
+    "CAM_BACK_LEFT": {
+      "type_id": "sensor.camera.rgb",
+      "blueprint_attributes": {
+        "role_name": "front",
+        "ros_name": "sensor.camera.rgb",
+        "chromatic_aberration_offset": "0.0",
+        "sensor_tick": "0.100000",
+        "fstop": "1.4",
+        "image_size_x": "960",
+        "image_size_y": "540",
+        "fov": "70.00",
+        "lens_circle_falloff": "5.0",
+        "lens_circle_multiplier": "0.0",
+        "exposure_compensation": "0.0",
+        "lens_y_size": "0.08",
+        "lens_k": "-1.0",
+        "exposure_mode": "histogram",
+        "lens_kcube": "0.0",
+        "lens_x_size": "0.08",
+        "exposure_max_bright": "12.0",
+        "shutter_speed": "200.0",
+        "bloom_intensity": "0.675",
+        "iso": "100.0",
+        "enable_postprocess_effects": "false",
+        "gamma": "2.2",
+        "motion_blur_intensity": "0.0",
+        "motion_blur_max_distortion": "0.35",
+        "lens_flare_intensity": "0.1",
+        "motion_blur_min_object_screen_size": "0.1",
+        "exposure_min_bright": "10.0",
+        "exposure_speed_up": "3.0",
+        "exposure_speed_down": "1.0",
+        "tint": "0.0",
+        "calibration_constant": "16.0",
+        "focal_distance": "1000.0",
+        "min_fstop": "1.2",
+        "blade_count": "5",
+        "blur_amount": "0.0",
+        "blur_radius": "0.0",
+        "slope": "0.88",
+        "toe": "0.55",
+        "white_clip": "0.04",
+        "shoulder": "0.26",
+        "black_clip": "0.0",
+        "temp": "6500.0",
+        "chromatic_aberration_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 103.5258560180664,
+          "y": -35.94754409790039,
+          "z": 1.6955053806304932
+        },
+        "rotation": {
+          "roll": 0.00021749241568613797,
+          "pitch": 0.00011611320951487869,
+          "yaw": 125.8399429321289
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.5855228900909424,
+          -0.8106558918952942,
+          -1.8906202967627905e-06,
+          103.5258560180664
+        ],
+        [
+          0.8106558918952942,
+          -0.5855228900909424,
+          -3.865461621899158e-06,
+          -35.94754409790039
+        ],
+        [
+          2.026557694989606e-06,
+          -3.795958718910697e-06,
+          1.0,
+          1.6955053806304932
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.8106558918952942,
+          1.8906202967627905e-06,
+          -0.5855228900909424,
+          103.5258560180664
+        ],
+        [
+          0.5855228900909424,
+          -3.865461621899158e-06,
+          -0.8106558918952942,
+          35.94754409790039
+        ],
+        [
+          -3.795958718910697e-06,
+          -1.0,
+          2.026557694989606e-06,
+          1.6955053806304932
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          -0.573576807975769,
+          0.8191518187522888,
+          -1.968101059901528e-08,
+          -1.3000004291534424
+        ],
+        [
+          -0.8191518187522888,
+          -0.5735768675804138,
+          1.5416560472658603e-08,
+          -0.5500030517578125
+        ],
+        [
+          1.3399130693869665e-09,
+          2.4964492695289664e-08,
+          1.0,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          0.8191518187522888,
+          1.968101059901528e-08,
+          -0.573576807975769,
+          -1.3000004291534424
+        ],
+        [
+          0.5735768675804138,
+          1.5416560472658603e-08,
+          0.8191518187522888,
+          0.5500030517578125
+        ],
+        [
+          2.4964492695289664e-08,
+          -1.0,
+          1.3399130693869665e-09,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "camera_intrinsics": [
+        [
+          685.5110473632812,
+          0.0,
+          480.0
+        ],
+        [
+          0.0,
+          685.5110473632812,
+          270.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\images\\CAM_BACK_LEFT.png",
+      "raw_layout": "bgra8"
+    },
+    "CAM_BACK_RIGHT": {
+      "type_id": "sensor.camera.rgb",
+      "blueprint_attributes": {
+        "role_name": "front",
+        "ros_name": "sensor.camera.rgb",
+        "chromatic_aberration_offset": "0.0",
+        "sensor_tick": "0.100000",
+        "fstop": "1.4",
+        "image_size_x": "960",
+        "image_size_y": "540",
+        "fov": "70.00",
+        "lens_circle_falloff": "5.0",
+        "lens_circle_multiplier": "0.0",
+        "exposure_compensation": "0.0",
+        "lens_y_size": "0.08",
+        "lens_k": "-1.0",
+        "exposure_mode": "histogram",
+        "lens_kcube": "0.0",
+        "lens_x_size": "0.08",
+        "exposure_max_bright": "12.0",
+        "shutter_speed": "200.0",
+        "bloom_intensity": "0.675",
+        "iso": "100.0",
+        "enable_postprocess_effects": "false",
+        "gamma": "2.2",
+        "motion_blur_intensity": "0.0",
+        "motion_blur_max_distortion": "0.35",
+        "lens_flare_intensity": "0.1",
+        "motion_blur_min_object_screen_size": "0.1",
+        "exposure_min_bright": "10.0",
+        "exposure_speed_up": "3.0",
+        "exposure_speed_down": "1.0",
+        "tint": "0.0",
+        "calibration_constant": "16.0",
+        "focal_distance": "1000.0",
+        "min_fstop": "1.2",
+        "blade_count": "5",
+        "blur_amount": "0.0",
+        "blur_radius": "0.0",
+        "slope": "0.88",
+        "toe": "0.55",
+        "white_clip": "0.04",
+        "shoulder": "0.26",
+        "black_clip": "0.0",
+        "temp": "6500.0",
+        "chromatic_aberration_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 104.5649185180664,
+          "y": -36.30857467651367,
+          "z": 1.695505976676941
+        },
+        "rotation": {
+          "roll": -0.00018248411652166396,
+          "pitch": 0.00016392453107982874,
+          "yaw": 15.839972496032715
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          0.9620277881622314,
+          -0.2729514539241791,
+          -1.8830469343811274e-06,
+          104.5649185180664
+        ],
+        [
+          0.2729514539241791,
+          0.9620277881622314,
+          -3.844929324259283e-06,
+          -36.30857467651367
+        ],
+        [
+          2.8610227218450746e-06,
+          3.184948582202196e-06,
+          1.0,
+          1.695505976676941
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.2729514539241791,
+          1.8830469343811274e-06,
+          0.9620277881622314,
+          104.5649185180664
+        ],
+        [
+          -0.9620277881622314,
+          -3.844929324259283e-06,
+          -0.2729514539241791,
+          36.30857467651367
+        ],
+        [
+          3.184948582202196e-06,
+          -1.0,
+          2.8610227218450746e-06,
+          1.695505976676941
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          -0.5735765099525452,
+          -0.8191519379615784,
+          -4.156163413426839e-08,
+          -1.2999989986419678
+        ],
+        [
+          0.8191519379615784,
+          -0.5735765099525452,
+          1.5831574273761362e-08,
+          0.54998779296875
+        ],
+        [
+          -3.680702320707496e-08,
+          -2.4964492695289664e-08,
+          1.0,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          -0.8191519379615784,
+          4.156163413426839e-08,
+          -0.5735765099525452,
+          -1.2999989986419678
+        ],
+        [
+          0.5735765099525452,
+          1.5831574273761362e-08,
+          -0.8191519379615784,
+          -0.54998779296875
+        ],
+        [
+          -2.4964492695289664e-08,
+          -1.0,
+          -3.680702320707496e-08,
+          1.7000000476837158
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "camera_intrinsics": [
+        [
+          685.5110473632812,
+          0.0,
+          480.0
+        ],
+        [
+          0.0,
+          685.5110473632812,
+          270.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\images\\CAM_BACK_RIGHT.png",
+      "raw_layout": "bgra8"
+    },
+    "LIDAR_TOP": {
+      "type_id": "sensor.lidar.ray_cast",
+      "blueprint_attributes": {
+        "atmosphere_attenuation_rate": "0.004",
+        "role_name": "front",
+        "noise_seed": "0",
+        "upper_fov": "10.0",
+        "ros_name": "sensor.lidar.ray_cast",
+        "sensor_tick": "0.100000",
+        "channels": "32",
+        "range": "120.0",
+        "points_per_second": "360000",
+        "lower_fov": "-30.0",
+        "rotation_frequency": "10.000000",
+        "horizontal_fov": "360.0",
+        "dropoff_general_rate": "0.0",
+        "dropoff_intensity_limit": "1.0",
+        "noise_stddev": "0.0",
+        "dropoff_zero_intensity": "0.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 103.61872100830078,
+          "y": -37.356048583984375,
+          "z": 2.195500135421753
+        },
+        "rotation": {
+          "roll": -3.051757266803179e-05,
+          "pitch": -0.0002458867966197431,
+          "yaw": -109.1600341796875
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.3282078504562378,
+          0.9446055293083191,
+          -1.91164235729957e-06,
+          103.61872100830078
+        ],
+        [
+          -0.9446055293083191,
+          -0.3282078504562378,
+          -3.8789926293247845e-06,
+          -37.356048583984375
+        ],
+        [
+          -4.291533969080774e-06,
+          5.326321002030454e-07,
+          1.0,
+          2.195500135421753
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.3282078504562378,
+          -0.9446055293083191,
+          -1.91164235729957e-06,
+          103.61872100830078
+        ],
+        [
+          0.9446055293083191,
+          -0.3282078504562378,
+          3.8789926293247845e-06,
+          37.356048583984375
+        ],
+        [
+          -4.291533969080774e-06,
+          -5.326321002030454e-07,
+          1.0,
+          2.195500135421753
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          1.0,
+          6.617450143409087e-09,
+          0.0,
+          -8.344650268554688e-07
+        ],
+        [
+          6.617450143409087e-09,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          2.200000047683716
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          1.0,
+          -6.617450143409087e-09,
+          0.0,
+          -8.344650268554688e-07
+        ],
+        [
+          -6.617450143409087e-09,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          2.200000047683716
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\lidar\\LIDAR_TOP.npy",
+      "raw_layout": [
+        "x",
+        "y",
+        "z",
+        "intensity"
+      ]
+    },
+    "RADAR_FRONT": {
+      "type_id": "sensor.other.radar",
+      "blueprint_attributes": {
+        "sensor_tick": "0.100000",
+        "role_name": "default",
+        "noise_seed": "0",
+        "ros_name": "sensor.other.radar",
+        "horizontal_fov": "35.0",
+        "points_per_second": "1500",
+        "vertical_fov": "20.0",
+        "range": "120.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 102.9623031616211,
+          "y": -39.24525451660156,
+          "z": 0.8954915404319763
+        },
+        "rotation": {
+          "roll": -3.051757266803179e-05,
+          "pitch": -0.0002458867966197431,
+          "yaw": -109.1600341796875
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.3282078504562378,
+          0.9446055293083191,
+          -1.91164235729957e-06,
+          102.9623031616211
+        ],
+        [
+          -0.9446055293083191,
+          -0.3282078504562378,
+          -3.8789926293247845e-06,
+          -39.24525451660156
+        ],
+        [
+          -4.291533969080774e-06,
+          5.326321002030454e-07,
+          1.0,
+          0.8954915404319763
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.3282078504562378,
+          -0.9446055293083191,
+          -1.91164235729957e-06,
+          102.9623031616211
+        ],
+        [
+          0.9446055293083191,
+          -0.3282078504562378,
+          3.8789926293247845e-06,
+          39.24525451660156
+        ],
+        [
+          -4.291533969080774e-06,
+          -5.326321002030454e-07,
+          1.0,
+          0.8954915404319763
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          1.0,
+          6.617450143409087e-09,
+          0.0,
+          1.9999980926513672
+        ],
+        [
+          6.617450143409087e-09,
+          1.0,
+          0.0,
+          -7.62939453125e-06
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.9000000357627869
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          1.0,
+          -6.617450143409087e-09,
+          0.0,
+          1.9999980926513672
+        ],
+        [
+          -6.617450143409087e-09,
+          1.0,
+          0.0,
+          7.62939453125e-06
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.9000000357627869
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\radar\\RADAR_FRONT.npy",
+      "raw_layout": [
+        "velocity",
+        "altitude",
+        "azimuth",
+        "depth"
+      ]
+    },
+    "RADAR_FRONT_LEFT": {
+      "type_id": "sensor.other.radar",
+      "blueprint_attributes": {
+        "sensor_tick": "0.100000",
+        "role_name": "default",
+        "noise_seed": "0",
+        "ros_name": "sensor.other.radar",
+        "horizontal_fov": "35.0",
+        "points_per_second": "1500",
+        "vertical_fov": "20.0",
+        "range": "120.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 102.36872100830078,
+          "y": -38.668487548828125,
+          "z": 0.895492672920227
+        },
+        "rotation": {
+          "roll": 0.00015105429338291287,
+          "pitch": -0.00019807547505479306,
+          "yaw": -154.16004943847656
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.9000150561332703,
+          0.4358587861061096,
+          -1.9623184925876558e-06,
+          102.36872100830078
+        ],
+        [
+          -0.4358587861061096,
+          -0.9000150561332703,
+          -3.879588803101797e-06,
+          -38.668487548828125
+        ],
+        [
+          -3.457069169598981e-06,
+          -2.636394810906495e-06,
+          1.0,
+          0.895492672920227
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.9000150561332703,
+          -0.4358587861061096,
+          -1.9623184925876558e-06,
+          102.36872100830078
+        ],
+        [
+          0.4358587861061096,
+          -0.9000150561332703,
+          3.879588803101797e-06,
+          38.668487548828125
+        ],
+        [
+          -3.457069169598981e-06,
+          2.636394810906495e-06,
+          1.0,
+          0.895492672920227
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          0.7071066498756409,
+          0.7071069478988647,
+          1.7195361579069868e-08,
+          1.650001049041748
+        ],
+        [
+          -0.7071069478988647,
+          0.7071066498756409,
+          -4.7673324843344744e-08,
+          -0.7500076293945312
+        ],
+        [
+          -4.586922841554042e-08,
+          2.155093170586042e-08,
+          1.0,
+          0.9000000357627869
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          0.7071066498756409,
+          -0.7071069478988647,
+          1.7195361579069868e-08,
+          1.650001049041748
+        ],
+        [
+          0.7071069478988647,
+          0.7071066498756409,
+          4.7673324843344744e-08,
+          0.7500076293945312
+        ],
+        [
+          -4.586922841554042e-08,
+          -2.155093170586042e-08,
+          1.0,
+          0.9000000357627869
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\radar\\RADAR_FRONT_LEFT.npy",
+      "raw_layout": [
+        "velocity",
+        "altitude",
+        "azimuth",
+        "depth"
+      ]
+    },
+    "RADAR_FRONT_RIGHT": {
+      "type_id": "sensor.other.radar",
+      "blueprint_attributes": {
+        "sensor_tick": "0.100000",
+        "role_name": "default",
+        "noise_seed": "0",
+        "ros_name": "sensor.other.radar",
+        "horizontal_fov": "35.0",
+        "points_per_second": "1500",
+        "vertical_fov": "20.0",
+        "range": "120.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 103.78562927246094,
+          "y": -39.16080093383789,
+          "z": 0.8954934477806091
+        },
+        "rotation": {
+          "roll": -0.00019421266915742308,
+          "pitch": -0.000150264153489843,
+          "yaw": -64.1600570678711
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          0.4358586072921753,
+          0.9000151753425598,
+          -1.907652404042892e-06,
+          103.78562927246094
+        ],
+        [
+          -0.9000151753425598,
+          0.4358586072921753,
+          -3.83779206458712e-06,
+          -39.16080093383789
+        ],
+        [
+          -2.622604142743512e-06,
+          3.389650601093308e-06,
+          1.0,
+          0.8954934477806091
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          0.4358586072921753,
+          -0.9000151753425598,
+          -1.907652404042892e-06,
+          103.78562927246094
+        ],
+        [
+          0.9000151753425598,
+          0.4358586072921753,
+          3.83779206458712e-06,
+          39.16080093383789
+        ],
+        [
+          -2.622604142743512e-06,
+          -3.389650601093308e-06,
+          1.0,
+          0.8954934477806091
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          0.7071070671081543,
+          -0.7071064710617065,
+          -4.022786015411839e-08,
+          1.650001049041748
+        ],
+        [
+          0.7071065306663513,
+          0.7071070671081543,
+          -9.753421181812882e-09,
+          0.7499923706054688
+        ],
+        [
+          3.534228198986966e-08,
+          -2.1548885342781432e-08,
+          1.0,
+          0.9000000357627869
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          0.7071070671081543,
+          0.7071064710617065,
+          -4.022786015411839e-08,
+          1.650001049041748
+        ],
+        [
+          -0.7071065306663513,
+          0.7071070671081543,
+          9.753421181812882e-09,
+          -0.7499923706054688
+        ],
+        [
+          3.534228198986966e-08,
+          2.1548885342781432e-08,
+          1.0,
+          0.9000000357627869
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\radar\\RADAR_FRONT_RIGHT.npy",
+      "raw_layout": [
+        "velocity",
+        "altitude",
+        "azimuth",
+        "depth"
+      ]
+    },
+    "RADAR_BACK_LEFT": {
+      "type_id": "sensor.other.radar",
+      "blueprint_attributes": {
+        "sensor_tick": "0.100000",
+        "role_name": "default",
+        "noise_seed": "0",
+        "ros_name": "sensor.other.radar",
+        "horizontal_fov": "35.0",
+        "points_per_second": "1500",
+        "vertical_fov": "20.0",
+        "range": "120.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 103.4518051147461,
+          "y": -35.551292419433594,
+          "z": 0.895506739616394
+        },
+        "rotation": {
+          "roll": 0.00019421266915742308,
+          "pitch": 0.000150264153489843,
+          "yaw": 115.83995056152344
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          -0.435858815908432,
+          -0.9000150561332703,
+          -1.9076514945481904e-06,
+          103.4518051147461
+        ],
+        [
+          0.9000150561332703,
+          -0.435858815908432,
+          -3.83779206458712e-06,
+          -35.551292419433594
+        ],
+        [
+          2.622604142743512e-06,
+          -3.389650601093308e-06,
+          1.0,
+          0.895506739616394
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          -0.435858815908432,
+          0.9000150561332703,
+          -1.9076514945481904e-06,
+          103.4518051147461
+        ],
+        [
+          -0.9000150561332703,
+          -0.435858815908432,
+          3.83779206458712e-06,
+          35.551292419433594
+        ],
+        [
+          2.622604142743512e-06,
+          3.389650601093308e-06,
+          1.0,
+          0.895506739616394
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          -0.7071069478988647,
+          0.7071066498756409,
+          -4.0228314901469275e-08,
+          -1.6499950885772705
+        ],
+        [
+          -0.7071066498756409,
+          -0.7071069478988647,
+          -9.75251168711111e-09,
+          -0.7500076293945312
+        ],
+        [
+          -3.534137249516789e-08,
+          2.1549567463807762e-08,
+          1.0,
+          0.8999999761581421
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          -0.7071069478988647,
+          -0.7071066498756409,
+          -4.0228314901469275e-08,
+          -1.6499950885772705
+        ],
+        [
+          0.7071066498756409,
+          -0.7071069478988647,
+          9.75251168711111e-09,
+          0.7500076293945312
+        ],
+        [
+          -3.534137249516789e-08,
+          -2.1549567463807762e-08,
+          1.0,
+          0.8999999761581421
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\radar\\RADAR_BACK_LEFT.npy",
+      "raw_layout": [
+        "velocity",
+        "altitude",
+        "azimuth",
+        "depth"
+      ]
+    },
+    "RADAR_BACK_RIGHT": {
+      "type_id": "sensor.other.radar",
+      "blueprint_attributes": {
+        "sensor_tick": "0.100000",
+        "role_name": "default",
+        "noise_seed": "0",
+        "ros_name": "sensor.other.radar",
+        "horizontal_fov": "35.0",
+        "points_per_second": "1500",
+        "vertical_fov": "20.0",
+        "range": "120.0"
+      },
+      "transform_carla": {
+        "location": {
+          "x": 104.86872100830078,
+          "y": -36.043601989746094,
+          "z": 0.8955075144767761
+        },
+        "rotation": {
+          "roll": -0.0001510543079348281,
+          "pitch": 0.00019807547505479306,
+          "yaw": 25.83993911743164
+        }
+      },
+      "matrix_world_from_sensor_carla": [
+        [
+          0.9000151753425598,
+          -0.4358585774898529,
+          -1.9623194020823576e-06,
+          104.86872100830078
+        ],
+        [
+          0.4358585774898529,
+          0.9000151753425598,
+          -3.879588803101797e-06,
+          -36.043601989746094
+        ],
+        [
+          3.457069169598981e-06,
+          2.6363950382801704e-06,
+          1.0,
+          0.8955075144767761
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_world_from_sensor_bevfusion": [
+        [
+          0.9000151753425598,
+          0.4358585774898529,
+          -1.9623194020823576e-06,
+          104.86872100830078
+        ],
+        [
+          -0.4358585774898529,
+          0.9000151753425598,
+          3.879588803101797e-06,
+          36.043601989746094
+        ],
+        [
+          3.457069169598981e-06,
+          -2.6363950382801704e-06,
+          1.0,
+          0.8955075144767761
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_carla": [
+        [
+          -0.7071064710617065,
+          -0.7071071267127991,
+          1.7195816326420754e-08,
+          -1.6500025987625122
+        ],
+        [
+          0.7071070671081543,
+          -0.7071064710617065,
+          -4.7674120651208796e-08,
+          0.75
+        ],
+        [
+          4.586991053656675e-08,
+          -2.1551386453211308e-08,
+          1.0,
+          0.8999999165534973
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "matrix_ego_from_sensor_bevfusion": [
+        [
+          -0.7071064710617065,
+          0.7071071267127991,
+          1.7195816326420754e-08,
+          -1.6500025987625122
+        ],
+        [
+          -0.7071070671081543,
+          -0.7071064710617065,
+          4.7674120651208796e-08,
+          -0.75
+        ],
+        [
+          4.586991053656675e-08,
+          2.1551386453211308e-08,
+          1.0,
+          0.8999999165534973
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "data_path": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000069\\radar\\RADAR_BACK_RIGHT.npy",
+      "raw_layout": [
+        "velocity",
+        "altitude",
+        "azimuth",
+        "depth"
+      ]
+    }
+  },
+  "frame_log": {
+    "CAM_FRONT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "shape": [
+        540,
+        960,
+        3
+      ],
+      "mean_rgb": [
+        53.85383294753086,
+        53.62013695987655,
+        54.85385609567901
+      ]
+    },
+    "CAM_FRONT_RIGHT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "shape": [
+        540,
+        960,
+        3
+      ],
+      "mean_rgb": [
+        47.9985050154321,
+        47.421782407407406,
+        46.36614197530864
+      ]
+    },
+    "CAM_FRONT_LEFT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "shape": [
+        540,
+        960,
+        3
+      ],
+      "mean_rgb": [
+        33.8565625,
+        34.782359182098766,
+        33.0733487654321
+      ]
+    },
+    "CAM_BACK": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "shape": [
+        540,
+        960,
+        3
+      ],
+      "mean_rgb": [
+        71.2707986111111,
+        67.6289101080247,
+        62.07738233024691
+      ]
+    },
+    "CAM_BACK_LEFT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "shape": [
+        540,
+        960,
+        3
+      ],
+      "mean_rgb": [
+        64.41540702160493,
+        61.5877237654321,
+        57.897399691358025
+      ]
+    },
+    "CAM_BACK_RIGHT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "shape": [
+        540,
+        960,
+        3
+      ],
+      "mean_rgb": [
+        52.96034915123457,
+        48.62545138888889,
+        41.991593364197534
+      ]
+    },
+    "LIDAR_TOP": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "point_count": 34826,
+      "min_xyz": [
+        -119.37242126464844,
+        -110.85877990722656,
+        -2.1957030296325684
+      ],
+      "max_xyz": [
+        85.20215606689453,
+        100.4503173828125,
+        20.798439025878906
+      ]
+    },
+    "RADAR_FRONT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "point_count": 150
+    },
+    "RADAR_FRONT_LEFT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "point_count": 117
+    },
+    "RADAR_FRONT_RIGHT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "point_count": 150
+    },
+    "RADAR_BACK_LEFT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "point_count": 149
+    },
+    "RADAR_BACK_RIGHT": {
+      "frame": 726342,
+      "timestamp": 5004.094624821097,
+      "point_count": 150
+    }
+  }
+}

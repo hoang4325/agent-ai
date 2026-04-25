@@ -1,0 +1,11 @@
+set_name: stage5a_core_golden
+description: >
+  Stage 5A core golden gate set. All cases in this set must pass for Stage 5A readiness.
+  Covers: contract hardening, obstacle binding, route/session binding,
+  arbitration cleanup, stop semantics, lane-change semantics.
+cases:
+  - ml_right_positive_core
+  - ml_left_positive_core
+  - stop_follow_ambiguity_core
+  - junction_straight_core
+  - arbitration_stop_during_prepare_right

@@ -1,0 +1,42 @@
+{
+  "schema_version": "system_benchmark_semantics_v1_1",
+  "scenario_id": "fr_stop_overshoot_false_pass",
+  "pending_ground_truth_binding": false,
+  "determinism_level": "medium",
+  "case_mode": "failure_replay_artifact_audit",
+  "actors": [
+    {
+      "role": "blocker_ahead_current_lane",
+      "entity_type": "actor",
+      "actor_source": "track_binding_hint",
+      "expected_actor_ref": "role:blocker_ahead_current_lane",
+      "expected_lane_relation": "current_lane",
+      "expected_behavioral_effect": "slow_down_or_stop",
+      "binding_hints": {
+        "class_groups": [
+          "vehicle"
+        ],
+        "allowed_lane_relations": [
+          "current_lane"
+        ],
+        "prefer_flags": [
+          "is_blocking_current_lane",
+          "is_front_in_current_lane"
+        ],
+        "risk_hint": "front_hazard_track_id",
+        "require_same_direction": true
+      },
+      "evaluation_scope": [
+        "critical_actor_detected_rate",
+        "blocker_binding_accuracy",
+        "lane_assignment_consistency",
+        "critical_actor_track_continuity_rate"
+      ],
+      "notes": "auto_generated_from_case_spec"
+    }
+  ],
+  "route_binding_expectations": {
+    "route_option": "keep_right",
+    "preferred_lane": "right"
+  }
+}

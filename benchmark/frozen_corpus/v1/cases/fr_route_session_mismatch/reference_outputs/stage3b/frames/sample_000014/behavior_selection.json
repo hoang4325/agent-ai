@@ -1,0 +1,87 @@
+{
+  "frame_id": 726287,
+  "sample_name": "sample_000014",
+  "requested_intent_stage2": {
+    "frame_id": 726287,
+    "timestamp": 4998.59462473914,
+    "maneuver": "lane_change_right",
+    "target_speed_mps": 7.691940613788535,
+    "lane_preference": "prefer_right",
+    "constraints": [
+      "lane_change_requires_validation"
+    ],
+    "confidence": 0.62,
+    "reasoning_tags": [
+      "front_vehicle_slow",
+      "right_gap_preferred"
+    ]
+  },
+  "validated_maneuver_stage3a": {
+    "frame_id": 726287,
+    "requested_intent": {
+      "frame_id": 726287,
+      "timestamp": 4998.59462473914,
+      "maneuver": "lane_change_right",
+      "target_speed_mps": 7.691940613788535,
+      "lane_preference": "prefer_right",
+      "constraints": [
+        "lane_change_requires_validation"
+      ],
+      "confidence": 0.62,
+      "reasoning_tags": [
+        "front_vehicle_slow",
+        "right_gap_preferred"
+      ]
+    },
+    "valid_maneuvers": [
+      "keep_lane",
+      "slow_down",
+      "stop",
+      "lane_change_right"
+    ],
+    "invalid_maneuvers": [
+      {
+        "maneuver": "follow",
+        "reason": "no_front_object_in_current_lane"
+      },
+      {
+        "maneuver": "yield",
+        "reason": "no_vru_yield_condition"
+      },
+      {
+        "maneuver": "lane_change_left",
+        "reason": "no_left_lane"
+      }
+    ],
+    "selected_behavior": "keep_lane",
+    "selected_maneuver": "keep_lane",
+    "lane_change_permission": {
+      "left": false,
+      "right": true,
+      "left_reason": "no_left_lane",
+      "right_reason": null
+    },
+    "reasoning_tags": []
+  },
+  "route_conditioned_behavior": "commit_lane_change_right",
+  "lane_change_stage": "commit",
+  "selected_behavior": "commit_lane_change_right",
+  "target_lane": "right",
+  "override_reason": "route_conditioned_commit_right",
+  "route_influence": true,
+  "reasoning_tags": [
+    "commit_right_lane_change",
+    "front_gap_short",
+    "high_risk_scene",
+    "route_conditioned_override",
+    "route_lane_preference_active",
+    "stage2_requested_matching_lane_change"
+  ],
+  "behavior_constraints": [
+    "lane_change_commit_requires_local_planner_support",
+    "minimal_route_hint_applied",
+    "route_conditioned_behavior_v2",
+    "route_mode_minimal_route_hint"
+  ],
+  "scene_constraints": []
+}

@@ -1,0 +1,1276 @@
+{
+  "generated_at": "2026-04-13T14:50:49+00:00",
+  "corpus_root": "benchmark/frozen_corpus/v1",
+  "summary": {
+    "num_cases": 15,
+    "readiness_counts": {
+      "corpus_pending": 3,
+      "corpus_partial": 1,
+      "corpus_ready": 11
+    }
+  },
+  "cases": [
+    {
+      "case_id": "adjacent_left_unsafe_hold",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold",
+      "readiness": "corpus_pending",
+      "stage1_infer_ready_samples": 0,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\adjacent_left_unsafe_hold\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "missing_ground_truth_or_behavior_timeline"
+          ]
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "unable_to_derive_arbitration_events"
+          ]
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "unable_to_derive_route_session_binding"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "adjacent_right_unsafe_hold",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold",
+      "readiness": "corpus_partial",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\adjacent_right_unsafe_hold\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\adjacent_right_unsafe_hold\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\adjacent_right_unsafe_hold\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\adjacent_right_unsafe_hold\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "arbitration_stop_during_prepare_right",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\arbitration_stop_during_prepare_right\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\arbitration_stop_during_prepare_right\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\arbitration_stop_during_prepare_right\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\arbitration_stop_during_prepare_right\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "fr_arbitration_missing_cancel",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\_derived_semantics\\fr_arbitration_missing_cancel\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": [
+            "auto_generated_from_case_spec_with_pending_flag"
+          ]
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\_derived_semantics\\fr_arbitration_missing_cancel\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\_derived_semantics\\fr_arbitration_missing_cancel\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\_derived_semantics\\fr_arbitration_missing_cancel\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "fr_blocker_binding_wrong_lane",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\_derived_semantics\\fr_blocker_binding_wrong_lane\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": [
+            "auto_generated_from_case_spec_with_pending_flag"
+          ]
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\_derived_semantics\\fr_blocker_binding_wrong_lane\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\_derived_semantics\\fr_blocker_binding_wrong_lane\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\_derived_semantics\\fr_blocker_binding_wrong_lane\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "fr_lc_commit_no_permission",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 77,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage2",
+          "copied_json_files": 543,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3a",
+          "copied_json_files": 465,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3b",
+          "copied_json_files": 388,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3c",
+          "copied_json_files": 236,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v1_mp4",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\_derived_semantics\\fr_lc_commit_no_permission\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": [
+            "auto_generated_from_case_spec_with_pending_flag"
+          ]
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\_derived_semantics\\fr_lc_commit_no_permission\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\_derived_semantics\\fr_lc_commit_no_permission\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\_derived_semantics\\fr_lc_commit_no_permission\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "fr_right_commit_superseded_by_stop",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\fr_right_commit_superseded_by_stop\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\fr_right_commit_superseded_by_stop\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\fr_right_commit_superseded_by_stop\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\fr_right_commit_superseded_by_stop\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "fr_route_session_mismatch",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 77,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage2",
+          "copied_json_files": 543,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage3a",
+          "copied_json_files": 465,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage3b",
+          "copied_json_files": 388,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage3c",
+          "copied_json_files": 236,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v1_mp4",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\_derived_semantics\\fr_route_session_mismatch\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": [
+            "auto_generated_from_case_spec_with_pending_flag"
+          ]
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\_derived_semantics\\fr_route_session_mismatch\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\_derived_semantics\\fr_route_session_mismatch\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\_derived_semantics\\fr_route_session_mismatch\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "fr_stop_overshoot_false_pass",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\_derived_semantics\\fr_stop_overshoot_false_pass\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": [
+            "auto_generated_from_case_spec_with_pending_flag"
+          ]
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\_derived_semantics\\fr_stop_overshoot_false_pass\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\_derived_semantics\\fr_stop_overshoot_false_pass\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\_derived_semantics\\fr_stop_overshoot_false_pass\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "generated",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "junction_straight_core",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 21,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage2",
+          "copied_json_files": 151,
+          "source_dir": "outputs\\stage2\\live_watch_compare_bridge_thr010",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3a",
+          "copied_json_files": 129,
+          "source_dir": "outputs\\stage3\\live_watch_compare_bridge_thr010_stage3a",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3b",
+          "copied_json_files": 108,
+          "source_dir": "outputs\\stage3b\\st3b_junction_straight_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3c",
+          "copied_json_files": 67,
+          "source_dir": "outputs\\stage3c\\st3c_junction_straight_v1_mp4_long",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\junction_straight_core\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\_derived_semantics\\junction_straight_core\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated_empty_not_applicable",
+          "notes": [
+            "no_actor_roles_in_ground_truth"
+          ]
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\_derived_semantics\\junction_straight_core\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "generated_empty_not_applicable",
+          "notes": [
+            "no_arbitration_events_observed_or_expected"
+          ]
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\junction_straight_core\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "late_emerging_obstacle",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle",
+      "readiness": "corpus_pending",
+      "stage1_infer_ready_samples": 0,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\late_emerging_obstacle\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "missing_ground_truth_or_behavior_timeline"
+          ]
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "unable_to_derive_arbitration_events"
+          ]
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "unable_to_derive_route_session_binding"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ml_left_positive_core",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 47,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage2",
+          "copied_json_files": 333,
+          "source_dir": "outputs\\stage2\\st2_left_positive_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3a",
+          "copied_json_files": 285,
+          "source_dir": "outputs\\stage3\\st3_left_positive_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3b",
+          "copied_json_files": 238,
+          "source_dir": "outputs\\stage3b\\st3b_left_positive_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3c",
+          "copied_json_files": 146,
+          "source_dir": "outputs\\stage3c\\st3c_left_positive_v1_mp4",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_left_positive_core\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_left_positive_core\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_left_positive_core\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_left_positive_core\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "ml_right_positive_core",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 77,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage2",
+          "copied_json_files": 543,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3a",
+          "copied_json_files": 465,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3b",
+          "copied_json_files": 388,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v1",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3c",
+          "copied_json_files": 236,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v1_mp4",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_right_positive_core\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_right_positive_core\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_right_positive_core\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\ml_right_positive_core\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    },
+    {
+      "case_id": "route_bias_fork_keep_right",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right",
+      "readiness": "corpus_pending",
+      "stage1_infer_ready_samples": 0,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": false,
+          "bundled_dir": null,
+          "copied_json_files": 0,
+          "source_dir": null,
+          "derived_artifacts": []
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\route_bias_fork_keep_right\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\_derived_semantics\\route_bias_fork_keep_right\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "generated_empty_not_applicable",
+          "notes": [
+            "no_actor_roles_in_ground_truth"
+          ]
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "unable_to_derive_arbitration_events"
+          ]
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": null,
+          "bundled_path": null,
+          "available": false,
+          "source_type": "missing",
+          "notes": [
+            "unable_to_derive_route_session_binding"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "stop_follow_ambiguity_core",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core",
+      "readiness": "corpus_ready",
+      "stage1_infer_ready_samples": 117,
+      "stage_reference_rows": [
+        {
+          "stage_name": "stage2",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage2",
+          "copied_json_files": 823,
+          "source_dir": "outputs\\stage2\\st2_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3a",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3a",
+          "copied_json_files": 705,
+          "source_dir": "outputs\\stage3\\st3_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3b",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3b",
+          "copied_json_files": 588,
+          "source_dir": "outputs\\stage3b\\st3b_s3a_ml_long_v2",
+          "derived_artifacts": []
+        },
+        {
+          "stage_name": "stage3c",
+          "available": true,
+          "bundled_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3c",
+          "copied_json_files": 356,
+          "source_dir": "outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+          "derived_artifacts": [
+            "control_trace.jsonl",
+            "fallback_events.jsonl",
+            "lane_change_events_enriched.jsonl",
+            "lane_change_phase_trace.jsonl",
+            "planner_control_latency.jsonl",
+            "planner_quality_summary.json",
+            "stop_events.jsonl",
+            "stop_target.json",
+            "trajectory_trace.jsonl"
+          ]
+        }
+      ],
+      "semantic_rows": [
+        {
+          "artifact_name": "ground_truth_actor_roles",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\stop_follow_ambiguity_core\\ground_truth_actor_roles.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "critical_actor_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\stop_follow_ambiguity_core\\critical_actor_binding.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "behavior_arbitration_events",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\stop_follow_ambiguity_core\\behavior_arbitration_events.jsonl",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        },
+        {
+          "artifact_name": "route_session_binding",
+          "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\stop_follow_ambiguity_core\\route_session_binding.json",
+          "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\semantic\\route_session_binding.json",
+          "available": true,
+          "source_type": "existing",
+          "notes": []
+        }
+      ]
+    }
+  ]
+}

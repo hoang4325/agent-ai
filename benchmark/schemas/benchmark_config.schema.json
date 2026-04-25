@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent-AI Benchmark Config",
+  "type": "object",
+  "required": [
+    "version",
+    "name",
+    "cases_dir",
+    "sets_dir",
+    "metric_registry",
+    "reports_dir",
+    "sets"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "cases_dir": {
+      "type": "string"
+    },
+    "sets_dir": {
+      "type": "string"
+    },
+    "metric_registry": {
+      "type": "string"
+    },
+    "benchmark_modes": {
+      "type": "string"
+    },
+    "stage_profiles_dir": {
+      "type": "string"
+    },
+    "reports_dir": {
+      "type": "string"
+    },
+    "sets": {
+      "type": "object"
+    }
+  }
+}

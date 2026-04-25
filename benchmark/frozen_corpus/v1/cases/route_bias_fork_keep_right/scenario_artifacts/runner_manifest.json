@@ -1,0 +1,43 @@
+{
+  "town": "Carla/Maps/Town10HD_Opt",
+  "host": "127.0.0.1",
+  "port": 2000,
+  "tm_port": 8000,
+  "ego_actor_id": 39,
+  "blocker_actor_id": 40,
+  "adjacent_actor_id": 41,
+  "adjacent_side": "right",
+  "scenario_type": "stage3a_non_junction_multilane",
+  "corridor": {
+    "road_id": 0,
+    "section_id": 0,
+    "lane_id": -1,
+    "s": 10.000000000000002,
+    "lane_width_m": 3.5,
+    "lane_change": "Right",
+    "adjacent_lane_id": -2,
+    "junction_distance_m": null,
+    "ego_transform": {
+      "location": {
+        "x": 106.4453125,
+        "y": -19.35972023010254,
+        "z": 0.4000000059604645
+      },
+      "rotation": {
+        "roll": 0.0,
+        "pitch": 0.0,
+        "yaw": 270.3343200683594
+      }
+    }
+  },
+  "placements": {
+    "blocker_distance_m": 24.0,
+    "adjacent_distance_m": 42.0
+  },
+  "recommended_commands": {
+    "stage1_dump_from_manifest": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 80 --fixed-delta-seconds 0.05 --image-width 1600 --image-height 900 --camera-fov 70 --scenario-manifest D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_manifest.json --autopilot",
+    "stage1_dump_attach_id": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 80 --fixed-delta-seconds 0.05 --image-width 1600 --image-height 900 --camera-fov 70 --attach-to-actor-id 39 --autopilot",
+    "stage1_dump_stable_from_manifest": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 60 --fixed-delta-seconds 0.05 --image-width 1280 --image-height 720 --camera-fov 70 --warmup-ticks 8 --scenario-manifest D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_manifest.json --autopilot",
+    "stage1_dump_ultrastable_from_manifest": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 50 --fixed-delta-seconds 0.10 --image-width 960 --image-height 540 --camera-fov 70 --warmup-ticks 10 --shutdown-settle-ticks 4 --scenario-manifest D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_manifest.json --autopilot"
+  }
+}

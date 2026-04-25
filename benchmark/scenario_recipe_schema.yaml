@@ -1,0 +1,41 @@
+schema_version: benchmark_scenario_recipe_v1
+required_fields:
+  - benchmark_mode
+  - execution_profile
+  - scenario_recipe
+  - route_profile
+  - stage_profiles
+  - orchestration_target
+  - expected_stage_chain
+  - trace_requirements
+
+field_definitions:
+  benchmark_mode:
+    enum: [replay_regression, scenario_replay, online_e2e]
+  execution_profile:
+    type: string
+  scenario_recipe:
+    type: object
+    expected_keys:
+      - source_type
+      - scenario_manifest
+      - attach_strategy
+  route_profile:
+    type: object
+    expected_keys:
+      - route_option
+      - preferred_lane
+      - route_priority
+  stage_profiles:
+    type: object
+    example_keys: [stage1, stage2, stage3a, stage3b, stage3c, stage4]
+  orchestration_target:
+    type: string
+  expected_stage_chain:
+    type: array
+    item_enum: [spawn, stage1, stage2, stage3a, stage3b, stage3c, stage4, evaluate]
+  trace_requirements:
+    type: object
+    expected_keys:
+      - require_current_run_artifacts
+      - required_steps

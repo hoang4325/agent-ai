@@ -1,0 +1,8 @@
+name: stage3b_replay_default
+runner_script: scripts/run_stage3b_replay.py
+args:
+  --stage3a-output-dir: "{stage3a_output_dir}"
+  --output-dir: "{stage3b_output_dir}"
+  --route-option: "{route_option}"
+  --preferred-lane: "{preferred_lane}"
+  --route-priority: "{route_priority}"

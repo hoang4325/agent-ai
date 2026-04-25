@@ -1,0 +1,85 @@
+{
+  "schema_version": "stage8_assist_contract_v1",
+  "generated_at_utc": "2026-04-18T03:46:00+00:00",
+  "stage": "8_assist_sandbox",
+  "contract_id": "stage8-assist-contract-001",
+  "status": "LOCKED",
+  "authority_model": {
+    "agent_authority": "tactical_advisory_only",
+    "guardian_authority": "mpc_and_baseline_tactical",
+    "control_authority": "mpc_only",
+    "trajectory_authority": "mpc_only",
+    "assist_scope": "tactical_intent_binding_via_brp",
+    "takeover_permitted": false,
+    "shadow_mode_available_as_fallback": true
+  },
+  "allowed_agent_intents": [
+    "keep_lane",
+    "prepare_lane_change_left",
+    "prepare_lane_change_right",
+    "commit_lane_change_left",
+    "commit_lane_change_right",
+    "abort_lane_change",
+    "follow_lead",
+    "stop",
+    "yield",
+    "resume"
+  ],
+  "forbidden_output_fields": [
+    "target_speed_mps",
+    "steering",
+    "throttle",
+    "brake",
+    "trajectory",
+    "acceleration_mps2",
+    "waypoints",
+    "control_surface"
+  ],
+  "brp_constraints": {
+    "max_brp_per_frame": 1,
+    "brp_ttl_frames": 1,
+    "min_confidence_for_arbitration": 0.50,
+    "min_confidence_soft_audit": 0.70,
+    "assist_scope_field_must_be": "tactical_only",
+    "veto_eligible_must_be": true,
+    "binding_request_must_be": true
+  },
+  "arbitration_engine_constraints": {
+    "ae_has_unconditional_veto": true,
+    "ae_veto_overrides_agent_confidence": true,
+    "consecutive_veto_limit_before_disable": 3,
+    "disable_duration_frames": 10,
+    "collision_ttc_threshold_s": 2.5
+  },
+  "temporal_memory_constraints": {
+    "window_size_frames": 5,
+    "memory_not_injected_into_llm_prompt": true,
+    "reset_on_case_boundary": true,
+    "reset_on_stop_completion": true,
+    "reset_on_emergency_brake": true
+  },
+  "rollback_triggers": [
+    "ROLLBACK_VETO",
+    "ROLLBACK_TIMEOUT",
+    "ROLLBACK_STREAK",
+    "ROLLBACK_CONTRACT_BREACH",
+    "ROLLBACK_AE_FAULT"
+  ],
+  "audit_requirements": {
+    "brp_audit_file": "stage8_brp_audit.jsonl",
+    "veto_audit_file": "stage8_veto_events.jsonl",
+    "binding_advisory_file": "stage8_binding_advisory.jsonl",
+    "temporal_memory_snapshot": "agent_temporal_memory.json",
+    "all_artifacts_mandatory": true
+  },
+  "canary_case": "ml_right_positive_core",
+  "canary_rationale": "Low disagreement rate (3.3%), clean lane-change scenario, no stop spine binding, predictable TTC geometry.",
+  "contract_violations_are": "hard_gate_failures",
+  "no_assist_mode_changes_without": "new_contract_review",
+  "notes": [
+    "This contract governs the Stage 8 Assist Sandbox ONLY.",
+    "No provision in this contract permits agent takeover.",
+    "Stage 9 takeover requires a separate contract, separate gate, and 500-frame stability campaign.",
+    "MPC and baseline tactical system remain guardian authority at every frame."
+  ]
+}

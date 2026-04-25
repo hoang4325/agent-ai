@@ -1,0 +1,59 @@
+{
+  "schema_version": "stage6.stop_target.v1",
+  "measurement_support": {
+    "stop_target_defined_rate": "present",
+    "stop_final_error_m": "missing",
+    "stop_overshoot_distance_m": "missing"
+  },
+  "summary": {
+    "num_stop_events": 1,
+    "stop_target_defined_events": 0,
+    "stop_target_defined_rate": 0.0,
+    "explicit_target_events": 0,
+    "approximate_target_events": 0,
+    "distance_measurement_supported_events": 0,
+    "stop_final_error_supported": false,
+    "stop_final_error_supported_events": 0,
+    "stop_overshoot_distance_supported": false,
+    "stop_overshoot_distance_supported_events": 0,
+    "mean_stop_final_error_m": null,
+    "mean_stop_overshoot_distance_m": null
+  },
+  "stop_events": [
+    {
+      "stop_event_id": "stop_event_001",
+      "request_frame": 726289,
+      "sample_name": "sample_000016",
+      "result": "success",
+      "tick_id": null,
+      "target_source": "no_distance_or_stop_reason",
+      "target_source_type": "unavailable",
+      "target_defined": false,
+      "target_confidence": 0.0,
+      "measurement_mode": "missing",
+      "distance_measurement_supported": false,
+      "obstacle_binding_status": "unbound",
+      "obstacle_binding_id": 1,
+      "target_distance_m": null,
+      "target_pose": null,
+      "target_lane_id": -1,
+      "target_lane_relation": "current_lane",
+      "stop_reason": "front_obstacle_or_high_risk",
+      "final_distance_to_obstacle_m": null,
+      "min_distance_to_obstacle_m": null,
+      "final_distance_to_target_m": null,
+      "min_distance_to_target_m": null,
+      "stop_final_error_supported": false,
+      "stop_final_error_m": null,
+      "overshoot_distance_supported": false,
+      "stop_overshoot_distance_m": null,
+      "hold_ticks": 1,
+      "reason": "vehicle_stopped_and_held",
+      "provenance": {
+        "source_stage": "stage3c",
+        "source_artifact": "execution_timeline.jsonl",
+        "derivation_mode": "missing"
+      }
+    }
+  ]
+}

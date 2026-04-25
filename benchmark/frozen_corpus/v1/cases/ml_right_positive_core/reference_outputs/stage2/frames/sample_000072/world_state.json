@@ -1,0 +1,246 @@
+{
+  "frame": 726345,
+  "timestamp": 5004.394624825567,
+  "sample_name": "sample_000072",
+  "sequence_index": 72,
+  "ego": {
+    "frame_id": 726345,
+    "timestamp": 5004.394624825567,
+    "sample_name": "sample_000072",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      103.61872100830078,
+      37.35604476928711,
+      -0.0045007322914898396
+    ],
+    "velocity_world": [
+      3.4383557334649595e-08,
+      -4.7919979095922827e-08,
+      2.5749204723979346e-07
+    ],
+    "speed_mps": 2.641603827285213e-07,
+    "yaw_deg": -109.1600341796875,
+    "route_progress_m": 15.600504436678294,
+    "world_from_ego_bevfusion": [
+      [
+        -0.3282078504562378,
+        -0.9446055293083191,
+        0.0,
+        103.61872100830078
+      ],
+      [
+        0.9446055293083191,
+        -0.3282078504562378,
+        0.0,
+        37.35604476928711
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.0045007322914898396
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "objects": [
+    {
+      "track_id": 1,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000072_det_0000",
+      "age_frames": 70,
+      "hits": 70,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.6533203125,
+      "mean_score": 0.735986328125,
+      "position_ego": [
+        6.446715411186626,
+        0.22734120069573607,
+        -1.478515625
+      ],
+      "velocity_ego": [
+        0.006992369878507743,
+        -0.0015411372772939102
+      ],
+      "speed_mps": 0.007160191381892475,
+      "bbox": [
+        6.446715411186626,
+        0.22734120069573607,
+        -1.478515625,
+        2.125,
+        4.89453125,
+        1.7822265625,
+        -1.6796875,
+        0.006992369878507743,
+        -0.0015411372772939102
+      ],
+      "size_xyz": [
+        2.125,
+        4.89453125,
+        1.7822265625
+      ],
+      "yaw_rad": -1.6796875,
+      "distance_m": 6.450722720313201,
+      "bearing_deg": 2.01967900527779,
+      "ttc_seconds": null,
+      "relative_sector": "front",
+      "source_confidence": 0.6533203125,
+      "risk_score": 0.651619579597651,
+      "risk_level": "high",
+      "reasoning_tags": [
+        "near_field",
+        "ahead",
+        "frontal_corridor",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 2,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000072_det_0001",
+      "age_frames": 70,
+      "hits": 70,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.149169921875,
+      "mean_score": 0.5910173688616072,
+      "position_ego": [
+        6.013281359943093,
+        -3.1841849443855446,
+        -1.6220703125
+      ],
+      "velocity_ego": [
+        -0.004806838248203813,
+        0.008060624017952614
+      ],
+      "speed_mps": 0.009385060122513314,
+      "bbox": [
+        6.013281359943093,
+        -3.1841849443855446,
+        -1.6220703125,
+        2.16796875,
+        5.08984375,
+        1.791015625,
+        -1.630859375,
+        -0.004806838248203813,
+        0.008060624017952614
+      ],
+      "size_xyz": [
+        2.16796875,
+        5.08984375,
+        1.791015625
+      ],
+      "yaw_rad": -1.630859375,
+      "distance_m": 6.8043064653122896,
+      "bearing_deg": -27.90235424052189,
+      "ttc_seconds": null,
+      "relative_sector": "front_right",
+      "source_confidence": 0.149169921875,
+      "risk_score": 0.3989677015101578,
+      "risk_level": "medium",
+      "reasoning_tags": [
+        "near_field",
+        "ahead",
+        "vehicle"
+      ]
+    }
+  ],
+  "scene": {
+    "active_object_count": 2,
+    "front_free_space_m": 5.384215411186626,
+    "left_side_occupancy": 0.0,
+    "right_side_occupancy": 0.7731897844895903,
+    "rear_gap_m": null,
+    "nearest_front_vehicle": {
+      "track_id": 1,
+      "class": "car",
+      "distance_m": 6.450722720313201,
+      "bearing_deg": 2.01967900527779,
+      "position_ego": [
+        6.446715411186626,
+        0.22734120069573607,
+        -1.478515625
+      ],
+      "velocity_ego": [
+        0.006992369878507743,
+        -0.0015411372772939102
+      ],
+      "risk_level": "high",
+      "risk_score": 0.651619579597651
+    },
+    "nearest_vru": null,
+    "nearest_any_object": {
+      "track_id": 1,
+      "class": "car",
+      "distance_m": 6.450722720313201,
+      "bearing_deg": 2.01967900527779,
+      "position_ego": [
+        6.446715411186626,
+        0.22734120069573607,
+        -1.478515625
+      ],
+      "velocity_ego": [
+        0.006992369878507743,
+        -0.0015411372772939102
+      ],
+      "risk_level": "high",
+      "risk_score": 0.651619579597651
+    },
+    "abnormal_flags": [
+      "front_blocked",
+      "high_risk_scene"
+    ]
+  },
+  "risk_summary": {
+    "highest_risk_level": "high",
+    "highest_risk_score": 0.651619579597651,
+    "urgent_track_ids": [
+      1
+    ],
+    "front_hazard_track_id": 1,
+    "nearest_front_vehicle_distance_m": 6.450722720313201,
+    "nearest_vru_distance_m": null,
+    "minimum_ttc_seconds": null,
+    "flags": [
+      "hazard_present",
+      "front_vehicle_close"
+    ]
+  },
+  "decision_context": {
+    "recommended_maneuvers": [
+      "slow_down"
+    ],
+    "hard_constraints": [
+      "respect_front_obstacle_buffer"
+    ],
+    "soft_constraints": [
+      "prefer_left_if_replan"
+    ]
+  }
+}

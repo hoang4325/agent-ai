@@ -1,0 +1,114 @@
+{
+  "schema_version": "stage7_llm_shadow_smoke_result_v1",
+  "generated_at_utc": "2026-04-18T03:28:32+00:00",
+  "stage": "7_llm_smoke",
+  "mode": "llm_api_shadow_smoke",
+  "adapter_mode": "api",
+  "api_key_configured": true,
+  "agent_authority": "shadow_only \u2014 baseline tactical + MPC remain sole authority",
+  "no_control_authority": true,
+  "no_assist_mode": true,
+  "no_takeover": true,
+  "subset_cases": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core"
+  ],
+  "overall_status": "pass",
+  "hard_failures": [],
+  "soft_warnings": [],
+  "passed_cases": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core"
+  ],
+  "failed_cases": [],
+  "skipped_cases": [],
+  "adapter": {
+    "mode": "api",
+    "model_id": "api_gemini",
+    "timeout_s": 10.0,
+    "api_key_env_var": "AGENT_API_KEY",
+    "api_key_present": true
+  },
+  "metric_summary": {
+    "agent_shadow_artifact_completeness": {
+      "ml_right_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_contract_validity_rate": {
+      "ml_right_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_forbidden_intent_count": {
+      "ml_right_positive_core": {
+        "value": 0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0,
+        "threshold_passed": true
+      }
+    },
+    "agent_timeout_rate": {
+      "ml_right_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_fallback_to_baseline_rate": {
+      "ml_right_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_baseline_disagreement_rate": {
+      "ml_right_positive_core": {
+        "value": 0.03333333333333333,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0.26666666666666666,
+        "threshold_passed": true
+      }
+    },
+    "agent_useful_disagreement_rate": {
+      "ml_right_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_route_alignment_rate": {
+      "ml_right_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      }
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "schema_version": "stage7_route_alignment_audit_v1",
+  "generated_at_utc": "2026-04-17T17:47:00+00:00",
+  "stage": "7C",
+  "campaign": "six_case_10_run",
+  "metric": "agent_route_alignment_rate",
+  "metric_definition": {
+    "formula": "aligned_frames / eligible_frames where eligible = frames with preferred_lane != null",
+    "aligned_condition": "agent.target_lane == route_context_summary.preferred_lane OR preferred_lane == 'current'",
+    "denominator": "valid non-fallback frames that have a preferred_lane in route_context_summary",
+    "source_file": "benchmark/stage7_agent_shadow_metric_pack.py:121-140",
+    "maturity": "soft_guardrail",
+    "threshold_online_smoke": {"min": 0.65},
+    "threshold_default": {"min": 0.70}
+  },
+
+  "priority_cases_analyzed": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core",
+    "arbitration_stop_during_prepare_right",
+    "adjacent_right_unsafe_hold"
+  ],
+
+  "stub_behavior_root_cause": {
+    "description": "stub_v1 sets target_lane from baseline_context.get('target_lane', 'current'), NOT from route_context.preferred_lane. This is the primary source of alignment variance.",
+    "code_reference": "agent_shadow_adapter.py:311 — target_lane: str(baseline_context.get('target_lane', 'current'))",
+    "consequence": "When baseline_context.target_lane == 'current' but route_context.preferred_lane == 'right' or 'left', the stub emits target_lane='current', which the metric counts as aligned ONLY IF preferred_lane == 'current'. When preferred_lane != 'current', it counts as misaligned.",
+    "synthetic_frame_aggravation": "Synthetic frames from frozen corpus (used where stage3b_behavior_timeline is missing) hardcode target_lane='current' regardless of corridor.preferred_lane. This maximally deflates alignment on keep_right / keep_left cases.",
+    "critical_distinction": "This is NOT a tactical decision error. The agent stub never reads preferred_lane from route_context to set target_lane. The mapping gap is in the adapter stub design, not in the contract or in real agent reasoning."
+  },
+
+  "four_warning_categories": {
+    "stub_limit": {
+      "description": "Misalignment caused entirely by stub_v1 not consuming route_context.preferred_lane when setting target_lane. Would be fixed by improving the stub's target_lane selection heuristic. Does NOT indicate real agent tactical error.",
+      "cases_affected": ["ml_right_positive_core", "ml_left_positive_core", "adjacent_right_unsafe_hold"],
+      "severity": "soft_warning_acceptable",
+      "fix_owner": "stub adapter improvement (not contract change)"
+    },
+    "route_context_issue": {
+      "description": "Misalignment caused by preferred_lane being null or 'current' in route_context_summary, making the frame ineligible for alignment calculation. Reduces eligible_frame denominator and creates misleading rate computation.",
+      "cases_affected": ["stop_follow_ambiguity_core"],
+      "severity": "soft_warning_acceptable — reduces denominator, doesn't indicate real mismatch",
+      "fix_owner": "ensure route_context preferred_lane is propagated from Stage 3B timeline into behavior_request_v2 bundle"
+    },
+    "contract_mapping_issue": {
+      "description": "Misalignment caused by synthetic frame generation using target_lane='current' while corridor preferred_lane is 'right'. Not a real agent decision — artifact of synthetic fallback when stage3b_behavior_timeline is missing.",
+      "cases_affected": ["ml_right_positive_core (current 2-case list when running on synthetic frames)", "stop_follow_ambiguity_core"],
+      "severity": "soft_warning_acceptable — will resolve when live stage3b timelines are wired",
+      "fix_owner": "wire stage3b_behavior_timeline artifacts into case specs; or fix _synthesize_frames_from_frozen() to use corridor.preferred_lane as target_lane"
+    },
+    "true_tactical_mismatch": {
+      "description": "Misalignment caused by real agent disagreement with route-conditioned lane intent. Only possible when: (1) live stage3b timeline is present, (2) baseline emits keep_right / keep_left intent, (3) agent emits different target_lane. With stub_v1 this category cannot be populated because stub mirrors baseline target_lane directly.",
+      "cases_affected": [],
+      "stub_v1_note": "No true_tactical_mismatch events possible with stub_v1. This category is only meaningful when LLM adapter is wired.",
+      "severity": "NOT A CURRENT WARNING — future concern for LLM adapter runs"
+    }
+  },
+
+  "deviation_analysis_by_case": {
+    "ml_right_positive_core": {
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "timeline_source_current_run": "synthetic_frozen_corpus",
+      "synthetic_target_lane": "current",
+      "corridor_preferred_lane": "right",
+      "alignment_expected_value": 0.0,
+      "alignment_reported_value": 1.0,
+      "explanation": "Synthetic frames hardcode target_lane='current'. Metric counts preferred_lane='current' OR preferred_lane==agent_lane. In synthetic generation, preferred_lane is also set to 'current' (from corridor fallback). So alignment = 1.0 trivially, not because agent correctly selected 'right'. This is a false-positive alignment: the metric passes, but the pass is meaningless with synthetic frames.",
+      "warning_category": "contract_mapping_issue",
+      "deviation_run_to_run_stability": "deterministic — same synthetic frame pattern every run",
+      "run_to_run_variance": "zero (deterministic stub, deterministic synthetic frames)"
+    },
+    "stop_follow_ambiguity_core": {
+      "route_option": "straight",
+      "preferred_lane": "current",
+      "timeline_source_current_run": "synthetic_frozen_corpus",
+      "synthetic_target_lane": "current",
+      "corridor_preferred_lane": "current",
+      "alignment_expected_value": 1.0,
+      "alignment_reported_value": 1.0,
+      "explanation": "preferred_lane='current' → metric aligned condition is satisfied by definition (preferred == 'current' is always aligned). alignment=1.0 is accurate but uninformative — it cannot distinguish real route consumption from the stub's default.",
+      "warning_category": "route_context_issue (preferred_lane=current eliminates alignment signal)",
+      "deviation_run_to_run_stability": "stable at 1.0 every run",
+      "run_to_run_variance": "zero"
+    },
+    "arbitration_stop_during_prepare_right": {
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "timeline_source_if_live": "stage3b/st3b_s3a_ml_long_v2/behavior_timeline_v2.jsonl",
+      "expected_behavior_sequence": ["prepare_lane_change_right", "stop_before_obstacle"],
+      "stub_target_lane_source": "baseline_context.target_lane",
+      "expected_alignment_with_live_timeline": "HIGH during prepare_lane_change_right phase (target_lane='right'). CRITICAL RISK during arbitration phase: baseline drops LC → target_lane reverts to 'current'. Stub mirrors this correctly. Alignment rate will track baseline faithfully.",
+      "alignment_expected_value_range": "0.3 to 0.7 depending on frame split between prepare-LC and stop phases",
+      "warning_category": "stub_limit — partial misalignment during stop phase is expected (LC cancelled, preferred_lane='right' but target_lane='current'). This is the most analytically interesting case.",
+      "deviation_run_to_run_stability": "deterministic with live timeline, stable pattern",
+      "run_to_run_variance": "effectively zero with stub"
+    },
+    "adjacent_right_unsafe_hold": {
+      "status": "provisional",
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "expected_behaviors": ["stop_before_obstacle", "follow"],
+      "no_lc_expected": true,
+      "timeline_path": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+      "stub_target_lane_source": "baseline_context.target_lane — will be 'current' for stop/follow intents regardless of preferred_lane='right'",
+      "expected_alignment_with_live_timeline": "LOW — preferred_lane='right', but baseline emits stop/follow which sets target_lane='current'. Metric will count these frames as misaligned. This produces systematic low alignment ~0.0 to 0.3 for all 60 frames.",
+      "alignment_expected_value_range": "0.0 to 0.3",
+      "warning_category": "stub_limit — agent correctly mirrors stop/follow from baseline, but route alignment metric penalizes because agent emits target_lane='current' while preferred_lane='right'. This is a metric design limitation for stop-dominated cases, not a real tactical error.",
+      "deviation_run_to_run_stability": "deterministic and stable — will fail alignment threshold every run",
+      "run_to_run_variance": "zero",
+      "important_note": "adjacent_right_unsafe_hold has status=provisional. It is NOT in the current 4-case expansion set. Analysis here is prospective."
+    }
+  },
+
+  "which_case_deviates_most": {
+    "answer": "adjacent_right_unsafe_hold",
+    "expected_alignment_rate": "0.0–0.3 every run",
+    "reason": "Stop-dominated case with preferred_lane='right'. Stub emits target_lane='current' for all stop/follow intents. Systematic 100% misalignment on eligible frames.",
+    "second_most_deviant": "arbitration_stop_during_prepare_right during stop phase",
+    "note": "ml_right_positive_core currently shows 1.0 (false positive from synthetic frames, not real signal)"
+  },
+
+  "stability_verdict": {
+    "all_deviations_are_deterministic": true,
+    "random_variance_present": false,
+    "explanation": "stub_v1 is fully deterministic. Synthetic frame generation is deterministic. All alignment patterns will repeat identically across every run. There is no stochastic component. Run-to-run variance = 0.",
+    "implication": "A 10-run campaign will show identical alignment values every run. Variance = 0 is expected and correct for stub_v1."
+  },
+
+  "dominant_misaligning_intent": {
+    "intent": "stop_before_obstacle / follow (mapped to target_lane='current')",
+    "mechanism": "Baseline emits stop/follow with target_lane='current'. Stub mirrors this. Preferred_lane='right' (from route). Metric counts as misaligned.",
+    "cases": ["adjacent_right_unsafe_hold", "arbitration_stop_during_prepare_right (stop phase)"],
+    "secondary": "keep_lane with target_lane='current' when preferred_lane != 'current'"
+  },
+
+  "action_recommendation_summary": {
+    "fix_stub_adapter": {
+      "needed": true,
+      "description": "Stub should use route_context.preferred_lane to derive target_lane when baseline intent is not a LC intent. This removes the stub_limit warning category.",
+      "priority": "MEDIUM — before LLM adapter runs, not critical for contract validation"
+    },
+    "fix_synthetic_frame_builder": {
+      "needed": true,
+      "description": "_synthesize_frames_from_frozen() should set target_lane = corridor.preferred_lane, not 'current'. This fixes the false-positive 1.0 alignment on ml_right and similar cases.",
+      "priority": "HIGH — current 1.0 alignment is a measurement artifact, not real signal"
+    },
+    "accept_stop_case_low_alignment": {
+      "needed": true,
+      "description": "For stop-dominated cases (adjacent_right_unsafe_hold, arbitration_stop stop-phase), systematic alignment < threshold is structurally expected. Recommend per-case threshold override or exemption for frames with stop/follow intent.",
+      "priority": "MEDIUM — design metric exemption for stop-intent frames"
+    },
+    "wire_live_stage3b_timelines": {
+      "needed": true,
+      "description": "Eliminates the contract_mapping_issue category entirely. Stage 7C 2-case run currently uses synthetic frames — live timeline would fix the false-positive alignment on ml_right.",
+      "priority": "HIGH"
+    }
+  }
+}

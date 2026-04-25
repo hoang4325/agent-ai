@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/lane_change_phase_trace.schema.json",
+  "title": "Stage3C Lane Change Phase Trace Row",
+  "type": "object",
+  "required": [
+    "episode_id",
+    "carla_frame",
+    "timestamp",
+    "direction",
+    "phase",
+    "lane_change_progress"
+  ],
+  "properties": {
+    "episode_id": { "type": "string" },
+    "request_frame": { "type": ["integer", "null"] },
+    "sample_name": { "type": "string" },
+    "carla_frame": { "type": ["integer", "null"] },
+    "timestamp": { "type": ["number", "null"] },
+    "direction": { "type": "string" },
+    "requested_behavior": { "type": "string" },
+    "executing_behavior": { "type": "string" },
+    "phase": {
+      "type": "string",
+      "enum": ["prepare", "commit", "stabilizing", "completed", "aborted"]
+    },
+    "current_lane_id": { "type": ["integer", "null"] },
+    "target_lane_id": { "type": ["integer", "null"] },
+    "lane_change_progress": { "type": ["number", "null"] },
+    "execution_status": { "type": "string" },
+    "terminal_result": { "type": ["string", "null"] },
+    "abort_reason": { "type": ["string", "null"] },
+    "completion_reason": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

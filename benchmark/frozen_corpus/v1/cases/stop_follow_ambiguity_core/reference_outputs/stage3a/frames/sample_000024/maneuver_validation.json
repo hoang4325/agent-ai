@@ -1,0 +1,51 @@
+{
+  "frame_id": 60025,
+  "requested_intent": {
+    "frame_id": 60025,
+    "timestamp": 437.41970078647137,
+    "maneuver": "emergency_stop",
+    "target_speed_mps": 0.0,
+    "lane_preference": "prefer_left",
+    "constraints": [
+      "do_not_accelerate",
+      "full_stop_if_required"
+    ],
+    "confidence": 0.95,
+    "reasoning_tags": [
+      "critical_risk",
+      "hard_stop"
+    ]
+  },
+  "valid_maneuvers": [
+    "keep_lane",
+    "slow_down",
+    "stop"
+  ],
+  "invalid_maneuvers": [
+    {
+      "maneuver": "follow",
+      "reason": "no_front_object_in_current_lane"
+    },
+    {
+      "maneuver": "yield",
+      "reason": "no_vru_yield_condition"
+    },
+    {
+      "maneuver": "lane_change_left",
+      "reason": "no_left_lane"
+    },
+    {
+      "maneuver": "lane_change_right",
+      "reason": "right_lane_rear_gap_too_small"
+    }
+  ],
+  "selected_behavior": "stop_before_obstacle",
+  "selected_maneuver": "stop",
+  "lane_change_permission": {
+    "left": false,
+    "right": false,
+    "left_reason": "no_left_lane",
+    "right_reason": "right_lane_rear_gap_too_small"
+  },
+  "reasoning_tags": []
+}

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ground Truth Actor Roles",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "pending_ground_truth_binding",
+    "actors"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "scenario_id": {
+      "type": "string"
+    },
+    "pending_ground_truth_binding": {
+      "type": "boolean"
+    },
+    "determinism_level": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unknown"
+      ]
+    },
+    "case_mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "actors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "role",
+          "entity_type",
+          "actor_source"
+        ],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "entity_type": {
+            "enum": [
+              "actor",
+              "topology",
+              "session"
+            ]
+          },
+          "actor_source": {
+            "enum": [
+              "manifest",
+              "live_actor",
+              "track_binding_hint",
+              "derived_from_case_spec"
+            ]
+          },
+          "expected_actor_ref": {
+            "type": "string"
+          },
+          "expected_lane_relation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expected_behavioral_effect": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "binding_hints": {
+            "type": "object"
+          },
+          "evaluation_scope": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "blocker_binding_accuracy",
+                "critical_actor_detected_rate",
+                "critical_actor_track_continuity_rate",
+                "lane_assignment_consistency"
+              ]
+            }
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "route_binding_expectations": {
+      "type": "object"
+    }
+  }
+}

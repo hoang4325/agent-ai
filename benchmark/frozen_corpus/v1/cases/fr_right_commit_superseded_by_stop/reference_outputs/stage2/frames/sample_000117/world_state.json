@@ -1,0 +1,245 @@
+{
+  "frame": 60118,
+  "timestamp": 446.71970092505217,
+  "sample_name": "sample_000117",
+  "sequence_index": 117,
+  "ego": {
+    "frame_id": 60118,
+    "timestamp": 446.71970092505217,
+    "sample_name": "sample_000117",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      77.28752136230469,
+      62.279911041259766,
+      -0.004500579554587603
+    ],
+    "velocity_world": [
+      8.278191643285027e-08,
+      -1.9498018755115254e-09,
+      -1.7738342421580455e-06
+    ],
+    "speed_mps": 1.7757659097043328e-06,
+    "yaw_deg": -161.72349548339844,
+    "route_progress_m": 53.24160103577208,
+    "world_from_ego_bevfusion": [
+      [
+        -0.9495541453361511,
+        -0.3136030435562134,
+        -1.5847393797230325e-06,
+        77.28752136230469
+      ],
+      [
+        0.3136030435562134,
+        -0.9495541453361511,
+        5.233815159044752e-07,
+        62.279911041259766
+      ],
+      [
+        -1.6689299400240998e-06,
+        0.0,
+        1.0,
+        -0.004500579554587603
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "objects": [
+    {
+      "track_id": 2,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000117_det_0000",
+      "age_frames": 115,
+      "hits": 115,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.52734375,
+      "mean_score": 0.5829780910326088,
+      "position_ego": [
+        6.112165144155163,
+        0.24564511241976633,
+        -1.5361328125
+      ],
+      "velocity_ego": [
+        -0.0011135644880608073,
+        -0.0005811599373709321
+      ],
+      "speed_mps": 0.001256094240841472,
+      "bbox": [
+        6.112165144155163,
+        0.24564511241976633,
+        -1.5361328125,
+        2.1171875,
+        4.9609375,
+        1.76171875,
+        -1.72265625,
+        -0.0011135644880608073,
+        -0.0005811599373709321
+      ],
+      "size_xyz": [
+        2.1171875,
+        4.9609375,
+        1.76171875
+      ],
+      "yaw_rad": -1.72265625,
+      "distance_m": 6.117099334707671,
+      "bearing_deg": 2.3014525188119186,
+      "ttc_seconds": null,
+      "relative_sector": "front",
+      "source_confidence": 0.52734375,
+      "risk_score": 0.6541217549896925,
+      "risk_level": "high",
+      "reasoning_tags": [
+        "near_field",
+        "ahead",
+        "frontal_corridor",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 48,
+      "class_id": 4,
+      "class_name": "trailer",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000117_det_0001",
+      "age_frames": 24,
+      "hits": 23,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.1197509765625,
+      "mean_score": 0.15622611667798916,
+      "position_ego": [
+        15.125303872395474,
+        27.31626992533283,
+        -0.1083984375
+      ],
+      "velocity_ego": [
+        3.217544110426636,
+        0.5939565686263841
+      ],
+      "speed_mps": 3.2719068611370283,
+      "bbox": [
+        15.125303872395474,
+        27.31626992533283,
+        -0.1083984375,
+        3.083984375,
+        14.296875,
+        3.056640625,
+        -1.8740234375,
+        3.217544110426636,
+        0.5939565686263841
+      ],
+      "size_xyz": [
+        3.083984375,
+        14.296875,
+        3.056640625
+      ],
+      "yaw_rad": -1.8740234375,
+      "distance_m": 31.224244103996245,
+      "bearing_deg": 61.02624312304471,
+      "ttc_seconds": null,
+      "relative_sector": "front_left",
+      "source_confidence": 0.1197509765625,
+      "risk_score": 0.21581816922002817,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "ahead",
+        "vehicle"
+      ]
+    }
+  ],
+  "scene": {
+    "active_object_count": 2,
+    "front_free_space_m": 5.053571394155163,
+    "left_side_occupancy": 0.0,
+    "right_side_occupancy": 0.0,
+    "rear_gap_m": null,
+    "nearest_front_vehicle": {
+      "track_id": 2,
+      "class": "car",
+      "distance_m": 6.117099334707671,
+      "bearing_deg": 2.3014525188119186,
+      "position_ego": [
+        6.112165144155163,
+        0.24564511241976633,
+        -1.5361328125
+      ],
+      "velocity_ego": [
+        -0.0011135644880608073,
+        -0.0005811599373709321
+      ],
+      "risk_level": "high",
+      "risk_score": 0.6541217549896925
+    },
+    "nearest_vru": null,
+    "nearest_any_object": {
+      "track_id": 2,
+      "class": "car",
+      "distance_m": 6.117099334707671,
+      "bearing_deg": 2.3014525188119186,
+      "position_ego": [
+        6.112165144155163,
+        0.24564511241976633,
+        -1.5361328125
+      ],
+      "velocity_ego": [
+        -0.0011135644880608073,
+        -0.0005811599373709321
+      ],
+      "risk_level": "high",
+      "risk_score": 0.6541217549896925
+    },
+    "abnormal_flags": [
+      "front_blocked",
+      "high_risk_scene"
+    ]
+  },
+  "risk_summary": {
+    "highest_risk_level": "high",
+    "highest_risk_score": 0.6541217549896925,
+    "urgent_track_ids": [
+      2
+    ],
+    "front_hazard_track_id": 2,
+    "nearest_front_vehicle_distance_m": 6.117099334707671,
+    "nearest_vru_distance_m": null,
+    "minimum_ttc_seconds": null,
+    "flags": [
+      "hazard_present",
+      "front_vehicle_close"
+    ]
+  },
+  "decision_context": {
+    "recommended_maneuvers": [
+      "slow_down"
+    ],
+    "hard_constraints": [
+      "respect_front_obstacle_buffer"
+    ],
+    "soft_constraints": [
+      "prefer_keep_lane"
+    ]
+  }
+}

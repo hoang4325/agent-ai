@@ -1,0 +1,89 @@
+# Stage 7C — Controlled Expansion Set (4 cases)
+#
+# Shadow-only only. No control authority, no assist mode, no takeover.
+# This set expands the original Stage 7C online smoke subset from 2 cases to 4
+# by adding the two live-backed cases below.
+
+name: stage7_controlled_expansion_4case
+description: >
+  Stage 7C controlled expansion set for live-backed agent tactical shadow.
+  Runs exactly 4 cases under the same hard gates as the baseline Stage 7C set.
+  Baseline tactical + MPC remain the sole authority at all times.
+  No control authority, no assist mode, no takeover.
+
+stage7_mode:
+  stage: "7C"
+  mode: "online_shadow_smoke"
+  agent_authority: "shadow_only"
+  baseline_authority: "full"
+  online_required: true
+  adapter: "stub"
+  adapter_model_id: "stub_v1"
+  agent_timeout_s: 1.5
+  max_frames_per_case: 60
+  rollout_status: "controlled_expansion_shadow_only"
+  activation_note: >
+    Controlled expansion of the live-backed Stage 7C smoke set.
+    The set remains shadow-only and must not be used to discuss assist mode,
+    takeover, or authority transfer.
+
+gate_definition:
+  hard_gate_metrics:
+    - agent_shadow_artifact_completeness
+    - agent_contract_validity_rate
+    - agent_timeout_rate
+    - agent_fallback_to_baseline_rate
+    - agent_forbidden_intent_count
+    - agent_lane_change_intent_validity_rate
+  soft_guardrail_metrics:
+    - agent_baseline_disagreement_rate
+    - agent_useful_disagreement_rate
+    - agent_route_alignment_rate
+  diagnostic_only_metrics:
+    - agent_stop_context_correctness_rate
+
+thresholds:
+  agent_shadow_artifact_completeness:
+    min: 1.0
+  agent_contract_validity_rate:
+    min: 0.95
+  agent_timeout_rate:
+    max: 0.05
+  agent_fallback_to_baseline_rate:
+    max: 0.10
+  agent_forbidden_intent_count:
+    max: 0
+  agent_lane_change_intent_validity_rate:
+    min: 1.0
+  agent_baseline_disagreement_rate:
+    max: 0.40
+  agent_useful_disagreement_rate:
+    min: 0.20
+  agent_route_alignment_rate:
+    min: 0.65
+
+cases:
+  - ml_right_positive_core
+  - stop_follow_ambiguity_core
+  - ml_left_positive_core
+  - arbitration_stop_during_prepare_right
+
+required_artifacts_per_case:
+  - agent_shadow_intent.jsonl
+  - agent_shadow_summary.json
+  - agent_baseline_comparison.json
+  - agent_disagreement_events.jsonl
+  - agent_contract_validation.json
+  - agent_timeout_fallback_events.jsonl
+
+canonical_output_files:
+  - benchmark/stage7_agent_shadow_online_smoke_result.json
+  - benchmark/stage7_agent_shadow_online_smoke_report.json
+
+invariants:
+  - "shadow_mode = True in all agent outputs"
+  - "agent has NO control/trajectory/MPC authority"
+  - "baseline tactical + MPC remain sole authority"
+  - "no assist mode, no takeover, no authority hand-off"
+  - "agent timeout → fallback_to_baseline = True recorded"
+  - "do not discuss assist mode (requires separate Stage 8 design)"

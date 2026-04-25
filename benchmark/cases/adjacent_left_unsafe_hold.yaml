@@ -1,0 +1,34 @@
+scenario_id: adjacent_left_unsafe_hold
+status: planned
+family: adjacent_lane_unsafe
+mode: replay_closed_loop
+source:
+  type: planned_case
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_left_manifest_v3.json
+  backlog_reason: no clean left-unsafe artifact bundle has been pinned yet
+owner: agentai_system_benchmark
+determinism_level: unknown
+route_option: keep_left
+critical_actors:
+  - blocker_ahead_current_lane
+  - adjacent_left_lane_vehicle
+expected_behaviors:
+  - stop_before_obstacle
+  - follow
+forbidden_behaviors:
+  - commit_lane_change_left
+expected_execution:
+  lane_change_successes_min: 0
+  stop_successes_min: 1
+pending_ground_truth_binding: true
+artifacts:
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_left_manifest_v3.json
+  ground_truth_actor_roles: benchmark/reference_artifacts/adjacent_left_unsafe_hold/ground_truth_actor_roles.json
+mandatory_artifacts: []
+primary_metrics: []
+secondary_metrics:
+  - blocker_binding_accuracy
+  - lane_assignment_consistency
+notes: |
+  Planned placeholder. v1 keeps the case name and route intent, but no trustworthy left-unsafe
+  artifact bundle has been captured yet. Runner will skip this case until the artifact bundle is added.

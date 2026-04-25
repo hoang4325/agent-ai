@@ -1,0 +1,38 @@
+{
+  "schema_version": "stage5b.planner_quality_summary.v1",
+  "measurement_support": {
+    "trajectory_trace": "approximate",
+    "control_trace": "approximate",
+    "lane_change_phase_trace": "present",
+    "stop_target": "missing",
+    "lane_change_events_enriched": "present",
+    "stop_events": "present",
+    "planner_control_latency": "missing",
+    "fallback_events": "present"
+  },
+  "lane_change_completion_rate": 0.5,
+  "mean_lane_change_completion_time_s": 3.6000000536441803,
+  "lane_change_abort_rate": 0.5,
+  "lane_change_completion_validity": 1.0,
+  "stop_hold_stability": 0.1,
+  "stop_target_defined_rate": 0.0,
+  "stop_final_error_m": null,
+  "stop_overshoot_distance_m": null,
+  "heading_settle_time_s": null,
+  "lateral_oscillation_rate": null,
+  "trajectory_smoothness_proxy": 0.08264178243417533,
+  "control_jerk_proxy": 12.822708168538735,
+  "planner_execution_latency_ms": null,
+  "decision_to_execution_latency_ms": null,
+  "over_budget_rate": null,
+  "fallback_activation_rate": 0.910828025477707,
+  "fallback_reason_coverage": 1.0,
+  "fallback_takeover_latency_ms": null,
+  "fallback_missing_when_required_count": 0,
+  "warnings": [
+    "stop_final_error_m_unavailable_without_explicit_stop_target_contract",
+    "control_trace_approximate_from_speed_profile",
+    "trajectory_trace_missing_pose_support",
+    "fallback_takeover_latency_ms_unavailable_without_direct_activation_events"
+  ]
+}

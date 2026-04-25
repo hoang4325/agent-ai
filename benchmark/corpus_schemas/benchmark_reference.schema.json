@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen Case Bundle Benchmark Reference",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "bundle_version",
+    "case_id",
+    "readiness",
+    "primary_metrics",
+    "secondary_metrics",
+    "metric_thresholds",
+    "mandatory_artifacts",
+    "gate_profile",
+    "artifact_paths"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "frozen_case_bundle_v1.schema.benchmark_reference",
+      "x-population": "derived"
+    },
+    "bundle_version": {
+      "type": "string",
+      "const": "frozen_case_bundle_v1",
+      "x-population": "derived"
+    },
+    "case_id": {
+      "type": "string",
+      "x-population": "existing_case_spec"
+    },
+    "readiness": {
+      "type": "string",
+      "enum": [
+        "corpus_ready",
+        "corpus_partial",
+        "corpus_pending"
+      ],
+      "x-population": "derived"
+    },
+    "primary_metrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "existing_case_spec"
+    },
+    "secondary_metrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "existing_case_spec"
+    },
+    "metric_thresholds": {
+      "type": "object",
+      "x-population": "existing_case_spec_or_default_thresholds"
+    },
+    "mandatory_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "existing_case_spec"
+    },
+    "required_artifacts": {
+      "type": "object",
+      "x-population": "derived"
+    },
+    "gate_profile": {
+      "type": "object",
+      "x-population": "derived"
+    },
+    "benchmark_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "derived"
+    },
+    "artifact_paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "x-population": "derived"
+    }
+  }
+}

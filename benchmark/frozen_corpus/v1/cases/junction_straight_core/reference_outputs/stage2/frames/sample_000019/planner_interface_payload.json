@@ -1,0 +1,191 @@
+{
+  "frame_id": 2196,
+  "timestamp": 33.84063230827451,
+  "ego": {
+    "speed_mps": 8.417928257386103,
+    "yaw_deg": -20.83456039428711,
+    "route_progress_m": 3.7502212408150037,
+    "position_world": [
+      -56.64912414550781,
+      -22.599220275878906,
+      -0.006190948188304901
+    ]
+  },
+  "decision_intent": {
+    "frame_id": 2196,
+    "timestamp": 33.84063230827451,
+    "maneuver": "slow_down",
+    "target_speed_mps": 6.734342605908883,
+    "lane_preference": "keep_current",
+    "constraints": [],
+    "confidence": 0.65,
+    "reasoning_tags": [
+      "medium_risk_scene"
+    ]
+  },
+  "hard_constraints": [],
+  "soft_constraints": [
+    "prefer_keep_lane"
+  ],
+  "tracked_objects": [
+    {
+      "track_id": 3,
+      "class_id": 7,
+      "class_name": "bicycle",
+      "class_group": "vru",
+      "latest_detection_id": "sample_000018_det_0000",
+      "age_frames": 5,
+      "hits": 3,
+      "missed_frames": 1,
+      "is_occluded_est": true,
+      "score": 0.1707763671875,
+      "mean_score": 0.15476481119791666,
+      "position_ego": [
+        21.377108516498385,
+        -23.116672626225313,
+        -0.8955078125
+      ],
+      "velocity_ego": [
+        -10.757849866011668,
+        -5.959444988980665
+      ],
+      "speed_mps": 12.298224193611613,
+      "bbox": [
+        21.377108516498385,
+        -23.116672626225313,
+        -0.8955078125,
+        0.69970703125,
+        2.037109375,
+        1.3154296875,
+        -1.3310546875,
+        -10.757849866011668,
+        -5.959444988980665
+      ],
+      "size_xyz": [
+        0.69970703125,
+        2.037109375,
+        1.3154296875
+      ],
+      "yaw_rad": -1.3310546875,
+      "distance_m": 31.485890837551707,
+      "bearing_deg": -47.23894085820608,
+      "ttc_seconds": 1.98711720118322,
+      "relative_sector": "front_right",
+      "source_confidence": 0.14515991210937498,
+      "risk_score": 0.4792774459106079,
+      "risk_level": "medium",
+      "reasoning_tags": [
+        "ahead",
+        "ttc_high",
+        "vru",
+        "occluded_est"
+      ]
+    },
+    {
+      "track_id": 4,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000019_det_0000",
+      "age_frames": 5,
+      "hits": 4,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.28271484375,
+      "mean_score": 0.2061614990234375,
+      "position_ego": [
+        46.26523614209955,
+        -3.707027080667548,
+        -1.5673828125
+      ],
+      "velocity_ego": [
+        -6.9590217525613385,
+        -13.6483255130563
+      ],
+      "speed_mps": 15.320077449639912,
+      "bbox": [
+        46.26523614209955,
+        -3.707027080667548,
+        -1.5673828125,
+        2.076171875,
+        4.78125,
+        1.7861328125,
+        1.921875,
+        -6.9590217525613385,
+        -13.6483255130563
+      ],
+      "size_xyz": [
+        2.076171875,
+        4.78125,
+        1.7861328125
+      ],
+      "yaw_rad": 1.921875,
+      "distance_m": 46.41351231119056,
+      "bearing_deg": -4.581068422249442,
+      "ttc_seconds": 6.648238471890272,
+      "relative_sector": "front_right",
+      "source_confidence": 0.28271484375,
+      "risk_score": 0.15000000000000002,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "ahead",
+        "vehicle"
+      ]
+    }
+  ],
+  "scene_summary": {
+    "active_object_count": 2,
+    "front_free_space_m": null,
+    "left_side_occupancy": 0.0,
+    "right_side_occupancy": 0.0,
+    "rear_gap_m": null,
+    "nearest_front_vehicle": null,
+    "nearest_vru": {
+      "track_id": 3,
+      "class": "bicycle",
+      "distance_m": 31.485890837551707,
+      "bearing_deg": -47.23894085820608,
+      "position_ego": [
+        21.377108516498385,
+        -23.116672626225313,
+        -0.8955078125
+      ],
+      "velocity_ego": [
+        -10.757849866011668,
+        -5.959444988980665
+      ],
+      "risk_level": "medium",
+      "risk_score": 0.4792774459106079
+    },
+    "nearest_any_object": {
+      "track_id": 3,
+      "class": "bicycle",
+      "distance_m": 31.485890837551707,
+      "bearing_deg": -47.23894085820608,
+      "position_ego": [
+        21.377108516498385,
+        -23.116672626225313,
+        -0.8955078125
+      ],
+      "velocity_ego": [
+        -10.757849866011668,
+        -5.959444988980665
+      ],
+      "risk_level": "medium",
+      "risk_score": 0.4792774459106079
+    },
+    "abnormal_flags": []
+  },
+  "risk_summary": {
+    "highest_risk_level": "medium",
+    "highest_risk_score": 0.4792774459106079,
+    "urgent_track_ids": [],
+    "front_hazard_track_id": null,
+    "nearest_front_vehicle_distance_m": 46.41351231119056,
+    "nearest_vru_distance_m": 31.485890837551707,
+    "minimum_ttc_seconds": 1.98711720118322,
+    "flags": [
+      "short_ttc"
+    ]
+  }
+}

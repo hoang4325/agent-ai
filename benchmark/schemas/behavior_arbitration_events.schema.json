@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Behavior Arbitration Event",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "requested_behavior",
+    "arbitration_action",
+    "arbitration_reason",
+    "selected_behavior",
+    "result_status",
+    "classification"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "scenario_id": {
+      "type": "string"
+    },
+    "frame_id": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "sample_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requested_behavior": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "previous_execution_behavior": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "current_execution_behavior": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "executing_behavior": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arbitration_action": {
+      "enum": [
+        "continue",
+        "cancel",
+        "downgrade",
+        "emergency_override"
+      ]
+    },
+    "arbitration_reason": {
+      "type": "string"
+    },
+    "selected_behavior": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "selected_execution_mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "result_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "classification": {
+      "enum": [
+        "expected",
+        "unexpected",
+        "diagnostic"
+      ]
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

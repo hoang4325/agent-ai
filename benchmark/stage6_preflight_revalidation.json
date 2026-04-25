@@ -1,0 +1,35 @@
+{
+  "schema_version": "stage6_preflight_revalidation_v1",
+  "generated_at_utc": "2026-04-17T16:27:00+00:00",
+  "subset": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core"
+  ],
+  "scenario_replay_report_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay",
+  "online_e2e_report_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e",
+  "scenario_replay_overall_status": "pass",
+  "online_e2e_overall_status": "fail",
+  "stop_target_contract": "approximate",
+  "latency_contract": "clean_enough",
+  "fallback_contract": "approximate",
+  "metric_maturity_updates": {
+    "stop_target_defined_rate": "hard_gate_ready",
+    "fallback_reason_coverage": "hard_gate_ready",
+    "stop_final_error_m": "diagnostic_only",
+    "stop_overshoot_distance_m": "soft_guardrail",
+    "planner_execution_latency_ms": "soft_guardrail",
+    "decision_to_execution_latency_ms": "soft_guardrail",
+    "over_budget_rate": "soft_guardrail",
+    "fallback_takeover_latency_ms": "diagnostic_only"
+  },
+  "readiness": "partial",
+  "remaining_blockers": [
+    "stop_target_contract_not_clean_enough",
+    "fallback_contract_missing_online_takeover_evidence"
+  ],
+  "raw_contract_audit": {
+    "stop_target_contract": "approximate",
+    "latency_contract": "approximate",
+    "fallback_contract": "approximate"
+  }
+}

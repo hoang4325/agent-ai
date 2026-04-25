@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Route Session Binding",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "route_binding",
+    "session_binding",
+    "expected_binding"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "scenario_id": {
+      "type": "string"
+    },
+    "route_binding": {
+      "type": "object",
+      "required": [
+        "route_mode",
+        "route_option",
+        "preferred_lane",
+        "source_of_route_binding",
+        "route_confidence",
+        "route_conflict_flags"
+      ],
+      "properties": {
+        "route_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route_option": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preferred_lane": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_of_route_binding": {
+          "type": "string"
+        },
+        "route_confidence": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "route_conflict_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "route_overrides": {
+          "type": "object"
+        }
+      }
+    },
+    "session_binding": {
+      "type": "object",
+      "required": [
+        "session_binding_source",
+        "mode"
+      ]
+    },
+    "expected_binding": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

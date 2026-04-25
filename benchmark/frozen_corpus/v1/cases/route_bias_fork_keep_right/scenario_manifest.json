@@ -1,0 +1,69 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.scenario_manifest",
+  "bundle_version": "frozen_case_bundle_v1",
+  "case_id": "route_bias_fork_keep_right",
+  "scenario_id": "route_bias_fork_keep_right",
+  "town": "Carla/Maps/Town10HD_Opt",
+  "scenario_recipe": {
+    "source_type": null,
+    "attach_strategy": null,
+    "runner_manifest_path": "scenario_artifacts/runner_manifest.json",
+    "scenario_type": "stage3a_non_junction_multilane",
+    "spawn_recipe": {
+      "ego_actor_id": 39,
+      "blocker_actor_id": 40,
+      "adjacent_actor_id": 41,
+      "adjacent_side": "right",
+      "corridor": {
+        "road_id": 0,
+        "section_id": 0,
+        "lane_id": -1,
+        "s": 10.000000000000002,
+        "lane_width_m": 3.5,
+        "lane_change": "Right",
+        "adjacent_lane_id": -2,
+        "junction_distance_m": null,
+        "ego_transform": {
+          "location": {
+            "x": 106.4453125,
+            "y": -19.35972023010254,
+            "z": 0.4000000059604645
+          },
+          "rotation": {
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 270.3343200683594
+          }
+        }
+      },
+      "placements": {
+        "blocker_distance_m": 24.0,
+        "adjacent_distance_m": 42.0
+      }
+    }
+  },
+  "route_profile": {
+    "route_option": "keep_right"
+  },
+  "route_session_binding": {},
+  "deterministic_seed": null,
+  "evaluation_window": {
+    "observed_samples": 0,
+    "history_skipped_samples": 0,
+    "infer_ready_samples": 0,
+    "first_infer_ready_sample": null,
+    "last_infer_ready_sample": null
+  },
+  "critical_actor_roles": [
+    "route_branching_topology"
+  ],
+  "expected_behaviors": [
+    "keep_lane"
+  ],
+  "forbidden_behaviors": [
+    "keep_route_through_junction"
+  ],
+  "expected_execution_outcomes": {
+    "lane_change_successes_min": 0
+  }
+}

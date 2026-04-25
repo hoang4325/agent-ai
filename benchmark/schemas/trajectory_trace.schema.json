@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/trajectory_trace.schema.json",
+  "title": "Stage3C Trajectory Trace Row",
+  "type": "object",
+  "required": [
+    "carla_frame",
+    "timestamp",
+    "requested_behavior",
+    "executing_behavior",
+    "current_lane_id",
+    "target_lane_id",
+    "lane_change_progress",
+    "speed_mps",
+    "trajectory_source",
+    "planner_status",
+    "pose_supported"
+  ],
+  "properties": {
+    "request_frame": { "type": ["integer", "null"] },
+    "sample_name": { "type": "string" },
+    "carla_frame": { "type": ["integer", "null"] },
+    "timestamp": { "type": ["number", "null"] },
+    "requested_behavior": { "type": "string" },
+    "executing_behavior": { "type": "string" },
+    "execution_status": { "type": "string" },
+    "current_lane_id": { "type": ["integer", "null"] },
+    "target_lane_id": { "type": ["integer", "null"] },
+    "lane_change_progress": { "type": ["number", "null"] },
+    "distance_to_target_lane_center": { "type": ["number", "null"] },
+    "distance_to_current_lane_center": { "type": ["number", "null"] },
+    "lateral_shift_m": { "type": ["number", "null"] },
+    "speed_mps": { "type": ["number", "null"] },
+    "target_speed_mps": { "type": ["number", "null"] },
+    "is_in_junction": { "type": "boolean" },
+    "trajectory_source": { "type": "string" },
+    "planner_status": { "type": "string" },
+    "pose_supported": { "type": "boolean" },
+    "x_m": { "type": ["number", "null"] },
+    "y_m": { "type": ["number", "null"] },
+    "z_m": { "type": ["number", "null"] },
+    "yaw_deg": { "type": ["number", "null"] },
+    "pitch_deg": { "type": ["number", "null"] },
+    "roll_deg": { "type": ["number", "null"] },
+    "yaw_rate_deg_per_s": { "type": ["number", "null"] },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

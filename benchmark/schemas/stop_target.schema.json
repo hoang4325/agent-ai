@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/stop_target.schema.json",
+  "title": "Stage6 Stop Target Contract",
+  "type": "object",
+  "required": ["schema_version", "measurement_support", "summary", "stop_events"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "stage6.stop_target.v1" },
+    "measurement_support": {
+      "type": "object",
+      "required": ["stop_target_defined_rate", "stop_final_error_m", "stop_overshoot_distance_m"],
+      "properties": {
+        "stop_target_defined_rate": { "type": "string", "enum": ["missing", "approximate", "present"] },
+        "stop_final_error_m": { "type": "string", "enum": ["missing", "approximate", "present"] },
+        "stop_overshoot_distance_m": { "type": "string", "enum": ["missing", "approximate", "present"] }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "num_stop_events",
+        "stop_target_defined_events",
+        "stop_target_defined_rate",
+        "explicit_target_events",
+        "heuristic_target_events",
+        "approximate_target_events",
+        "unavailable_target_events",
+        "distance_measurement_supported_events",
+        "stop_final_error_supported",
+        "stop_final_error_supported_events",
+        "stop_overshoot_distance_supported",
+        "stop_overshoot_distance_supported_events"
+      ],
+      "properties": {
+        "num_stop_events": { "type": "integer" },
+        "stop_target_defined_events": { "type": "integer" },
+        "stop_target_defined_rate": { "type": ["number", "null"] },
+        "explicit_target_events": { "type": "integer" },
+        "heuristic_target_events": { "type": "integer" },
+        "approximate_target_events": { "type": "integer" },
+        "unavailable_target_events": { "type": "integer" },
+        "distance_measurement_supported_events": { "type": "integer" },
+        "stop_final_error_supported": { "type": "boolean" },
+        "stop_final_error_supported_events": { "type": "integer" },
+        "stop_overshoot_distance_supported": { "type": "boolean" },
+        "stop_overshoot_distance_supported_events": { "type": "integer" },
+        "alignment_consistent_events": { "type": "integer" },
+        "mean_runtime_alignment_error_m": { "type": ["number", "null"] },
+        "mean_stop_final_error_m": { "type": ["number", "null"] },
+        "mean_stop_overshoot_distance_m": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "stop_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "stop_event_id",
+          "request_frame",
+          "result",
+          "target_source",
+          "target_source_type",
+          "binding_status",
+          "target_defined",
+          "target_confidence",
+          "measurement_mode",
+          "distance_measurement_supported",
+          "obstacle_binding_status",
+          "stop_final_error_supported",
+          "overshoot_distance_supported",
+          "provenance"
+        ],
+        "properties": {
+          "stop_event_id": { "type": "string" },
+          "request_frame": { "type": ["integer", "null"] },
+          "sample_name": { "type": "string" },
+          "tick_id": { "type": ["integer", "null"] },
+          "result": { "type": "string" },
+          "target_source": { "type": "string" },
+          "target_source_type": { "type": "string", "enum": ["obstacle", "stop_line", "route", "route_junction", "fallback_safety", "unavailable"] },
+          "binding_status": { "type": "string", "enum": ["exact", "heuristic", "approximate", "unavailable"] },
+          "target_defined": { "type": "boolean" },
+          "target_confidence": { "type": "number" },
+          "measurement_mode": { "type": "string" },
+          "distance_measurement_supported": { "type": "boolean" },
+          "obstacle_binding_status": { "type": "string" },
+          "obstacle_binding_id": { "type": ["integer", "null"] },
+          "source_track_id": { "type": ["integer", "null"] },
+          "source_actor_id": { "type": ["integer", "null"] },
+          "source_role": { "type": ["string", "null"] },
+          "target_distance_m": { "type": ["number", "null"] },
+          "initial_distance_to_target_m": { "type": ["number", "null"] },
+          "first_distance_to_target_m": { "type": ["number", "null"] },
+          "runtime_alignment_error_m": { "type": ["number", "null"] },
+          "runtime_alignment_consistent": { "type": "boolean" },
+          "target_pose": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "properties": {
+                  "x_m": { "type": "number" },
+                  "y_m": { "type": "number" },
+                  "z_m": { "type": "number" },
+                  "yaw_deg": { "type": "number" }
+                },
+                "required": ["x_m", "y_m", "z_m", "yaw_deg"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "target_lane_id": { "type": ["integer", "null"] },
+          "target_lane_relation": { "type": ["string", "null"] },
+          "stop_reason": { "type": "string" },
+          "final_distance_to_obstacle_m": { "type": ["number", "null"] },
+          "min_distance_to_obstacle_m": { "type": ["number", "null"] },
+          "final_distance_to_target_m": { "type": ["number", "null"] },
+          "min_distance_to_target_m": { "type": ["number", "null"] },
+          "stop_final_error_supported": { "type": "boolean" },
+          "stop_final_error_m": { "type": ["number", "null"] },
+          "overshoot_distance_supported": { "type": "boolean" },
+          "stop_overshoot_distance_m": { "type": ["number", "null"] },
+          "hold_ticks": { "type": ["integer", "null"] },
+          "reason": { "type": "string" },
+          "provenance": {
+            "type": "object",
+            "required": ["source_stage", "source_artifact", "derivation_mode"],
+            "properties": {
+              "source_stage": { "type": "string" },
+              "source_artifact": { "type": "string" },
+              "derivation_mode": { "type": "string" },
+              "runtime_binding_source": { "type": ["string", "null"] },
+              "actor_binding_source": { "type": ["string", "null"] },
+              "materialization_status": { "type": ["string", "null"] },
+              "runtime_actor_id": { "type": ["integer", "null"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

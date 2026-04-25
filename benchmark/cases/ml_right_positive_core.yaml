@@ -1,0 +1,132 @@
+scenario_id: ml_right_positive_core
+status: ready
+family: multi_lane_positive
+mode: replay_closed_loop
+benchmark_mode: replay_regression
+supported_benchmark_modes:
+  - replay_regression
+  - scenario_replay
+  - online_e2e
+execution_profile: deterministic_multilane_right_v1
+scenario_recipe:
+  source_type: scenario_manifest
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long_manifest.json
+  attach_strategy: manifest_ego_actor
+  stage1_session_dir: outputs/live_watch_compare_multilane/lw_s3a_ml_long_v1
+route_profile:
+  route_option: keep_right
+  preferred_lane: right
+  route_priority: normal
+stage_profiles:
+  stage1: stage1_session_attach_default
+  stage2: stage2_replay_default
+  stage3a: stage3a_replay_default
+  stage3b: stage3b_replay_default
+  stage3c: stage3c_closed_loop_default
+  stage4: stage4_online_default
+stage4_python_executable: C:/Users/Administrator/AppData/Local/Programs/Python/Python39/python.exe
+orchestration_target: stage4_online_orchestrator
+expected_stage_chain:
+  - spawn
+  - stage1
+  - stage2
+  - stage3a
+  - stage3b
+  - stage3c
+  - stage4
+  - evaluate
+trace_requirements:
+  require_current_run_artifacts: true
+  required_steps:
+    - spawn
+    - stage4
+    - evaluate
+source:
+  type: existing_artifact_bundle
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long_manifest.json
+  stage1_session_dir: outputs/live_watch_compare_multilane/lw_s3a_ml_long_v1
+  stage2_dir: outputs/stage2/st2_s3a_ml_long_v1
+  stage3a_dir: outputs/stage3/st3_s3a_ml_long_v1
+  stage3b_dir: outputs/stage3b/st3b_s3a_ml_long_v1
+  stage3c_dir: outputs/stage3c/st3c_s3a_ml_long_v1_mp4
+owner: agentai_system_benchmark
+determinism_level: high
+route_option: keep_right
+critical_actors:
+  - blocker_ahead_current_lane
+  - adjacent_right_lane_vehicle
+expected_behaviors:
+  - commit_lane_change_right
+forbidden_behaviors:
+  - commit_lane_change_left
+  - prepare_lane_change_left
+expected_execution:
+  lane_change_successes_min: 1
+  stop_successes_min: 1
+pending_ground_truth_binding: false
+artifacts:
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long_manifest.json
+  ground_truth_actor_roles: benchmark/reference_artifacts/ml_right_positive_core/ground_truth_actor_roles.json
+  critical_actor_binding: benchmark/reference_artifacts/ml_right_positive_core/critical_actor_binding.jsonl
+  behavior_arbitration_events: benchmark/reference_artifacts/ml_right_positive_core/behavior_arbitration_events.jsonl
+  route_session_binding: benchmark/reference_artifacts/ml_right_positive_core/route_session_binding.json
+  stage1_session_summary: outputs/live_watch_compare_multilane/lw_s3a_ml_long_v1/session_summary.json
+  stage2_evaluation_summary: outputs/stage2/st2_s3a_ml_long_v1/evaluation_summary.json
+  stage2_world_state_sample: outputs/stage2/st2_s3a_ml_long_v1/frames/sample_000029/world_state.json
+  stage2_tracked_objects_sample: outputs/stage2/st2_s3a_ml_long_v1/frames/sample_000029/tracked_objects.json
+  stage3a_evaluation_summary: outputs/stage3/st3_s3a_ml_long_v1/evaluation_summary.json
+  stage3a_lane_world_state_sample: outputs/stage3/st3_s3a_ml_long_v1/frames/sample_000029/lane_aware_world_state.json
+  stage3b_evaluation_summary: outputs/stage3b/st3b_s3a_ml_long_v1/evaluation_summary.json
+  stage3b_behavior_timeline: benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3b/behavior_timeline_v2.jsonl
+  stage3b_behavior_request_sample: outputs/stage3b/st3b_s3a_ml_long_v1/frames/sample_000029/behavior_request_v2.json
+  stage3c_execution_summary: outputs/stage3c/st3c_s3a_ml_long_v1_mp4/execution_summary.json
+  stage3c_execution_timeline: outputs/stage3c/st3c_s3a_ml_long_v1_mp4/execution_timeline.jsonl
+  stage3c_lane_change_events: outputs/stage3c/st3c_s3a_ml_long_v1_mp4/lane_change_events.jsonl
+mandatory_artifacts:
+  - ground_truth_actor_roles
+  - critical_actor_binding
+  - behavior_arbitration_events
+  - route_session_binding
+  - stage1_session_summary
+  - stage2_evaluation_summary
+  - stage2_world_state_sample
+  - stage2_tracked_objects_sample
+  - stage3a_evaluation_summary
+  - stage3a_lane_world_state_sample
+  - stage3b_evaluation_summary
+  - stage3b_behavior_timeline
+  - stage3b_behavior_request_sample
+  - stage3c_execution_summary
+  - stage3c_execution_timeline
+  - stage3c_lane_change_events
+primary_metrics:
+  - artifact_completeness
+  - route_option_match
+  - expected_behavior_presence
+  - lane_change_success_count
+  - lane_change_success_rate
+  - stop_success_rate
+  - unsafe_lane_change_intent_count
+secondary_metrics:
+  - behavior_execution_mismatch_rate
+  - route_conditioned_override_rate
+  - front_hazard_signal_present
+  - mean_lane_change_time_s
+  - critical_actor_detected_rate
+  - blocker_binding_accuracy
+  - lane_assignment_consistency
+  - critical_actor_track_continuity_rate
+  - route_context_consistency
+  - route_influence_correctness
+metric_thresholds:
+  expected_behavior_presence:
+    min: 1
+  lane_change_success_count:
+    min: 1
+  lane_change_success_rate:
+    min: 0.5
+  stop_success_rate:
+    min: 0.5
+notes: |
+  Clean right-positive baseline from Stage 3C coverage report v8. This is one of the core
+  golden cases for route-conditioned right lane change plus successful stop evidence.

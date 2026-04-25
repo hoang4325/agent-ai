@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stage 6 MPC Shadow Proposal",
+  "type": "object",
+  "required": [
+    "case_id",
+    "request_frame",
+    "sample_name",
+    "shadow_mode",
+    "baseline_requested_behavior",
+    "shadow_requested_behavior",
+    "feasible",
+    "solver_status",
+    "shadow_planner_execution_latency_ms",
+    "provenance"
+  ],
+  "properties": {
+    "case_id": { "type": "string" },
+    "request_frame": { "type": ["integer", "null"] },
+    "sample_name": { "type": "string" },
+    "carla_frame": { "type": ["integer", "null"] },
+    "timestamp": { "type": ["number", "null"] },
+    "shadow_mode": { "type": "boolean" },
+    "baseline_requested_behavior": { "type": "string" },
+    "baseline_target_lane": { "type": ["string", "null"] },
+    "baseline_target_speed_mps": { "type": ["number", "null"] },
+    "shadow_requested_behavior": { "type": "string" },
+    "shadow_target_lane": { "type": ["string", "null"] },
+    "shadow_target_lane_id": { "type": ["integer", "null"] },
+    "shadow_target_speed_mps": { "type": ["number", "null"] },
+    "target_corridor": { "type": "object" },
+    "proposed_trajectory": { "type": "object" },
+    "proposed_target_speed_profile": { "type": "object" },
+    "stop_target_info": { "type": "object" },
+    "feasible": { "type": "boolean" },
+    "solver_status": { "type": "string" },
+    "solver_timed_out": { "type": "boolean" },
+    "objective_summary": { "type": "object" },
+    "shadow_planner_execution_latency_ms": { "type": ["number", "null"] },
+    "baseline_latency_reference_ms": { "type": ["number", "null"] },
+    "fallback_recommendation": { "type": ["string", "null"] },
+    "behavior_disagreement_with_baseline": { "type": "boolean" },
+    "proposal_divergence_from_baseline": { "type": "boolean" },
+    "disagreement_with_baseline": { "type": "boolean" },
+    "divergence_reasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "provenance": { "type": "object" }
+  }
+}

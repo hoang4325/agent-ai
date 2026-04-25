@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent-AI Benchmark Case",
+  "type": "object",
+  "required": [
+    "scenario_id",
+    "status",
+    "family",
+    "mode",
+    "source",
+    "artifacts",
+    "mandatory_artifacts",
+    "route_option",
+    "expected_behaviors",
+    "forbidden_behaviors",
+    "primary_metrics"
+  ],
+  "properties": {
+    "benchmark_spec_version": {
+      "type": "string"
+    },
+    "scenario_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "provisional",
+        "planned"
+      ]
+    },
+    "family": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "benchmark_mode": {
+      "enum": [
+        "replay_regression",
+        "scenario_replay",
+        "online_e2e"
+      ]
+    },
+    "supported_benchmark_modes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "replay_regression",
+          "scenario_replay",
+          "online_e2e"
+        ]
+      }
+    },
+    "execution_profile": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "scenario_recipe": {
+      "type": "object",
+      "properties": {
+        "source_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scenario_manifest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attach_strategy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage1_materialization": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "route_profile": {
+      "type": "object"
+    },
+    "stage_profiles": {
+      "type": "object"
+    },
+    "orchestration_target": {
+      "type": "string"
+    },
+    "expected_stage_chain": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trace_requirements": {
+      "type": "object"
+    },
+    "determinism_level": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object"
+    },
+    "required_artifacts": {
+      "type": "object"
+    },
+    "artifacts": {
+      "type": "object"
+    },
+    "mandatory_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "primary_metrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "secondary_metrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected_execution": {
+      "type": "object"
+    },
+    "expected_arbitration_actions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "continue",
+          "cancel",
+          "downgrade",
+          "emergency_override"
+        ]
+      }
+    },
+    "forbidden_arbitration_actions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "continue",
+          "cancel",
+          "downgrade",
+          "emergency_override"
+        ]
+      }
+    },
+    "route_binding_expectations": {
+      "type": "object",
+      "properties": {
+        "preferred_lane": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

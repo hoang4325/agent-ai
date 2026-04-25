@@ -1,0 +1,39 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.case_manifest",
+  "bundle_version": "frozen_case_bundle_v1",
+  "case_id": "late_emerging_obstacle",
+  "scenario_id": "late_emerging_obstacle",
+  "family": "late_hazard",
+  "status": "planned",
+  "corpus_readiness": "corpus_pending",
+  "determinism_level": "unknown",
+  "source": "planned_case",
+  "owner": "agentai_system_benchmark",
+  "case_version": "benchmark_case_v1",
+  "build_timestamp": "2026-04-13T14:50:41+00:00",
+  "supported_benchmark_modes": [
+    "replay_regression"
+  ],
+  "pending_ground_truth_binding": true,
+  "readiness_checks": {
+    "case_status_ready": false,
+    "runner_scenario_manifest_available": true,
+    "stage1_frozen_replayable": false,
+    "reference_outputs_complete": false,
+    "semantic_reference_complete": false,
+    "provenance_complete": true,
+    "pending_ground_truth_binding": true
+  },
+  "bundle_paths": {
+    "scenario_manifest": "scenario_manifest.json",
+    "runner_scenario_manifest": "scenario_artifacts/runner_manifest.json",
+    "stage1_session_dir": null,
+    "benchmark_reference": "benchmark_reference/benchmark_reference.json",
+    "provenance": "provenance/provenance.json"
+  },
+  "warnings": [
+    "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+    "missing_semantic_reference:critical_actor_binding,behavior_arbitration_events,route_session_binding",
+    "pending_ground_truth_binding_true"
+  ]
+}

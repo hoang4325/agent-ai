@@ -1,0 +1,26 @@
+{
+  "schema_version": "system_benchmark_semantics_v1_1",
+  "scenario_id": "late_emerging_obstacle",
+  "pending_ground_truth_binding": true,
+  "determinism_level": "unknown",
+  "actors": [
+    {
+      "role": "late_emerging_front_obstacle",
+      "entity_type": "actor",
+      "actor_source": "track_binding_hint",
+      "expected_actor_ref": "role:late_emerging_front_obstacle",
+      "expected_lane_relation": "current_lane",
+      "expected_behavioral_effect": "slow_down_or_stop",
+      "binding_hints": {},
+      "evaluation_scope": [
+        "critical_actor_detected_rate",
+        "blocker_binding_accuracy"
+      ],
+      "notes": "Pending a dedicated late-emergence scenario bundle."
+    }
+  ],
+  "route_binding_expectations": {
+    "route_option": "keep_right",
+    "preferred_lane": "right"
+  }
+}

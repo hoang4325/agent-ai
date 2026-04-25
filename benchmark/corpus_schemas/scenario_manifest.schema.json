@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen Case Bundle Scenario Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "bundle_version",
+    "case_id",
+    "scenario_id",
+    "scenario_recipe",
+    "route_profile",
+    "evaluation_window",
+    "expected_behaviors",
+    "forbidden_behaviors",
+    "expected_execution_outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "frozen_case_bundle_v1.schema.scenario_manifest",
+      "x-population": "derived"
+    },
+    "bundle_version": {
+      "type": "string",
+      "const": "frozen_case_bundle_v1",
+      "x-population": "derived"
+    },
+    "case_id": {
+      "type": "string",
+      "x-population": "existing_case_spec"
+    },
+    "scenario_id": {
+      "type": "string",
+      "x-population": "existing_case_spec"
+    },
+    "town": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "x-population": "existing_runner_manifest_or_pending"
+    },
+    "scenario_recipe": {
+      "type": "object",
+      "required": [
+        "runner_manifest_path"
+      ],
+      "properties": {
+        "source_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-population": "existing_case_spec"
+        },
+        "attach_strategy": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-population": "existing_case_spec"
+        },
+        "runner_manifest_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-population": "derived"
+        },
+        "scenario_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-population": "existing_runner_manifest_or_pending"
+        },
+        "spawn_recipe": {
+          "type": "object",
+          "x-population": "derived_from_runner_manifest"
+        }
+      }
+    },
+    "route_profile": {
+      "type": "object",
+      "x-population": "existing_case_spec_or_derived"
+    },
+    "route_session_binding": {
+      "type": "object",
+      "x-population": "existing_or_derived_semantic_artifact"
+    },
+    "deterministic_seed": {
+      "type": [
+        "string",
+        "number",
+        "null"
+      ],
+      "x-population": "existing_runner_manifest_or_pending"
+    },
+    "evaluation_window": {
+      "type": "object",
+      "x-population": "derived"
+    },
+    "critical_actor_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "existing_or_derived_semantic_artifact"
+    },
+    "expected_behaviors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "existing_case_spec"
+    },
+    "forbidden_behaviors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-population": "existing_case_spec"
+    },
+    "expected_execution_outcomes": {
+      "type": "object",
+      "x-population": "existing_case_spec"
+    }
+  }
+}

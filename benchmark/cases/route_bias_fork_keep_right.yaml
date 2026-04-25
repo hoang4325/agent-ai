@@ -1,0 +1,31 @@
+scenario_id: route_bias_fork_keep_right
+status: planned
+family: route_bias
+mode: replay_closed_loop
+source:
+  type: planned_case
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_manifest.json
+  backlog_reason: no clean fork/branch route-conditioning artifact bundle exists yet
+owner: agentai_system_benchmark
+determinism_level: unknown
+route_option: keep_right
+critical_actors:
+  - route_branching_topology
+expected_behaviors:
+  - keep_lane
+forbidden_behaviors:
+  - keep_route_through_junction
+expected_execution:
+  lane_change_successes_min: 0
+pending_ground_truth_binding: true
+artifacts:
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_manifest.json
+  ground_truth_actor_roles: benchmark/reference_artifacts/route_bias_fork_keep_right/ground_truth_actor_roles.json
+mandatory_artifacts: []
+primary_metrics: []
+secondary_metrics:
+  - route_option_match
+  - route_conditioned_override_rate
+notes: |
+  Planned placeholder for explicit route/session online binding and route-biased fork behavior.
+  Keep the case identity now so later runs can be added without renaming the benchmark surface.

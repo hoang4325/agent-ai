@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Critical Actor Binding Event",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "frame_id",
+    "role",
+    "expected_actor_ref",
+    "binding_confidence",
+    "binding_reason",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "scenario_id": {
+      "type": "string"
+    },
+    "frame_id": {
+      "type": "integer"
+    },
+    "sample_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "role": {
+      "type": "string"
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "expected_actor_ref": {
+      "type": "string"
+    },
+    "bound_track_id": {
+      "type": [
+        "integer",
+        "string",
+        "null"
+      ]
+    },
+    "bound_object_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "binding_confidence": {
+      "type": "number"
+    },
+    "binding_reason": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "bound",
+        "missing",
+        "ambiguous",
+        "stale"
+      ]
+    },
+    "observed_lane_relation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "observed_route_relation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

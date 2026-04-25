@@ -1,0 +1,107 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.scenario_manifest",
+  "bundle_version": "frozen_case_bundle_v1",
+  "case_id": "adjacent_right_unsafe_hold",
+  "scenario_id": "adjacent_right_unsafe_hold",
+  "town": "Carla/Maps/Town10HD_Opt",
+  "scenario_recipe": {
+    "source_type": null,
+    "attach_strategy": null,
+    "runner_manifest_path": "scenario_artifacts/runner_manifest.json",
+    "scenario_type": "stage3a_non_junction_multilane",
+    "spawn_recipe": {
+      "ego_actor_id": 28,
+      "blocker_actor_id": 29,
+      "adjacent_actor_id": 30,
+      "adjacent_side": "right",
+      "corridor": {
+        "road_id": 0,
+        "section_id": 0,
+        "lane_id": -1,
+        "s": 10.000000000000002,
+        "lane_width_m": 3.5,
+        "lane_change": "Right",
+        "adjacent_lane_id": -2,
+        "junction_distance_m": null,
+        "ego_transform": {
+          "location": {
+            "x": 106.4453125,
+            "y": -19.35972023010254,
+            "z": 0.4000000059604645
+          },
+          "rotation": {
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 270.3343200683594
+          }
+        }
+      },
+      "placements": {
+        "blocker_distance_m": 100.0,
+        "adjacent_distance_m": 140.0
+      }
+    }
+  },
+  "route_profile": {
+    "route_option": "keep_right"
+  },
+  "route_session_binding": {
+    "schema_version": "system_benchmark_semantics_v1_1",
+    "scenario_id": "adjacent_right_unsafe_hold",
+    "route_binding": {
+      "route_mode": "minimal_route_hint",
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "route_priority": "high",
+      "source_of_route_binding": "cli_route_hint",
+      "route_confidence": 0.13675213675213677,
+      "route_conflict_flags": [],
+      "route_conditioned_override_count": 16,
+      "route_conditioned_override_rate": 0.13675213675213677,
+      "route_influenced_frames": 16,
+      "route_overrides": {
+        "count": 16,
+        "samples": []
+      }
+    },
+    "session_binding": {
+      "session_binding_source": "existing_artifact_bundle",
+      "mode": "replay_closed_loop",
+      "stage1_session_dir": "outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2",
+      "stage2_dir": "outputs/stage2/st2_s3a_ml_long_v2",
+      "stage3a_dir": "outputs/stage3/st3_s3a_ml_long_v2",
+      "stage3b_dir": "outputs/stage3b/st3b_s3a_ml_long_v2",
+      "stage3c_dir": "outputs/stage3c/st3c_s3a_ml_long_v2_mp4_topdown",
+      "stage4_dir": null
+    },
+    "expected_binding": {
+      "expected_route_option": "keep_right",
+      "expected_preferred_lane": "right"
+    },
+    "notes": []
+  },
+  "deterministic_seed": null,
+  "evaluation_window": {
+    "observed_samples": 120,
+    "history_skipped_samples": 3,
+    "infer_ready_samples": 117,
+    "first_infer_ready_sample": "sample_000003",
+    "last_infer_ready_sample": "sample_000119"
+  },
+  "critical_actor_roles": [
+    "blocker_current_lane",
+    "adjacent_right_lane_actor"
+  ],
+  "expected_behaviors": [
+    "stop_before_obstacle",
+    "follow"
+  ],
+  "forbidden_behaviors": [
+    "commit_lane_change_left",
+    "prepare_lane_change_left"
+  ],
+  "expected_execution_outcomes": {
+    "lane_change_successes_min": 0,
+    "stop_successes_min": 150
+  }
+}

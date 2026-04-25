@@ -1,0 +1,74 @@
+# Stage 7B — Agent Shadow Scenario Replay Set
+#
+# Runs agent shadow alongside scenario replay execution.
+# Uses 2-4 clean cases from frozen corpus.
+# Agent shadow runs AFTER baseline tactical completes each frame — reads
+# stage3b behavior outputs but does NOT modify them.
+#
+# Gate: stage7_agent_shadow_scenario_replay_gate
+# Requires CARLA simulator running + stage3b replay complete.
+# 
+# NOTE: DO NOT expand this set beyond 4 cases until:
+#   - Stage 7A gate passes cleanly
+#   - agent_contract_validity_rate >= 0.95 on 7A
+#   - agent_forbidden_intent_count == 0 on 7A
+
+name: stage7_agent_shadow_scenario_replay
+description: >
+  Stage 7B agent tactical shadow scenario replay gate.
+  Runs agent shadow alongside CARLA scenario replay (baseline authority intact).
+  Agent output is shadow-only at the tactical intent layer.
+  Baseline tactical + MPC remain sole authority.
+
+stage7_mode:
+  stage: "7B"
+  mode: "scenario_replay_shadow"
+  agent_authority: "shadow_only"
+  baseline_authority: "full"
+  online_required: true
+  adapter: "stub"
+  adapter_model_id: "stub_v1"
+  agent_timeout_s: 2.0
+  prerequisite_gate: "stage7_agent_shadow_replay"
+
+gate_definition:
+  hard_gate_metrics:
+    - agent_shadow_artifact_completeness
+    - agent_contract_validity_rate
+    - agent_timeout_rate
+    - agent_fallback_to_baseline_rate
+    - agent_forbidden_intent_count
+    - agent_lane_change_intent_validity_rate
+  soft_guardrail_metrics:
+    - agent_baseline_disagreement_rate
+    - agent_useful_disagreement_rate
+    - agent_route_alignment_rate
+  diagnostic_only_metrics:
+    - agent_stop_context_correctness_rate
+
+thresholds:
+  agent_shadow_artifact_completeness:
+    min: 1.0
+  agent_contract_validity_rate:
+    min: 0.95
+  agent_timeout_rate:
+    max: 0.05
+  agent_fallback_to_baseline_rate:
+    max: 0.10
+  agent_forbidden_intent_count:
+    max: 0
+  agent_lane_change_intent_validity_rate:
+    min: 1.0
+  agent_baseline_disagreement_rate:
+    max: 0.40
+  agent_useful_disagreement_rate:
+    min: 0.30
+  agent_route_alignment_rate:
+    min: 0.70
+
+# Priority order: LC cases first (richest disagreement signal), then stop, then junction
+cases:
+  - ml_right_positive_core
+  - ml_left_positive_core
+  - stop_follow_ambiguity_core
+  - junction_straight_core

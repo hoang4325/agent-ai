@@ -1,0 +1,1060 @@
+metrics:
+  artifact_completeness:
+    stage_layer: benchmark
+    description: Fraction of mandatory artifacts that are present for the case.
+    artifact_source: case_spec.artifacts + case_spec.mandatory_artifacts
+    required_artifacts: []
+    fallback_behavior: skip_metric
+    formula: present_required_artifacts / total_required_artifacts
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Core benchmark hygiene metric and already reliable in v1.
+
+  route_option_match:
+    stage_layer: behavior
+    description: Whether the observed Stage 3B route option matches the expected route option for the case.
+    artifact_source: stage3b_evaluation_summary.route_option_counts
+    required_artifacts:
+      - stage3b_evaluation_summary
+    fallback_behavior: skip_metric
+    formula: 1.0 if expected route option appears in route_option_counts else 0.0
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stable Stage 3B summary metric already used in v1.
+
+  expected_behavior_presence:
+    stage_layer: behavior
+    description: Count of expected behavior selections observed in Stage 3B behavior outputs.
+    artifact_source: stage3b_evaluation_summary.behavior_counts
+    required_artifacts:
+      - stage3b_evaluation_summary
+    fallback_behavior: skip_metric
+    formula: sum(behavior_counts[behavior] for behavior in expected_behaviors)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stable Stage 3B metric with deterministic behavior expectations in ready cases.
+
+  forbidden_behavior_count:
+    stage_layer: behavior
+    description: Count of forbidden behavior selections observed in Stage 3B behavior outputs.
+    artifact_source: stage3b_evaluation_summary.behavior_counts
+    required_artifacts:
+      - stage3b_evaluation_summary
+    fallback_behavior: skip_metric
+    formula: sum(behavior_counts[behavior] for behavior in forbidden_behaviors)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: Stable Stage 3B metric with deterministic forbidden sets in ready cases.
+
+  unsafe_lane_change_intent_count:
+    stage_layer: behavior
+    description: Number of left/right lane-change requests issued when the same direction was disallowed in the timeline.
+    artifact_source: stage3b_behavior_timeline
+    required_artifacts:
+      - stage3b_behavior_timeline
+    fallback_behavior: skip_metric
+    formula: >
+      count(prepare/commit left when lane_change_permission.left == false) +
+      count(prepare/commit right when lane_change_permission.right == false)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: Directly observable from Stage 3B timeline without extra semantic assumptions.
+
+  route_conditioned_override_rate:
+    stage_layer: behavior
+    description: Fraction of frames where Stage 3B overrode Stage 3A because of route conditioning.
+    artifact_source: stage3b_evaluation_summary.route_conditioned_override_rate
+    required_artifacts:
+      - stage3b_evaluation_summary
+    fallback_behavior: skip_metric
+    formula: evaluation_summary.route_conditioned_override_rate
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: case_defined
+    maturity_reason: Useful route-trend metric, but rate alone is not enough to classify correctness.
+
+  junction_keep_route_presence:
+    stage_layer: behavior
+    description: Number of Stage 3B frames that requested keep_route_through_junction.
+    artifact_source: stage3b_evaluation_summary.keep_route_through_junction_frames
+    required_artifacts:
+      - stage3b_evaluation_summary
+    fallback_behavior: skip_metric
+    formula: evaluation_summary.keep_route_through_junction_frames
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Strong route-behavior signal for deterministic junction cases.
+
+  front_hazard_signal_present:
+    stage_layer: world_model
+    description: Whether the representative Stage 2 world-state sample exposes a front hazard signal.
+    artifact_source: stage2_world_state_sample.risk_summary
+    required_artifacts:
+      - stage2_world_state_sample
+    fallback_behavior: skip_metric
+    formula: 1.0 if front_hazard_track_id or nearest_front_vehicle_distance_m is present else 0.0
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: Useful but sample-based rather than sequence-wide.
+
+  blocker_binding_accuracy:
+    stage_layer: world_model
+    description: Sequence-level semantic binding success for blocker roles based on grounded role specs and derived bindings.
+    artifact_source: ground_truth_actor_roles.json + critical_actor_binding.jsonl
+    required_artifacts:
+      - ground_truth_actor_roles
+      - critical_actor_binding
+    fallback_behavior: skip_metric
+    formula: correct_or_partially_correct blocker bindings / eligible blocker-binding frames
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: v1.1+ now has explicit role grounding and per-frame binding states—soft until actor IDs are manifest-stable, but tracked as Stage 5A binding quality signal.
+
+  critical_actor_detected_rate:
+    stage_layer: world_model
+    description: Fraction of eligible frames where a grounded critical actor role is detected, ambiguously matched, or stale-held.
+    artifact_source: ground_truth_actor_roles.json + critical_actor_binding.jsonl
+    required_artifacts:
+      - ground_truth_actor_roles
+      - critical_actor_binding
+    fallback_behavior: skip_metric
+    formula: detected critical-role frames / eligible critical-role frames
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >-
+      Stage 5A promotes to hard gate for non-pending cases. Role grounding
+      and per-frame binding states are reliable enough for deterministic replay.
+
+  critical_actor_track_continuity_rate:
+    stage_layer: world_model
+    description: Fraction of critical-actor binding transitions that keep the same bound track id.
+    artifact_source: critical_actor_binding.jsonl
+    required_artifacts:
+      - critical_actor_binding
+    fallback_behavior: skip_metric
+    formula: stable critical-role transitions / eligible transitions
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: Valuable continuity signal, but still sensitive to sparse transitions and stale-hold heuristics.
+
+  lane_assignment_consistency:
+    stage_layer: world_model
+    description: Consistency of grounded actor-role lane assignments over the sequence.
+    artifact_source: ground_truth_actor_roles.json + critical_actor_binding.jsonl
+    required_artifacts:
+      - ground_truth_actor_roles
+      - critical_actor_binding
+    fallback_behavior: skip_metric
+    formula: correctly lane-assigned critical-role frames / eligible bound frames
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: Kept soft after cleanup; still depends on derived lane relation from Stage 3A/3B object projections.
+
+  lane_change_success_count:
+    stage_layer: execution
+    description: Number of successful lane changes in Stage 3C execution events.
+    artifact_source: stage3c_lane_change_events + stage3c_execution_summary
+    required_artifacts:
+      - stage3c_execution_summary
+      - stage3c_lane_change_events
+    fallback_behavior: skip_metric
+    formula: count(result == success)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stable Stage 3C execution metric already validated by coverage runs.
+
+  lane_change_success_rate:
+    stage_layer: execution
+    description: Successful lane changes divided by total lane-change attempts.
+    artifact_source: stage3c_lane_change_events + stage3c_execution_summary
+    required_artifacts:
+      - stage3c_execution_summary
+      - stage3c_lane_change_events
+    fallback_behavior: skip_metric
+    formula: lane_change_successes / max(lane_change_attempts, 1)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stable Stage 3C execution metric already validated by coverage runs.
+
+  stop_success_rate:
+    stage_layer: execution
+    description: Successful stops divided by total stop attempts.
+    artifact_source: stage3c_execution_timeline + stage3c_execution_summary
+    required_artifacts:
+      - stage3c_execution_summary
+      - stage3c_execution_timeline
+    fallback_behavior: skip_metric
+    formula: stop_successes / max(stop_attempts, 1)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stable Stage 3C execution metric already validated by coverage runs.
+
+  stop_overshoot_rate:
+    stage_layer: execution
+    description: Overshoot stop events divided by total stop attempts.
+    artifact_source: stage3c_execution_timeline + stage3c_coverage metrics
+    required_artifacts:
+      - stage3c_execution_summary
+      - stage3c_execution_timeline
+    fallback_behavior: skip_metric
+    formula: stop_overshoots / max(stop_attempts, 1)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: Stable Stage 3C stop-controller metric already validated by coverage runs.
+
+  abort_rate:
+    stage_layer: execution
+    description: Combined lane-change failure and stop abort rate.
+    artifact_source: stage3c_execution_summary + stage3c_coverage metrics
+    required_artifacts:
+      - stage3c_execution_summary
+      - stage3c_execution_timeline
+    fallback_behavior: skip_metric
+    formula: (lane_change_failures + stop_aborts) / max(lane_change_attempts + stop_attempts, 1)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Good robustness metric, but not always directly safety-failing by itself.
+
+  behavior_execution_mismatch_rate:
+    stage_layer: execution
+    description: Fraction of Stage 3C frames where requested behavior differs from executed behavior.
+    artifact_source: behavior_arbitration_events.jsonl or legacy stage3c execution summary
+    required_artifacts:
+      - stage3c_execution_summary
+    fallback_behavior: degrade_to_legacy_summary
+    formula: mismatched execution frames / total execution frames
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: v1.1 strengthens interpretation with arbitration-event logging and keeps backward-compatible fallback to legacy Stage 3C override-rate summary.
+
+  mean_lane_change_time_s:
+    stage_layer: execution
+    description: Mean completion time of successful lane changes.
+    artifact_source: stage3c_execution_summary.mean_lane_change_time_s
+    required_artifacts:
+      - stage3c_execution_summary
+    fallback_behavior: skip_metric
+    formula: execution_summary.mean_lane_change_time_s
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Useful for trend monitoring but not a primary correctness gate.
+
+  lane_change_completion_time_s:
+    stage_layer: planner_quality
+    description: Mean completion time of successful lane changes from the Stage 5B planner-quality bundle.
+    artifact_source: stage3c_planner_quality_summary.mean_lane_change_completion_time_s
+    required_artifacts:
+      - stage3c_lane_change_events_enriched
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(completion_time_s for successful lane changes)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Good planner-quality signal once enriched lane-change events exist, but still sensitive to replay timing jitter.
+
+  lane_change_completion_rate:
+    stage_layer: planner_quality
+    description: Successful lane-change completions divided by total lane-change attempts.
+    artifact_source: stage3c_lane_change_events_enriched + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_lane_change_events_enriched
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: successful lane-change completions / total lane-change attempts
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stage 5B hard gate once enriched lane-change events are emitted by current-run replay and frozen reference bundles.
+
+  lane_change_abort_rate:
+    stage_layer: planner_quality
+    description: Fraction of lane-change attempts that terminate in abort rather than completion.
+    artifact_source: stage3c_lane_change_events_enriched + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_lane_change_events_enriched
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: aborted lane-change attempts / total lane-change attempts
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Useful for quality and preemption behavior, but not every abort is planner-wrong on its own.
+
+  lane_change_completion_validity:
+    stage_layer: planner_quality
+    description: Fraction of successful lane changes whose completion satisfies target-lane and shift-validity checks.
+    artifact_source: stage3c_lane_change_phase_trace + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_lane_change_phase_trace
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: valid successful lane changes / successful lane changes
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Hard-ready once lane-change phase trace is emitted; directly checks planner/execution completion quality rather than raw intent semantics.
+
+  stop_final_error_m:
+    stage_layer: planner_quality
+    description: Final stop error in meters relative to an explicit stop target contract.
+    artifact_source: stage3c_stop_target.summary
+    required_artifacts:
+      - stage3c_stop_target
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean absolute final stop error relative to stop target
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Current replay does not expose a clean explicit stop-target contract yet, so this remains diagnostic only.
+
+  stop_overshoot_distance_m:
+    stage_layer: planner_quality
+    description: Mean overshoot distance proxy in meters for stop events with distance support.
+    artifact_source: stage3c_stop_target.summary.mean_stop_overshoot_distance_m
+    required_artifacts:
+      - stage3c_stop_target
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(max(overshoot_threshold_m - min_distance_to_obstacle_m, 0.0)) over supported stop events
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Useful stop-quality proxy once stop-target summary exists, but still approximate until live obstacle binding is explicit in replay.
+
+  stop_hold_stability:
+    stage_layer: planner_quality
+    description: Mean normalized stop-hold stability across stop events.
+    artifact_source: stage3c_stop_events + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_stop_events
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(min(hold_ticks / required_hold_ticks, 1.0)) over stop events
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Hard-ready because stop hold ticks are derived directly from Stage 3C execution timeline with deterministic controller settings.
+
+  stop_target_defined_rate:
+    stage_layer: preflight_contract
+    description: Fraction of stop events that expose a defined stop-target contract entry.
+    artifact_source: stage3c_stop_target.summary.stop_target_defined_rate
+    required_artifacts:
+      - stage3c_stop_target
+    fallback_behavior: skip_metric
+    formula: stop_target_defined_events / max(num_stop_events, 1)
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Contract-completeness metric backed directly by the explicit stop_target artifact.
+
+  heading_settle_time_s:
+    stage_layer: planner_quality
+    description: Mean time after a successful lane change until heading and lane-center settle.
+    artifact_source: stage3c_trajectory_trace + stage3c_lane_change_phase_trace + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_trajectory_trace
+      - stage3c_lane_change_phase_trace
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean time from lane-change completion to three consecutive settled trajectory frames
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Valuable planner-quality indicator, but still depends on replay pose fidelity and settle heuristics.
+
+  lateral_oscillation_rate:
+    stage_layer: planner_quality
+    description: Steering-sign oscillation proxy rate during execution.
+    artifact_source: stage3c_control_trace + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_control_trace
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: steering sign flips / eligible steering transitions
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Good control-quality guardrail once direct control trace exists, but still proxy-level rather than a full dynamics metric.
+
+  trajectory_smoothness_proxy:
+    stage_layer: planner_quality
+    description: Combined steering-delta and acceleration proxy smoothness score.
+    artifact_source: stage3c_control_trace + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_control_trace
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(abs(delta steer)) + 0.05 * mean(abs(acceleration_proxy))
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Useful for planner/execution cleanliness on replay, but should remain soft until a stronger trajectory contract exists.
+
+  control_jerk_proxy:
+    stage_layer: planner_quality
+    description: Mean absolute jerk proxy derived from the control trace speed profile.
+    artifact_source: stage3c_control_trace + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_control_trace
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(abs(jerk_proxy_mps3))
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Informative for control roughness, but still proxy-only and not yet stable enough for gating.
+
+  planner_execution_latency_ms:
+    stage_layer: preflight_contract
+    description: Mean planner/execution latency in milliseconds from the planner-control latency contract.
+    artifact_source: stage3c_planner_control_latency + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_planner_control_latency
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(planner_execution_latency_ms)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Directly instrumented now, but budget interpretation is still preflight-level and not yet a hard gate.
+
+  decision_to_execution_latency_ms:
+    stage_layer: preflight_contract
+    description: Mean latency from world/behavior decision availability to control execution.
+    artifact_source: stage3c_planner_control_latency + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_planner_control_latency
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(decision_to_execution_latency_ms)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Valuable for MPC preflight, but replay remains approximate when online stage breakdown is absent.
+
+  over_budget_rate:
+    stage_layer: preflight_contract
+    description: Fraction of latency-contract records that exceed the configured budget.
+    artifact_source: stage3c_planner_control_latency + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_planner_control_latency
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: over_budget_records / max(records_with_total_loop_latency, 1)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Good preflight signal for latency pressure, but budget governance is not final yet.
+
+  fallback_reason_coverage:
+    stage_layer: preflight_contract
+    description: Fraction of activated fallback events that include a non-empty fallback reason.
+    artifact_source: stage3c_fallback_events + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_fallback_events
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: activated fallback events with reason / activated fallback events
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Contract hygiene metric backed directly by fallback-event rows.
+
+  fallback_takeover_latency_ms:
+    stage_layer: preflight_contract
+    description: Mean takeover latency for activated fallback events.
+    artifact_source: stage3c_fallback_events + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_fallback_events
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: mean(takeover_latency_ms for activated fallback events)
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Useful observability metric, but takeover latency is still sparse outside direct online runs.
+
+  fallback_missing_when_required_count:
+    stage_layer: preflight_contract
+    description: Number of events where a fallback should have activated but no fallback action was recorded.
+    artifact_source: stage3c_fallback_events + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_fallback_events
+      - stage3c_planner_quality_summary
+    fallback_behavior: skip_metric
+    formula: count(missing_when_required == true)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Important preflight indicator, but fallback-required remains heuristic outside online arbitration.
+
+  shadow_output_contract_completeness:
+    stage_layer: shadow_contract
+    description: Completeness ratio of the Stage 6 MPC shadow proposal contract artifacts for the current run.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_output_contract_completeness
+    required_artifacts:
+      - stage3c_mpc_shadow_proposal
+      - stage3c_mpc_shadow_summary
+      - stage3c_shadow_baseline_comparison
+      - stage3c_shadow_disagreement_events
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_output_contract_completeness
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Shadow-mode rollout cannot be trusted if proposal, summary, comparison, and disagreement artifacts are not all materialized.
+
+  shadow_feasibility_rate:
+    stage_layer: shadow_contract
+    description: Fraction of shadow proposal rows marked feasible.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_feasibility_rate
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: feasible shadow proposals / total shadow proposals
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: Stage 6 shadow rollout is only meaningful if the shadow solver contract can produce feasible proposals on the promoted subset.
+
+  shadow_solver_timeout_rate:
+    stage_layer: shadow_contract
+    description: Fraction of shadow proposal rows that report a solver timeout.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_solver_timeout_rate
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: timeout shadow proposals / total shadow proposals
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Important for rollout confidence, but still proxy-level until a real MPC solver replaces the current shadow contract stub.
+
+  shadow_planner_execution_latency_ms:
+    stage_layer: shadow_contract
+    description: Mean shadow proposal latency in milliseconds.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_planner_execution_latency_ms
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: mean(shadow_planner_execution_latency_ms)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    baseline_compare_abs_tolerance: 0.001
+    maturity_reason: Directly instrumented from the OSQP solve path in the current shadow backend, but still soft because baseline remains the only execution authority.
+
+  shadow_baseline_disagreement_rate:
+    stage_layer: shadow_contract
+    description: Fraction of shadow proposal rows whose recommended behavior differs from the baseline request.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_baseline_disagreement_rate
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+      - stage3c_shadow_disagreement_events
+    fallback_behavior: skip_metric
+    formula: disagreement shadow proposals / total shadow proposals
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Shadow disagreement is informative for rollout control, but disagreement alone does not prove the shadow planner is wrong.
+
+  shadow_fallback_recommendation_rate:
+    stage_layer: shadow_contract
+    description: Fraction of shadow proposal rows that recommend a deterministic fallback instead of the nominal proposal.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_fallback_recommendation_rate
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: fallback-recommending shadow proposals / total shadow proposals
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Useful to understand solver brittleness on the promoted subset, but not yet a hard rollout blocker.
+
+  shadow_stop_final_error_m:
+    stage_layer: shadow_quality
+    description: Proposal-direct shadow final stop error in meters relative to the runtime stop target.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_stop_final_error_m
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_stop_final_error_m
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Proposal-direct and soft-usable on stop-focused cases when a runtime stop target is present, but still not hard because shadow never takes control and stop binding may remain heuristic.
+
+  shadow_stop_overshoot_distance_m:
+    stage_layer: shadow_quality
+    description: Proposal-direct shadow stop overshoot distance in meters relative to the runtime stop target.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_stop_overshoot_distance_m
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_stop_overshoot_distance_m
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Proposal-direct and soft-usable when the shadow stop target is available, but not hard because the proposal is never executed.
+
+  shadow_lane_change_completion_time_s:
+    stage_layer: shadow_quality
+    description: Shadow-estimated lane-change completion time in seconds.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_lane_change_completion_time_s
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_lane_change_completion_time_s
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Derived from the proposed path only; still too counterfactual to use as a guardrail before takeover exists.
+
+  shadow_heading_settle_time_s:
+    stage_layer: shadow_quality
+    description: Shadow-estimated heading settle time in seconds.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_heading_settle_time_s
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_heading_settle_time_s
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Derived from the proposed path only; still too counterfactual to use as a guardrail before takeover exists.
+
+  shadow_lateral_oscillation_rate:
+    stage_layer: shadow_quality
+    description: Proposal-direct lateral oscillation proxy derived from emitted shadow proposal profiles.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_lateral_oscillation_rate
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_lateral_oscillation_rate
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Derived directly from emitted shadow proposal profiles, but kept soft because the proposal is not executed closed-loop.
+
+  shadow_trajectory_smoothness_proxy:
+    stage_layer: shadow_quality
+    description: Proposal-direct trajectory smoothness proxy derived from emitted shadow path profiles.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_trajectory_smoothness_proxy
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_trajectory_smoothness_proxy
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Derived directly from emitted shadow proposal paths, but kept soft because the proposal is not executed closed-loop.
+
+  shadow_control_jerk_proxy:
+    stage_layer: shadow_quality
+    description: Proposal-direct control jerk proxy derived from emitted shadow speed/control profiles.
+    artifact_source: stage3c_mpc_shadow_summary.shadow_control_jerk_proxy
+    required_artifacts:
+      - stage3c_mpc_shadow_summary
+    fallback_behavior: skip_metric
+    formula: shadow_summary.shadow_control_jerk_proxy
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Derived directly from emitted shadow proposal profiles, but kept soft because the proposal is not executed closed-loop.
+
+  shadow_realized_support_rate:
+    stage_layer: shadow_realized
+    description: Fraction of shadow proposals that can be compared against a realized short-horizon future window from the same current run.
+    artifact_source: stage3c_shadow_realized_outcome_summary.shadow_realized_support_rate
+    required_artifacts:
+      - stage3c_shadow_realized_outcome_summary
+    fallback_behavior: skip_metric
+    formula: realized-comparable shadow proposals / total shadow proposals
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: Backed by current-run future-window matching rather than pure prediction, but still soft because baseline remains the only execution authority.
+
+  shadow_realized_behavior_match_rate:
+    stage_layer: shadow_realized
+    description: Fraction of matched short-horizon realized points whose actual behavior matches the shadow-recommended behavior.
+    artifact_source: stage3c_shadow_realized_outcome_summary.shadow_realized_behavior_match_rate
+    required_artifacts:
+      - stage3c_shadow_realized_outcome_summary
+    fallback_behavior: skip_metric
+    formula: realized matched points with actual_behavior == shadow_requested_behavior / realized matched points
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: Uses realized current-run future behavior rather than pure prediction, but still soft because the shadow proposal is not executed.
+
+  shadow_realized_speed_mae_mps:
+    stage_layer: shadow_realized
+    description: Mean absolute error between shadow-proposed speed profile and realized short-horizon speed from the baseline run.
+    artifact_source: stage3c_shadow_realized_outcome_summary.shadow_realized_speed_mae_mps
+    required_artifacts:
+      - stage3c_shadow_realized_outcome_summary
+    fallback_behavior: skip_metric
+    formula: mean(abs(predicted_speed_mps - realized_speed_mps)) over matched short-horizon points
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Realized and more trustworthy than pure prediction, but still not a rollout guardrail until the comparison horizon is calibrated on more than the promoted subset.
+
+  shadow_realized_progress_mae_m:
+    stage_layer: shadow_realized
+    description: Mean absolute error between shadow-proposed progress and realized vehicle progress over a short future window.
+    artifact_source: stage3c_shadow_realized_outcome_summary.shadow_realized_progress_mae_m
+    required_artifacts:
+      - stage3c_shadow_realized_outcome_summary
+    fallback_behavior: skip_metric
+    formula: mean(abs(predicted_progress_m - realized_progress_m)) over matched short-horizon points
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Useful for short-horizon proposal realism, but still diagnostic until the promoted subset has more repeated evidence.
+
+  shadow_realized_stop_distance_mae_m:
+    stage_layer: shadow_realized
+    description: Mean absolute error between shadow-proposed remaining stop distance and realized remaining stop-target distance over a short future window.
+    artifact_source: stage3c_shadow_realized_outcome_summary.shadow_realized_stop_distance_mae_m
+    required_artifacts:
+      - stage3c_shadow_realized_outcome_summary
+    fallback_behavior: skip_metric
+    formula: mean(abs(predicted_remaining_stop_distance_m - realized_remaining_stop_distance_m)) over matched stop-target points
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: lower_better
+    maturity_reason: Valuable stop-focused realism check, but still diagnostic because blocker motion and baseline control both influence the realized gap.
+
+  arbitration_conflict_count:
+    stage_layer: behavior
+    description: Count of arbitration events classified as unexpected for the case contract.
+    artifact_source: behavior_arbitration_events.jsonl
+    required_artifacts:
+      - behavior_arbitration_events
+    fallback_behavior: skip_metric
+    formula: count(classification == unexpected)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Kept soft after cleanup because only a subset of cases define strict expected/forbidden arbitration action contracts.
+
+  route_context_consistency:
+    stage_layer: behavior
+    description: Consistency of route/session binding against benchmark case expectations.
+    artifact_source: route_session_binding.json
+    required_artifacts:
+      - route_session_binding
+    fallback_behavior: skip_metric
+    formula: 1.0 if route option, preferred lane, and conflict flags are consistent with expectations else 0.0
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >-
+      Stage 5A introduces explicit route/session binding provenance
+      and conflict flags. Hard gate for all route-conditioned ready cases.
+
+  route_influence_correctness:
+    stage_layer: behavior
+    description: Fraction of route-influenced frames whose selected behavior matches the case's expected behavior set.
+    artifact_source: route_session_binding.json + stage3b_behavior_timeline
+    required_artifacts:
+      - route_session_binding
+      - stage3b_behavior_timeline
+    fallback_behavior: skip_metric
+    formula: correct route-influenced frames / total route-influenced frames
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: Kept soft after cleanup; still depends on case-specific expected behavior semantics and route-bias clean-case coverage.
+
+  stale_tick_rate:
+    stage_layer: runtime
+    description: Approximate stale runtime rate from skipped updates in online runs.
+    artifact_source: stage4_online_run_summary
+    required_artifacts:
+      - stage4_online_run_summary
+    fallback_behavior: skip_metric
+    formula: skipped_updates / max(num_ticks, 1)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Still useful for online stability trend tracking, but Stage 4 evidence is not yet stable enough for hard gating.
+
+  mean_total_loop_latency_ms:
+    stage_layer: runtime
+    description: Mean end-to-end online loop latency.
+    artifact_source: stage4_online_run_summary.mean_total_loop_latency_ms
+    required_artifacts:
+      - stage4_online_run_summary
+    fallback_behavior: skip_metric
+    formula: online_run_summary.mean_total_loop_latency_ms
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Still online-trend-only until Stage 4 benchmark cases are stable.
+
+  state_reset_count:
+    stage_layer: runtime
+    description: Number of state resets during an online run.
+    artifact_source: stage4_online_run_summary.state_resets
+    required_artifacts:
+      - stage4_online_run_summary
+    fallback_behavior: skip_metric
+    formula: online_run_summary.state_resets
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: Still online-trend-only until Stage 4 benchmark cases are stable.
+
+  fallback_activation_rate:
+    stage_layer: preflight_contract
+    description: Fraction of fallback-contract events where fallback was activated.
+    artifact_source: stage3c_fallback_events + stage3c_planner_quality_summary
+    required_artifacts:
+      - stage3c_fallback_events
+      - stage3c_planner_quality_summary
+    fallback_behavior: degrade_to_legacy_summary
+    formula: activated fallback events / total fallback-contract events
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: >-
+      Useful for tracking fallback pressure. Kept soft because higher activation can be expected in some safety-heavy cases.
+
+  unexpected_override_count:
+    stage_layer: execution
+    description: Count of emergency_override arbitration events that are classified as unexpected.
+    artifact_source: behavior_arbitration_events.jsonl
+    required_artifacts:
+      - behavior_arbitration_events
+    fallback_behavior: skip_metric
+    formula: count(arbitration_action == emergency_override AND classification == unexpected)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: >-
+      Stage 5A addition. Catches cases where emergency override fires
+      unexpectedly, indicating arbitration or binding contract failures.
+
+  completion_criterion_validity:
+    stage_layer: execution
+    description: Fraction of stop/lane-change completions where the completion reason is valid.
+    artifact_source: stage3c_execution_timeline + stage3c_lane_change_events
+    required_artifacts:
+      - stage3c_execution_summary
+      - stage3c_execution_timeline
+      - stage3c_lane_change_events
+    fallback_behavior: skip_metric
+    formula: valid_completion_reasons / total_completions
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: >-
+      Stage 5A addition. Tracks whether completion claims are justified
+      by the actual execution state. Kept soft until completion-reason
+      taxonomy is fully stabilized.
+
+  # ── Stage 7 — Agentic Shadow Metrics ─────────────────────────────────────
+  # Agent is SHADOW ONLY. Baseline tactical + MPC remain sole authority.
+  # These metrics gate the shadow layer itself, NOT driving quality.
+
+  agent_contract_validity_rate:
+    stage_layer: agent_shadow_contract
+    description: >
+      Fraction of agent shadow intent records that pass full contract validation
+      (validation_status == 'valid'). Must be >= 0.95 for the gate to pass.
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: count(validation_status == 'valid') / total_intent_records
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >-
+      Primary health indicator for Stage 7 shadow. If the agent is not producing
+      valid intent records at >= 95% rate, the shadow data has no analytical value.
+
+  agent_timeout_rate:
+    stage_layer: agent_shadow_contract
+    description: Fraction of frames where the agent timed out (no response within budget).
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: count(timeout_flag == true) / total_intent_records
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: >-
+      Timeout rate directly measures API/stub reliability. Above 5% means the
+      shadow layer is producing mostly fallback records with no analytical signal.
+
+  agent_fallback_to_baseline_rate:
+    stage_layer: agent_shadow_contract
+    description: >
+      Fraction of frames where agent fell back to baseline (timeout OR invalid output).
+      Distinct from timeout_rate because it also catches validation failures.
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: count(fallback_to_baseline == true) / total_intent_records
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: >-
+      Hard gate ensures the shadow layer is functional. > 10% fallback rate
+      means the agent is not contributing useful shadow data.
+
+  agent_baseline_disagreement_rate:
+    stage_layer: agent_shadow_quality
+    description: >
+      Fraction of valid (non-fallback) frames where agent intent differs from baseline intent.
+      Useful for understanding how often the agent has a different tactical view.
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: count(agrees_with_baseline == false AND validation_status == 'valid') / valid_non_fallback_frames
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: lower_better
+    maturity_reason: >-
+      Kept soft. High disagreement is not necessarily bad, but very high rates (> 40%)
+      in Stage 7A suggest the stub/agent needs calibration before scenario replay.
+      Cannot hard-gate disagreement without evidence that agent is systematically correct.
+
+  agent_useful_disagreement_rate:
+    stage_layer: agent_shadow_quality
+    description: >
+      Among frames where agent disagrees with baseline, fraction where the disagreement is
+      marked as structurally useful (e.g. agent recommends caution when baseline requests LC).
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: count(disagreement_useful == true) / count(agrees_with_baseline == false AND valid)
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: >-
+      Soft guardrail. A low useful-disagreement rate means the agent's differences
+      from baseline are random rather than principled. Does not hard-gate because
+      "useful" classification is heuristic in Stage 7A stub mode.
+
+  agent_route_alignment_rate:
+    stage_layer: agent_shadow_quality
+    description: >
+      Fraction of valid (non-fallback) frames where agent target_lane aligns with the
+      route context's preferred_lane. Checks agent respects route binding.
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: aligned_frames / eligible_frames_with_preferred_lane
+    maturity: soft_guardrail
+    gate_usage: soft_guardrail
+    trend_preference: higher_better
+    maturity_reason: >-
+      Soft guardrail. Agent should respect route context, but misalignment is not
+      automatically wrong (e.g. agent may recommend staying in current lane while
+      baseline prepares an LC). Kept soft until route-binding evidence is richer.
+
+  agent_stop_context_correctness_rate:
+    stage_layer: agent_shadow_quality
+    description: >
+      Fraction of agent stop/yield/slow_down intents where the agent consumed stop context
+      (stop_context_summary.stop_target_binding is non-null).
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: stop_intents_with_context / total_stop_intents
+    maturity: diagnostic_only
+    gate_usage: diagnostic_only
+    trend_preference: higher_better
+    maturity_reason: >-
+      Diagnostic only. Stop context binding is opportunistic in Stage 7A replay;
+      many cases lack explicit stop_target artifacts. Useful for observability.
+
+  agent_lane_change_intent_validity_rate:
+    stage_layer: agent_shadow_contract
+    description: >
+      Fraction of agent LC intents (prepare/commit) that pass validation and do NOT
+      violate lane_change_permission. Must be 1.0 — any unsafe LC intent is a hard failure.
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: valid_lc_intents / total_lc_intents
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >-
+      Hard gate at 1.0. Any agent request for a lane change when permission=False is
+      a contract violation. The adapter contract-checks this, but the artifact-level
+      metric confirms the enforcement actually worked.
+
+  agent_forbidden_intent_count:
+    stage_layer: agent_shadow_contract
+    description: >
+      Count of agent output records with forbidden_field, invalid_intent, or malformed
+      validation_status. Must be 0. Any non-zero count is a contract audit failure.
+    artifact_source: agent_shadow_intent.jsonl
+    required_artifacts:
+      - agent_shadow_intent
+    fallback_behavior: skip_metric
+    formula: count(validation_status in {invalid_intent, forbidden_field, malformed})
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: >-
+      Hard gate at 0. The adapter is responsible for contract enforcement, but this
+      metric confirms enforcement at the artifact level. Non-zero indicates adapter bug.
+
+  agent_shadow_artifact_completeness:
+    stage_layer: agent_shadow_contract
+    description: >
+      Fraction of the 4 required Stage 7 shadow artifacts that are present and non-empty:
+      agent_shadow_intent.jsonl, agent_shadow_summary.json,
+      agent_baseline_comparison.json, agent_disagreement_events.jsonl.
+      Must be 1.0 (all 4 present).
+    artifact_source: stage7 output directory
+    required_artifacts:
+      - agent_shadow_intent
+      - agent_shadow_summary
+      - agent_baseline_comparison
+      - agent_disagreement_events
+    fallback_behavior: skip_metric
+    formula: present_non_empty_artifacts / 4
+    maturity: hard_gate_ready
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >-
+      Primary contract hygiene metric for Stage 7. Shadow mode is only meaningful if
+      all 4 artifacts are produced. Missing artifacts means the gate cannot evaluate
+      the shadow quality at all.

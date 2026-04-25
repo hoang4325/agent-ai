@@ -1,0 +1,143 @@
+{
+  "schema_version": "stage7_agent_shadow_online_smoke_result_v1",
+  "generated_at_utc": "2026-04-17T17:57:27+00:00",
+  "stage": "7C",
+  "mode": "online_shadow_smoke",
+  "agent_authority": "shadow_only \u2014 baseline tactical + MPC remain sole authority",
+  "no_control_authority": true,
+  "no_assist_mode": true,
+  "no_takeover": true,
+  "subset_cases": null,
+  "overall_status": "pass",
+  "hard_failures": [],
+  "soft_warnings": [],
+  "passed_cases": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core",
+    "ml_left_positive_core",
+    "arbitration_stop_during_prepare_right"
+  ],
+  "failed_cases": [],
+  "skipped_cases": [],
+  "adapter": {
+    "mode": "stub",
+    "model_id": "stub_v1",
+    "timeout_s": 1.5
+  },
+  "readiness_audit_status": "ready_with_warnings",
+  "readiness_blockers": [],
+  "readiness_warnings": [
+    "stage6_shadow_readiness.json status != 'ready'. CARLA online infrastructure may not be proven. Stage 7C will still run in shadow mode.",
+    "stage7_agent_shadow_gate_result.json not found. Stage 7A gate was not previously confirmed. Proceeding anyway (Stage 7C opens regardless of 7A in this run)."
+  ],
+  "metric_summary": {
+    "agent_shadow_artifact_completeness": {
+      "ml_right_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "ml_left_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "arbitration_stop_during_prepare_right": {
+        "value": 1.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_contract_validity_rate": {
+      "ml_right_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "ml_left_positive_core": {
+        "value": 1.0,
+        "threshold_passed": true
+      },
+      "arbitration_stop_during_prepare_right": {
+        "value": 1.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_forbidden_intent_count": {
+      "ml_right_positive_core": {
+        "value": 0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0,
+        "threshold_passed": true
+      },
+      "ml_left_positive_core": {
+        "value": 0,
+        "threshold_passed": true
+      },
+      "arbitration_stop_during_prepare_right": {
+        "value": 0,
+        "threshold_passed": true
+      }
+    },
+    "agent_timeout_rate": {
+      "ml_right_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "ml_left_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "arbitration_stop_during_prepare_right": {
+        "value": 0.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_fallback_to_baseline_rate": {
+      "ml_right_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "ml_left_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "arbitration_stop_during_prepare_right": {
+        "value": 0.0,
+        "threshold_passed": true
+      }
+    },
+    "agent_baseline_disagreement_rate": {
+      "ml_right_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "stop_follow_ambiguity_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "ml_left_positive_core": {
+        "value": 0.0,
+        "threshold_passed": true
+      },
+      "arbitration_stop_during_prepare_right": {
+        "value": 0.0,
+        "threshold_passed": true
+      }
+    }
+  }
+}

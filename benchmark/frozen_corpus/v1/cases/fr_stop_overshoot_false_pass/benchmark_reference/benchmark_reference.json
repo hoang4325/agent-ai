@@ -1,0 +1,111 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.benchmark_reference",
+  "bundle_version": "frozen_case_bundle_v1",
+  "case_id": "fr_stop_overshoot_false_pass",
+  "readiness": "corpus_ready",
+  "primary_metrics": [
+    "artifact_completeness",
+    "stop_success_rate",
+    "stop_overshoot_rate"
+  ],
+  "secondary_metrics": [
+    "behavior_execution_mismatch_rate"
+  ],
+  "metric_thresholds": {
+    "stop_success_rate": {
+      "min": 0.9
+    },
+    "stop_overshoot_rate": {
+      "max": 0.0
+    }
+  },
+  "mandatory_artifacts": [
+    "ground_truth_actor_roles",
+    "stage1_session_summary",
+    "stage2_evaluation_summary",
+    "stage2_world_state_sample",
+    "stage2_tracked_objects_sample",
+    "stage3a_evaluation_summary",
+    "stage3a_lane_world_state_sample",
+    "stage3b_evaluation_summary",
+    "stage3b_behavior_timeline",
+    "stage3b_behavior_request_sample",
+    "stage3c_execution_summary",
+    "stage3c_execution_timeline",
+    "stage3c_lane_change_events"
+  ],
+  "required_artifacts": {
+    "frozen_input": [
+      "scenario_artifacts/runner_manifest.json",
+      "stage1_frozen/session/session_summary.json",
+      "stage1_frozen/session/live_summary.jsonl"
+    ],
+    "reference_outputs": [
+      "behavior_arbitration_events",
+      "critical_actor_binding",
+      "ground_truth_actor_roles",
+      "route_session_binding",
+      "stage2_evaluation_summary",
+      "stage2_tracked_objects_sample",
+      "stage2_world_state_sample",
+      "stage3a_evaluation_summary",
+      "stage3a_lane_world_state_sample",
+      "stage3b_behavior_request_sample",
+      "stage3b_behavior_timeline",
+      "stage3b_evaluation_summary",
+      "stage3c_control_trace",
+      "stage3c_execution_summary",
+      "stage3c_execution_timeline",
+      "stage3c_fallback_events",
+      "stage3c_lane_change_events",
+      "stage3c_lane_change_events_enriched",
+      "stage3c_lane_change_phase_trace",
+      "stage3c_planner_control_latency",
+      "stage3c_planner_quality_summary",
+      "stage3c_stop_events",
+      "stage3c_stop_target",
+      "stage3c_trajectory_trace"
+    ]
+  },
+  "gate_profile": {
+    "recommended_replay_gate": "golden",
+    "recommended_scenario_replay_gate": "scenario_replay_smoke",
+    "recommended_online_gate": "diagnostic_only"
+  },
+  "benchmark_tags": [
+    "corpus_ready",
+    "failure_replay",
+    "frozen_input_stage1",
+    "keep_right",
+    "medium",
+    "ready",
+    "reference_outputs_stage2_3c"
+  ],
+  "artifact_paths": {
+    "ground_truth_actor_roles": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+    "critical_actor_binding": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+    "behavior_arbitration_events": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\behavior_arbitration_events.jsonl",
+    "route_session_binding": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\route_session_binding.json",
+    "stage1_session_summary": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\stage1_frozen\\session\\session_summary.json",
+    "stage2_evaluation_summary": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage2\\evaluation_summary.json",
+    "stage2_world_state_sample": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage2\\frames\\sample_000029\\world_state.json",
+    "stage2_tracked_objects_sample": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage2\\frames\\sample_000029\\tracked_objects.json",
+    "stage3a_evaluation_summary": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3a\\evaluation_summary.json",
+    "stage3a_lane_world_state_sample": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3a\\frames\\sample_000029\\lane_aware_world_state.json",
+    "stage3b_evaluation_summary": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3b\\evaluation_summary.json",
+    "stage3b_behavior_timeline": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3b\\behavior_timeline_v2.jsonl",
+    "stage3b_behavior_request_sample": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3b\\frames\\sample_000029\\behavior_request_v2.json",
+    "stage3c_execution_summary": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\execution_summary.json",
+    "stage3c_execution_timeline": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\execution_timeline.jsonl",
+    "stage3c_lane_change_events": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\lane_change_events.jsonl",
+    "stage3c_lane_change_events_enriched": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\lane_change_events_enriched.jsonl",
+    "stage3c_stop_events": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\stop_events.jsonl",
+    "stage3c_trajectory_trace": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\trajectory_trace.jsonl",
+    "stage3c_control_trace": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\control_trace.jsonl",
+    "stage3c_lane_change_phase_trace": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\lane_change_phase_trace.jsonl",
+    "stage3c_stop_target": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\stop_target.json",
+    "stage3c_planner_control_latency": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\planner_control_latency.jsonl",
+    "stage3c_fallback_events": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\fallback_events.jsonl",
+    "stage3c_planner_quality_summary": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\planner_quality_summary.json"
+  }
+}

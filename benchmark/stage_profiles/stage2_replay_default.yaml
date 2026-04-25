@@ -1,0 +1,7 @@
+name: stage2_replay_default
+runner_script: scripts/run_stage2_replay.py
+args:
+  --stage1-session: "{stage1_session_dir}"
+  --output-dir: "{stage2_output_dir}"
+  --prediction-variant: "auto"
+  --min-score: "0.1"

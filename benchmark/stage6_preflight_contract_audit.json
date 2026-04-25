@@ -1,0 +1,727 @@
+{
+  "schema_version": "stage6_preflight_contract_audit_v1",
+  "generated_at_utc": "2026-04-17T16:27:00+00:00",
+  "stop_target_contract": "approximate",
+  "latency_contract": "approximate",
+  "fallback_contract": "approximate",
+  "artifact_support": {
+    "frozen_replay_stage3c_dirs": [
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3c",
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3c",
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c",
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3c",
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3c",
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3c",
+      "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3c"
+    ],
+    "current_replay_stage3c_dirs": [
+      "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\ml_right_positive_core\\stage3c",
+      "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\stop_follow_ambiguity_core\\stage3c"
+    ],
+    "online_stage4_dirs": [
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\junction_straight_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\ml_right_positive_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\stop_follow_ambiguity_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\junction_straight_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\ml_right_positive_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\stop_follow_ambiguity_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\junction_straight_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\ml_right_positive_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\stop_follow_ambiguity_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\junction_straight_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\ml_right_positive_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\ml_right_positive_core\\stage4",
+      "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\stop_follow_ambiguity_core\\stage4"
+    ],
+    "stop_target": {
+      "frozen_replay_stage3c": [
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "missing",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": null,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        }
+      ],
+      "current_replay_stage3c": [
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\ml_right_positive_core\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\stop_follow_ambiguity_core\\stage3c",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": 0.6666666666666666,
+            "explicit_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        }
+      ],
+      "online_stage4": [
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\junction_straight_core\\stage4",
+          "exists": false,
+          "measurement_support": {},
+          "summary": {
+            "stop_target_defined_rate": null,
+            "explicit_target_events": null,
+            "heuristic_target_events": null,
+            "mean_stop_final_error_m": null
+          },
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\ml_right_positive_core\\stage4",
+          "exists": false,
+          "measurement_support": {},
+          "summary": {
+            "stop_target_defined_rate": null,
+            "explicit_target_events": null,
+            "heuristic_target_events": null,
+            "mean_stop_final_error_m": null
+          },
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "exists": false,
+          "measurement_support": {},
+          "summary": {
+            "stop_target_defined_rate": null,
+            "explicit_target_events": null,
+            "heuristic_target_events": null,
+            "mean_stop_final_error_m": null
+          },
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\junction_straight_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\ml_right_positive_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\junction_straight_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\ml_right_positive_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\junction_straight_core\\stage4",
+          "exists": false,
+          "measurement_support": {},
+          "summary": {
+            "stop_target_defined_rate": null,
+            "explicit_target_events": null,
+            "heuristic_target_events": null,
+            "mean_stop_final_error_m": null
+          },
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\ml_right_positive_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 2,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 0.0
+          },
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\ml_right_positive_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "missing",
+            "stop_final_error_m": "missing",
+            "stop_overshoot_distance_m": "missing"
+          },
+          "summary": {
+            "stop_target_defined_rate": null,
+            "explicit_target_events": 0,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": null
+          },
+          "status": "approximate"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "exists": true,
+          "measurement_support": {
+            "stop_target_defined_rate": "present",
+            "stop_final_error_m": "present",
+            "stop_overshoot_distance_m": "present"
+          },
+          "summary": {
+            "stop_target_defined_rate": 1.0,
+            "explicit_target_events": 1,
+            "heuristic_target_events": 0,
+            "mean_stop_final_error_m": 79.52608224252965
+          },
+          "status": "present"
+        }
+      ]
+    },
+    "latency": {
+      "frozen_replay_stage3c": [
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3c",
+          "row_count": 157,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3c",
+          "row_count": 237,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c",
+          "row_count": 237,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3c",
+          "row_count": 61,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3c",
+          "row_count": 107,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3c",
+          "row_count": 157,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3c",
+          "row_count": 237,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "status": "approximate"
+        }
+      ],
+      "current_replay_stage3c": [
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\ml_right_positive_core\\stage3c",
+          "row_count": 77,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\stop_follow_ambiguity_core\\stage3c",
+          "row_count": 117,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "status": "present"
+        }
+      ],
+      "online_stage4": [
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 0,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "has_total_loop_latency": false,
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 0,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "has_total_loop_latency": false,
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 0,
+          "has_planner_execution_latency": false,
+          "has_decision_to_execution_latency": false,
+          "has_total_loop_latency": false,
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 24,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 80,
+          "has_planner_execution_latency": true,
+          "has_decision_to_execution_latency": true,
+          "has_total_loop_latency": true,
+          "status": "present"
+        }
+      ]
+    },
+    "fallback": {
+      "frozen_replay_stage3c": [
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3c",
+          "row_count": 157,
+          "activated_events": 143,
+          "reason_covered_events": 143,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3c",
+          "row_count": 237,
+          "activated_events": 194,
+          "reason_covered_events": 194,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c",
+          "row_count": 237,
+          "activated_events": 194,
+          "reason_covered_events": 194,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3c",
+          "row_count": 61,
+          "activated_events": 0,
+          "reason_covered_events": 0,
+          "status": "approximate"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3c",
+          "row_count": 107,
+          "activated_events": 67,
+          "reason_covered_events": 67,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3c",
+          "row_count": 157,
+          "activated_events": 143,
+          "reason_covered_events": 143,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3c",
+          "row_count": 237,
+          "activated_events": 194,
+          "reason_covered_events": 194,
+          "status": "present"
+        }
+      ],
+      "current_replay_stage3c": [
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\ml_right_positive_core\\stage3c",
+          "row_count": 77,
+          "activated_events": 63,
+          "reason_covered_events": 63,
+          "status": "present"
+        },
+        {
+          "stage3c_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\scenario_replay\\case_runs\\stop_follow_ambiguity_core\\stage3c",
+          "row_count": 117,
+          "activated_events": 74,
+          "reason_covered_events": 74,
+          "status": "present"
+        }
+      ],
+      "online_stage4": [
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 0,
+          "activated_events": 0,
+          "reason_covered_events": 0,
+          "has_takeover_latency": false,
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 0,
+          "activated_events": 0,
+          "reason_covered_events": 0,
+          "has_takeover_latency": false,
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_174541\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 0,
+          "activated_events": 0,
+          "reason_covered_events": 0,
+          "has_takeover_latency": false,
+          "status": "missing"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 80,
+          "activated_events": 73,
+          "reason_covered_events": 73,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "activated_events": 73,
+          "reason_covered_events": 73,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_175017\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 80,
+          "activated_events": 73,
+          "reason_covered_events": 73,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 80,
+          "activated_events": 73,
+          "reason_covered_events": 73,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "activated_events": 73,
+          "reason_covered_events": 73,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182020\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 80,
+          "activated_events": 73,
+          "reason_covered_events": 73,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\junction_straight_core\\stage4",
+          "row_count": 24,
+          "activated_events": 17,
+          "reason_covered_events": 17,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\e2e_online_e2e_smoke_20260417_182742\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "activated_events": 19,
+          "reason_covered_events": 19,
+          "has_takeover_latency": true,
+          "status": "present"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\ml_right_positive_core\\stage4",
+          "row_count": 80,
+          "activated_events": 0,
+          "reason_covered_events": 0,
+          "has_takeover_latency": false,
+          "status": "approximate"
+        },
+        {
+          "stage4_dir": "D:\\Agent-AI\\benchmark\\reports\\stage6_preflight_revalidation_20260417_232323\\online_e2e\\case_runs\\stop_follow_ambiguity_core\\stage4",
+          "row_count": 80,
+          "activated_events": 0,
+          "reason_covered_events": 0,
+          "has_takeover_latency": false,
+          "status": "approximate"
+        }
+      ]
+    }
+  },
+  "notes": [
+    "stop_target is considered approximate whenever final stop error is only proxy-backed rather than explicit for every stop source.",
+    "latency is considered approximate when replay has direct planner timing but online stage breakdown is absent or partial.",
+    "fallback is considered approximate when events exist but takeover latency or reason coverage is incomplete."
+  ]
+}

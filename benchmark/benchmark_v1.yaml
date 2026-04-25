@@ -1,0 +1,201 @@
+version: system_benchmark_v1
+name: Agent-AI System Benchmark v1
+description: >
+  Runnable first-pass system benchmark for the multi-stage autonomous-driving stack.
+  v1 is artifact-driven and reuses existing Stage 1/2/3A/3B/3C outputs, with optional
+  Stage 4 runtime metrics when online artifacts exist.
+cases_dir: benchmark/cases
+sets_dir: benchmark/sets
+metric_registry: benchmark/metric_registry.yaml
+reports_dir: benchmark/reports
+benchmark_modes: benchmark/benchmark_modes.yaml
+stage_profiles_dir: benchmark/stage_profiles
+frozen_corpus:
+  root: benchmark/frozen_corpus/v1
+  mapping_path: benchmark/mapping_benchmark_to_frozen_corpus.json
+  bundle_version: frozen_case_bundle_v1
+
+baseline:
+  default_metrics_path: benchmark/baselines/system_benchmark_v1/baseline_metrics.json
+  default_commit_path: benchmark/baselines/system_benchmark_v1/baseline_commit.json
+
+metric_maturity_definitions:
+  hard_gate_ready: >
+    Enough artifact support exists to use this metric in pass/fail gates for ready cases.
+  soft_guardrail: >
+    Metric is useful for trend watching or provisional gating, but lacks full artifact
+    support or scenario cleanliness for strict hard-fail use.
+  diagnostic_only: >
+    Metric is reported for observability and backlog shaping only.
+
+default_metric_thresholds:
+  artifact_completeness:
+    min: 1.0
+  route_option_match:
+    min: 1.0
+  expected_behavior_presence:
+    min: 1
+  forbidden_behavior_count:
+    max: 0
+  lane_change_success_count:
+    min: 1
+  lane_change_success_rate:
+    min: 0.5
+  stop_success_rate:
+    min: 0.8
+  stop_overshoot_rate:
+    max: 0.0
+  junction_keep_route_presence:
+    min: 1
+  behavior_execution_mismatch_rate:
+    max: 0.35
+  unsafe_lane_change_intent_count:
+    max: 0
+  critical_actor_detected_rate:
+    min: 0.7
+  route_context_consistency:
+    min: 1.0
+  arbitration_conflict_count:
+    max: 0
+  lane_change_completion_rate:
+    min: 0.5
+  lane_change_completion_validity:
+    min: 1.0
+  stop_hold_stability:
+    min: 0.9
+  lane_change_completion_time_s:
+    max: 6.0
+  lane_change_abort_rate:
+    max: 0.5
+  lateral_oscillation_rate:
+    max: 0.35
+  trajectory_smoothness_proxy:
+    max: 0.4
+  blocker_binding_accuracy:
+    min: 0.5
+  shadow_output_contract_completeness:
+    min: 1.0
+  shadow_feasibility_rate:
+    min: 0.95
+  shadow_solver_timeout_rate:
+    max: 0.0
+  mean_total_loop_latency_ms:
+    max: 150.0
+  stale_tick_rate:
+    max: 0.2
+  state_reset_count:
+    max: 0
+  # Stage 7 — Agent Shadow Metrics
+  agent_contract_validity_rate:
+    min: 0.95
+  agent_timeout_rate:
+    max: 0.05
+  agent_fallback_to_baseline_rate:
+    max: 0.10
+  agent_forbidden_intent_count:
+    max: 0
+  agent_lane_change_intent_validity_rate:
+    min: 1.0
+  agent_shadow_artifact_completeness:
+    min: 1.0
+  agent_baseline_disagreement_rate:
+    max: 0.40
+  agent_useful_disagreement_rate:
+    min: 0.30
+  agent_route_alignment_rate:
+    min: 0.70
+
+artifact_requirements:
+  replay_bundle_required:
+    - stage1_session_summary
+    - stage2_evaluation_summary
+    - stage2_world_state_sample
+    - stage2_tracked_objects_sample
+    - stage3a_evaluation_summary
+    - stage3a_lane_world_state_sample
+    - stage3b_evaluation_summary
+    - stage3b_behavior_timeline
+    - stage3b_behavior_request_sample
+    - stage3c_execution_summary
+    - stage3c_execution_timeline
+    - stage3c_lane_change_events
+  online_bundle_optional:
+    - stage4_online_run_summary
+    - stage4_online_stack_state
+  stage5b_planner_quality_optional:
+    - stage3c_lane_change_events_enriched
+    - stage3c_stop_events
+    - stage3c_trajectory_trace
+    - stage3c_control_trace
+    - stage3c_lane_change_phase_trace
+    - stage3c_stop_target
+    - stage3c_planner_control_latency
+    - stage3c_fallback_events
+    - stage3c_planner_quality_summary
+  stage6_preflight_optional:
+    - stage3c_stop_target
+    - stage3c_planner_control_latency
+    - stage3c_fallback_events
+    - stage4_planner_control_latency
+    - stage4_fallback_events
+  stage6_shadow_optional:
+    - stage3c_mpc_shadow_proposal
+    - stage3c_mpc_shadow_summary
+    - stage3c_shadow_baseline_comparison
+    - stage3c_shadow_disagreement_events
+
+gate_definitions:
+  smoke:
+    description: Fast sanity gate. Every ready case should run end-to-end and have complete mandatory artifacts.
+    treat_planned_cases_as: skip
+    fail_on_missing_mandatory_artifacts: true
+    fail_on_hard_gate: true
+    partial_on_soft_guardrail_fail: true
+  golden:
+    description: Main regression gate for stable architecture evidence.
+    treat_planned_cases_as: skip
+    fail_on_missing_mandatory_artifacts: true
+    fail_on_hard_gate: true
+    fail_on_hard_metric_regression_vs_baseline: true
+    partial_on_soft_guardrail_fail: true
+  stress:
+    description: Challenge set for robustness trend tracking.
+    treat_planned_cases_as: skip
+    fail_on_missing_mandatory_artifacts: false
+    fail_on_hard_gate: false
+    partial_on_soft_guardrail_fail: true
+  failure_replay:
+    description: Historical failure cases. Regressions should be surfaced immediately.
+    treat_planned_cases_as: skip
+    fail_on_missing_mandatory_artifacts: true
+    fail_on_hard_gate: true
+    fail_on_hard_metric_regression_vs_baseline: true
+    partial_on_soft_guardrail_fail: false
+
+compare_baseline:
+  enabled: false
+  mode: by_case_and_metric
+  allow_missing_baseline_metrics: true
+
+sets:
+  smoke: benchmark/sets/smoke.yaml
+  scenario_replay_smoke: benchmark/sets/scenario_replay_smoke.yaml
+  golden: benchmark/sets/golden.yaml
+  stress: benchmark/sets/stress.yaml
+  failure_replay: benchmark/sets/failure_replay.yaml
+  stage5a_core_golden: benchmark/sets/stage5a_core_golden.yaml
+  stage5a_failure_replay: benchmark/sets/stage5a_failure_replay.yaml
+  stage5b_core_golden: benchmark/sets/stage5b_core_golden.yaml
+  stage5b_failure_replay: benchmark/sets/stage5b_failure_replay.yaml
+  stage6_shadow_golden: benchmark/sets/stage6_shadow_golden.yaml
+  stage6_shadow_golden_6case: benchmark/sets/stage6_shadow_golden_6case.yaml
+  stage6_online_shadow_smoke: benchmark/sets/stage6_online_shadow_smoke.yaml
+  stage6_online_shadow_golden: benchmark/sets/stage6_online_shadow_golden.yaml
+  online_e2e_smoke: benchmark/sets/online_e2e_smoke.yaml
+  online_golden: benchmark/sets/online_golden.yaml
+  # Stage 7 — Agentic Shadow (shadow-only, no control authority)
+  stage7_agent_shadow_replay: benchmark/sets/stage7_agent_shadow_replay.yaml
+  stage7_agent_shadow_scenario_replay: benchmark/sets/stage7_agent_shadow_scenario_replay.yaml
+  stage7_agent_shadow_online_smoke: benchmark/sets/stage7_agent_shadow_online_smoke.yaml
+  stage7_controlled_expansion_4case: benchmark/sets/stage7_controlled_expansion_4case.yaml
+  stage7_controlled_expansion_6case: benchmark/sets/stage7_controlled_expansion_6case.yaml

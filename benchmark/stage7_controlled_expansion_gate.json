@@ -1,0 +1,188 @@
+{
+  "schema_version": "stage7_controlled_expansion_gate_v2",
+  "generated_at_utc": "2026-04-17T17:35:32+00:00",
+  "stage": "7C_expansion",
+  "mode": "controlled_expansion_shadow_only",
+  "agent_authority": "shadow_only",
+  "no_control_authority": true,
+  "no_assist_mode": true,
+  "no_takeover": true,
+  "target_subset": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core",
+    "ml_left_positive_core",
+    "arbitration_stop_during_prepare_right"
+  ],
+  "expansion_from_n_cases": 2,
+  "expansion_to_n_cases": 4,
+  "max_frames_per_case": 60,
+
+  "prerequisite_checks": {
+    "description": "Must pass ALL before the controlled expansion is considered open",
+    "checks": [
+      {
+        "id": "prior_2case_stable",
+        "description": "Stage 7C 2-case smoke must have passed",
+        "artifact": "stage7_agent_shadow_online_smoke_result.json",
+        "check": "overall_status == 'pass'",
+        "blocking": true
+      },
+      {
+        "id": "ml_left_timeline_present",
+        "description": "ml_left_positive_core must have stage3b_behavior_timeline present on disk",
+        "artifact": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+        "check": "file exists and non-empty",
+        "blocking": true
+      },
+      {
+        "id": "arbitration_timeline_present",
+        "description": "arbitration_stop_during_prepare_right must have stage3b_behavior_timeline present on disk",
+        "artifact": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+        "check": "file exists and non-empty",
+        "blocking": true
+      },
+      {
+        "id": "stage7a_gate_run",
+        "description": "Stage 7A replay gate should have been run at least once (advisory)",
+        "artifact": "benchmark/stage7_agent_shadow_gate_result.json",
+        "check": "file exists",
+        "blocking": false,
+        "note": "Non-blocking but strongly recommended. If not run, 7C expansion proceeds without frozen corpus contract validation."
+      }
+    ]
+  },
+
+  "hard_gate_metrics": [
+    {
+      "metric": "agent_shadow_artifact_completeness",
+      "description": "All 6 artifacts must be present and non-empty for each case",
+      "threshold": {"min": 1.0},
+      "scope": "per_case_and_overall",
+      "on_fail": "STOP expansion. Missing artifacts means the gate cannot evaluate the shadow quality."
+    },
+    {
+      "metric": "agent_contract_validity_rate",
+      "description": "Fraction of intent records with validation_status = valid",
+      "threshold": {"min": 0.95},
+      "scope": "per_case",
+      "on_fail": "STOP expansion. Root cause before adding more cases."
+    },
+    {
+      "metric": "agent_forbidden_intent_count",
+      "description": "Count of records with forbidden_field / invalid_intent / malformed. Must be zero.",
+      "threshold": {"max": 0},
+      "scope": "per_case_and_overall",
+      "on_fail": "STOP expansion immediately. Hard contract violation."
+    },
+    {
+      "metric": "agent_timeout_rate",
+      "description": "Fraction of frames where agent timed out",
+      "threshold": {"max": 0.05},
+      "scope": "per_case",
+      "on_fail": "Fix adapter or timeout budget before expansion."
+    },
+    {
+      "metric": "agent_fallback_to_baseline_rate",
+      "description": "Fraction of frames with fallback_to_baseline=True (timeout + invalid combined)",
+      "threshold": {"max": 0.10},
+      "scope": "per_case",
+      "on_fail": "Fix adapter before expansion."
+    },
+    {
+      "metric": "agent_lane_change_intent_validity_rate",
+      "description": "Fraction of LC intents that do not violate lane_change_permission. Must be 1.0.",
+      "threshold": {"min": 1.0},
+      "scope": "per_case — especially arbitration_stop_during_prepare_right",
+      "on_fail": "STOP expansion immediately. LC permission violation is a contract breach, not a metric miss."
+    }
+  ],
+
+  "soft_guardrail_metrics": [
+    {
+      "metric": "agent_baseline_disagreement_rate",
+      "description": "Fraction of valid frames where agent intent != baseline intent",
+      "threshold": {"max": 0.40},
+      "scope": "per_case",
+      "on_breach": "Log and investigate. Do NOT stop expansion if all hard gates pass. High disagreement on arbitration_stop case is expected and analytically valuable.",
+      "note_per_case": {
+        "ml_left_positive_core": "Expected low disagreement — stub mirrors baseline LC direction.",
+        "arbitration_stop_during_prepare_right": "May see moderate disagreement when baseline switches from prepare_LC to stop. Acceptable up to threshold."
+      }
+    },
+    {
+      "metric": "agent_useful_disagreement_rate",
+      "description": "Fraction of disagreements marked structurally useful",
+      "threshold": {"min": 0.20},
+      "scope": "per_case (where disagreements exist)",
+      "on_breach": "Soft warning. With stub adapter, this is null because disagreement_frames=0. When LLM adapter is wired, this must become non-null and meet threshold.",
+      "stub_behavior": "null (acceptable) — stub mirrors baseline, zero disagreements"
+    },
+    {
+      "metric": "agent_route_alignment_rate",
+      "description": "Fraction of frames where agent target_lane aligns with preferred_lane",
+      "threshold_default": {"min": 0.65},
+      "scope": "per_case",
+      "on_breach": "Investigate. May indicate agent not consuming route context correctly.",
+      "per_case_threshold_overrides": {
+        "arbitration_stop_during_prepare_right": {
+          "threshold": {"min": 0.30},
+          "reason": "R3: Stop-phase arbitration legitimately reverts target_lane to 'current' while preferred_lane='right'. Expected alignment 0.30–0.55. Global 0.65 threshold does not apply to this case."
+        },
+        "adjacent_right_unsafe_hold": {
+          "threshold": "exempt",
+          "reason": "R3: Stop-dominated case with preferred_lane='right'. All stop/follow intents emit target_lane='current'. Alignment metric is structurally inapplicable. Do not gate on this metric for this case."
+        }
+      },
+      "r3_fix_applied": true
+    }
+  ],
+
+  "diagnostic_only_metrics": [
+    {
+      "metric": "agent_stop_context_correctness_rate",
+      "description": "Fraction of stop/yield intents where stop context was consumed",
+      "threshold": null,
+      "scope": "per_case",
+      "note": "Null is acceptable if stop_target artifact missing. Diagnostic only — no gate action."
+    }
+  ],
+
+  "required_artifacts_per_case": [
+    "agent_shadow_intent.jsonl",
+    "agent_shadow_summary.json",
+    "agent_baseline_comparison.json",
+    "agent_disagreement_events.jsonl",
+    "agent_contract_validation.json",
+    "agent_timeout_fallback_events.jsonl"
+  ],
+
+  "expansion_gate_pass_criteria": {
+    "all_cases_pass": true,
+    "hard_gate_failures_allowed": 0,
+    "soft_warnings_allowed": "any (log, do not block)",
+    "skipped_cases_allowed": 0,
+    "consecutive_pass_runs_required_before_further_expansion": 5
+  },
+
+  "final_verdict": {
+    "should_expand_now": true,
+    "reason": "The 4-case controlled expansion passed with zero hard failures. The added cases exercised opposite-direction LC and stop-supersedes-prepare arbitration without changing authority.",
+    "expand_to_subset": [
+      "ml_right_positive_core",
+      "stop_follow_ambiguity_core",
+      "ml_left_positive_core",
+      "arbitration_stop_during_prepare_right"
+    ],
+    "do_not_expand_to": [
+      "failure_replay cases (fr_*) — separate design required",
+      "junction_straight_core — next wave after 4-case ring stabilizes",
+      "adjacent_* / late_emerging_obstacle — corpus_pending"
+    ],
+    "why_no_assist_mode": "Assist mode requires (1) a separate Stage 8 design with authority transfer contracts, (2) safety proof that agent decisions are better than baseline in measurable conditions, (3) fallback authority proof under all failure modes, (4) human operator sign-off. None of these exist. Stage 7C completes shadow analysis. Assist mode is not in scope and must not be discussed at this stage.",
+    "next_milestone_after_4case_stable": "Run Stage 7A frozen corpus replay gate to validate contract layer on frozen artifacts. Then decide whether to expand to junction_straight_core or move to LLM adapter smoke."
+  },
+
+  "run_command": "python scripts/run_stage7c_online_shadow_smoke.py --adapter-mode stub --max-frames 60 [after wiring ml_left and arbitration_stop into the set]",
+  "set_file_to_update": "benchmark/sets/stage7_agent_shadow_online_smoke.yaml",
+  "set_change_required": "Add ml_left_positive_core and arbitration_stop_during_prepare_right to cases list after prerequisite checks pass"
+}

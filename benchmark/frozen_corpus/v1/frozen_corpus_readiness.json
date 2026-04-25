@@ -1,0 +1,1261 @@
+{
+  "generated_at": "2026-04-13T14:50:49+00:00",
+  "corpus_root": "benchmark/frozen_corpus/v1",
+  "summary": {
+    "num_cases": 15,
+    "readiness_counts": {
+      "corpus_pending": 3,
+      "corpus_partial": 1,
+      "corpus_ready": 11
+    },
+    "validation_passed": true
+  },
+  "cases": [
+    {
+      "case_id": "adjacent_left_unsafe_hold",
+      "readiness": "corpus_pending",
+      "readiness_checks": {
+        "case_status_ready": false,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": false,
+        "reference_outputs_complete": false,
+        "semantic_reference_complete": false,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": true
+      },
+      "warnings": [
+        "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+        "missing_semantic_reference:critical_actor_binding,behavior_arbitration_events,route_session_binding",
+        "pending_ground_truth_binding_true"
+      ]
+    },
+    {
+      "case_id": "adjacent_right_unsafe_hold",
+      "readiness": "corpus_partial",
+      "readiness_checks": {
+        "case_status_ready": false,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "arbitration_stop_during_prepare_right",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "fr_arbitration_missing_cancel",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "fr_blocker_binding_wrong_lane",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "fr_lc_commit_no_permission",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "fr_right_commit_superseded_by_stop",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "fr_route_session_mismatch",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "fr_stop_overshoot_false_pass",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "junction_straight_core",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "late_emerging_obstacle",
+      "readiness": "corpus_pending",
+      "readiness_checks": {
+        "case_status_ready": false,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": false,
+        "reference_outputs_complete": false,
+        "semantic_reference_complete": false,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": true
+      },
+      "warnings": [
+        "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+        "missing_semantic_reference:critical_actor_binding,behavior_arbitration_events,route_session_binding",
+        "pending_ground_truth_binding_true"
+      ]
+    },
+    {
+      "case_id": "ml_left_positive_core",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "ml_right_positive_core",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    },
+    {
+      "case_id": "route_bias_fork_keep_right",
+      "readiness": "corpus_pending",
+      "readiness_checks": {
+        "case_status_ready": false,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": false,
+        "reference_outputs_complete": false,
+        "semantic_reference_complete": false,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": true
+      },
+      "warnings": [
+        "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+        "missing_semantic_reference:behavior_arbitration_events,route_session_binding",
+        "pending_ground_truth_binding_true"
+      ]
+    },
+    {
+      "case_id": "stop_follow_ambiguity_core",
+      "readiness": "corpus_ready",
+      "readiness_checks": {
+        "case_status_ready": true,
+        "runner_scenario_manifest_available": true,
+        "stage1_frozen_replayable": true,
+        "reference_outputs_complete": true,
+        "semantic_reference_complete": true,
+        "provenance_complete": true,
+        "pending_ground_truth_binding": false
+      },
+      "warnings": []
+    }
+  ],
+  "validation": {
+    "corpus_root": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1",
+    "passed": true,
+    "cases": [
+      {
+        "case_id": "adjacent_left_unsafe_hold",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold",
+        "expected_readiness": "corpus_pending",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\stage1_frozen\\session\\session_summary.json",
+            "passed": false
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": false
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": false
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_left_unsafe_hold\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": false
+          }
+        }
+      },
+      {
+        "case_id": "adjacent_right_unsafe_hold",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold",
+        "expected_readiness": "corpus_partial",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\adjacent_right_unsafe_hold\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "arbitration_stop_during_prepare_right",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\arbitration_stop_during_prepare_right\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "fr_arbitration_missing_cancel",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_arbitration_missing_cancel\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "fr_blocker_binding_wrong_lane",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_blocker_binding_wrong_lane\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "fr_lc_commit_no_permission",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_lc_commit_no_permission\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "fr_right_commit_superseded_by_stop",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_right_commit_superseded_by_stop\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "fr_route_session_mismatch",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_route_session_mismatch\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "fr_stop_overshoot_false_pass",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\fr_stop_overshoot_false_pass\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "junction_straight_core",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\junction_straight_core\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "late_emerging_obstacle",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle",
+        "expected_readiness": "corpus_pending",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\stage1_frozen\\session\\session_summary.json",
+            "passed": false
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": false
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": false
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\late_emerging_obstacle\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": false
+          }
+        }
+      },
+      {
+        "case_id": "ml_left_positive_core",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_left_positive_core\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "ml_right_positive_core",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\ml_right_positive_core\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case_id": "route_bias_fork_keep_right",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right",
+        "expected_readiness": "corpus_pending",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\stage1_frozen\\session\\session_summary.json",
+            "passed": false
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": false
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": false
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": false
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": false
+          }
+        }
+      },
+      {
+        "case_id": "stop_follow_ambiguity_core",
+        "bundle_dir": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core",
+        "expected_readiness": "corpus_ready",
+        "required_checks": [
+          "case_manifest",
+          "scenario_manifest",
+          "benchmark_reference",
+          "provenance",
+          "stage1_session_summary",
+          "stage1_live_summary",
+          "stage2_reference",
+          "stage3a_reference",
+          "stage3b_reference",
+          "stage3c_reference",
+          "semantic_ground_truth",
+          "semantic_route_session_binding"
+        ],
+        "passed": true,
+        "checks": {
+          "case_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\case_manifest.json",
+            "passed": true
+          },
+          "scenario_manifest": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\scenario_manifest.json",
+            "passed": true
+          },
+          "benchmark_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\benchmark_reference\\benchmark_reference.json",
+            "passed": true
+          },
+          "provenance": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\provenance\\provenance.json",
+            "passed": true
+          },
+          "stage1_session_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\stage1_frozen\\session\\session_summary.json",
+            "passed": true
+          },
+          "stage1_live_summary": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\stage1_frozen\\session\\live_summary.jsonl",
+            "passed": true
+          },
+          "stage2_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage2\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3a_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3a\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3b_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3b\\evaluation_summary.json",
+            "passed": true
+          },
+          "stage3c_reference": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\stage3c\\execution_summary.json",
+            "passed": true
+          },
+          "semantic_ground_truth": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+            "passed": true
+          },
+          "semantic_route_session_binding": {
+            "path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\stop_follow_ambiguity_core\\reference_outputs\\semantic\\route_session_binding.json",
+            "passed": true
+          }
+        }
+      }
+    ]
+  }
+}

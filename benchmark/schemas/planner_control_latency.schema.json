@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/planner_control_latency.schema.json",
+  "title": "Stage6 Planner Control Latency Row",
+  "type": "object",
+  "required": [
+    "tick_id",
+    "request_frame",
+    "sample_name",
+    "carla_frame",
+    "timestamp",
+    "source_stage",
+    "measurement_mode",
+    "planner_prepare_latency_ms",
+    "execution_finalize_latency_ms",
+    "planner_execution_latency_ms",
+    "decision_to_execution_latency_ms",
+    "total_loop_latency_ms",
+    "latency_budget_ms",
+    "over_budget",
+    "provenance"
+  ],
+  "properties": {
+    "tick_id": { "type": ["integer", "null"] },
+    "request_frame": { "type": ["integer", "null"] },
+    "sample_name": { "type": "string" },
+    "carla_frame": { "type": ["integer", "null"] },
+    "timestamp": { "type": ["number", "null"] },
+    "source_stage": { "type": "string" },
+    "measurement_mode": { "type": "string" },
+    "perception_latency_ms": { "type": ["number", "null"] },
+    "world_update_latency_ms": { "type": ["number", "null"] },
+    "behavior_latency_ms": { "type": ["number", "null"] },
+    "planner_prepare_latency_ms": { "type": ["number", "null"] },
+    "execution_finalize_latency_ms": { "type": ["number", "null"] },
+    "planner_execution_latency_ms": { "type": ["number", "null"] },
+    "decision_to_execution_latency_ms": { "type": ["number", "null"] },
+    "total_loop_latency_ms": { "type": ["number", "null"] },
+    "latency_budget_ms": { "type": ["number", "null"] },
+    "over_budget": { "type": ["boolean", "null"] },
+    "over_budget_component": { "type": ["string", "null"] },
+    "provenance": {
+      "type": "object",
+      "required": ["source_artifact", "source_stage"],
+      "properties": {
+        "source_artifact": { "type": "string" },
+        "source_stage": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

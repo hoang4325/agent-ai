@@ -1,0 +1,6 @@
+name: stage3a_replay_default
+runner_script: scripts/run_stage3_replay.py
+args:
+  --stage2-output-dir: "{stage2_output_dir}"
+  --output-dir: "{stage3a_output_dir}"
+  --load-town-if-needed: "true"

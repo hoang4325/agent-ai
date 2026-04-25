@@ -1,0 +1,89 @@
+{
+  "session_root": ".",
+  "mode": "watch",
+  "source_samples_root": "../materialized_samples",
+  "inference_root": "inference",
+  "args": {
+    "host": "127.0.0.1",
+    "port": 2000,
+    "tm_port": 8000,
+    "repo_root": "/workspace/Bevfusion-Z",
+    "config": "/workspace/Bevfusion-Z/configs/nuscenes/det/transfusion/secfpn/camera+lidar+radar/swint_v0p075/sefuser_radarbev.yaml",
+    "checkpoint": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "output_root": ".",
+    "samples_root": "../materialized_samples",
+    "session_name": null,
+    "num_samples": 30,
+    "warmup_ticks": 5,
+    "fixed_delta_seconds": 0.05,
+    "image_width": 1600,
+    "image_height": 900,
+    "camera_fov": 70.0,
+    "vehicle_filter": "vehicle.lincoln.mkz_2020",
+    "spawn_point_index": 0,
+    "town": null,
+    "device": "cuda",
+    "score_threshold": 0.2,
+    "timeout_seconds": 3.0,
+    "poll_interval_seconds": 0.5,
+    "idle_timeout_seconds": 30.0,
+    "radar_bridge": "minimal",
+    "radar_ablation": "none",
+    "compare_zero_radar": true,
+    "autopilot": true
+  },
+  "model_runtime": {
+    "checkpoint_path": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "radar_bridge": "minimal",
+    "radar_ablation": "none",
+    "radar_bridge_details": {
+      "bridge_strategy": "minimal_6d_runtime_patch",
+      "kept_input_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff"
+      ],
+      "kept_checkpoint_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff",
+        "f_center_x",
+        "f_center_y"
+      ],
+      "kept_checkpoint_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        45,
+        46
+      ],
+      "original_shape": [
+        128,
+        47
+      ],
+      "patched_shape": [
+        128,
+        8
+      ]
+    }
+  },
+  "build_seconds": 10.552978912999606,
+  "history_gate": {
+    "required_previous_samples": 9,
+    "required_previous_lidar_samples": 9,
+    "required_previous_radar_samples": 5,
+    "available_previous_samples": 0,
+    "ready": false
+  },
+  "compare_zero_radar": true,
+  "source_session_root": "outputs\\live_watch_compare\\live_20260401_095649"
+}

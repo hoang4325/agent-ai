@@ -1,0 +1,71 @@
+# Stage 7A — Agent Shadow Replay Set
+# 
+# Runs agent shadow over the frozen corpus / replay artifacts.
+# Agent output is shadow-only. Baseline tactical + MPC remain the authority.
+#
+# Rollout principle:
+#   - Start with the smallest clean subset (4 core cases)
+#   - All cases must have stage3b_behavior_request and lane_context artifacts
+#   - Stage 7A requires NO online CARLA session — pure artifact replay
+#
+# Gate: stage7_agent_shadow_gate
+# Do NOT include planned cases here.
+
+name: stage7_agent_shadow_replay
+description: >
+  Stage 7A agent tactical shadow replay gate.
+  Runs agent shadow over frozen corpus replay artifacts to produce
+  agent_shadow_intent.jsonl, agent_shadow_summary.json,
+  agent_baseline_comparison.json, and agent_disagreement_events.jsonl.
+  No online CARLA required. Baseline authority is unchanged.
+
+stage7_mode:
+  stage: "7A"
+  mode: "replay_shadow"
+  agent_authority: "shadow_only"
+  baseline_authority: "full"
+  online_required: false
+  adapter: "stub"
+  adapter_model_id: "stub_v1"
+  agent_timeout_s: 2.0
+
+gate_definition:
+  hard_gate_metrics:
+    - agent_shadow_artifact_completeness
+    - agent_contract_validity_rate
+    - agent_timeout_rate
+    - agent_fallback_to_baseline_rate
+    - agent_forbidden_intent_count
+    - agent_lane_change_intent_validity_rate
+  soft_guardrail_metrics:
+    - agent_baseline_disagreement_rate
+    - agent_useful_disagreement_rate
+    - agent_route_alignment_rate
+  diagnostic_only_metrics:
+    - agent_stop_context_correctness_rate
+
+thresholds:
+  agent_shadow_artifact_completeness:
+    min: 1.0
+  agent_contract_validity_rate:
+    min: 0.95
+  agent_timeout_rate:
+    max: 0.05
+  agent_fallback_to_baseline_rate:
+    max: 0.10
+  agent_forbidden_intent_count:
+    max: 0
+  agent_lane_change_intent_validity_rate:
+    min: 1.0
+  agent_baseline_disagreement_rate:
+    max: 0.40
+  agent_useful_disagreement_rate:
+    min: 0.30
+  agent_route_alignment_rate:
+    min: 0.70
+
+cases:
+  - ml_right_positive_core
+  - ml_left_positive_core
+  - stop_follow_ambiguity_core
+  - junction_straight_core

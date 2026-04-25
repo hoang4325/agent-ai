@@ -1,0 +1,134 @@
+{
+  "schema_version": "stage7_route_alignment_recommendations_v1",
+  "generated_at_utc": "2026-04-17T17:47:00+00:00",
+  "metric": "agent_route_alignment_rate",
+  "adapter": "stub_v1",
+
+  "final_verdict": {
+    "warning_primarily_caused_by": "stub_limit + contract_mapping_issue",
+    "explanation": "stub_v1 derives target_lane from baseline_context.target_lane, not route_context.preferred_lane. When baseline emits stop/follow → target_lane='current', the metric sees misalignment with preferred_lane='right'. This is an adapter stub design gap, not a shadow contract violation.",
+    "true_warning_cases": [],
+    "stub_artifact_cases": ["ml_right_positive_core (false-positive pass via synthetic frames)", "adjacent_right_unsafe_hold (systematic fail — metric inapplicable to stop-dominated case)", "arbitration_stop_during_prepare_right (partial fail in stop phase — expected)"],
+    "no_contract_violations_in_alignment": true,
+    "no_authority_breach_in_alignment": true
+  },
+
+  "case_verdicts": [
+    {
+      "case_id": "ml_right_positive_core",
+      "alignment_rate_current": 1.0,
+      "is_real_warning": false,
+      "category": "contract_mapping_issue (false positive via synthetic frames)",
+      "verdict": "NOT a real pass. Metric is measuring synthetic preferred_lane='current' agreeing with synthetic target_lane='current'. Fix synthetic frame builder before trusting this value."
+    },
+    {
+      "case_id": "stop_follow_ambiguity_core",
+      "alignment_rate_current": 1.0,
+      "is_real_warning": false,
+      "category": "route_context_issue (preferred_lane='current' eliminates signal)",
+      "verdict": "Trivially correct, zero information. Acceptable as-is. Do not attempt to extract alignment signal from straight-route stop cases."
+    },
+    {
+      "case_id": "arbitration_stop_during_prepare_right",
+      "alignment_rate_expected": "0.30–0.55",
+      "is_real_warning": "SOFT — expected structural pattern",
+      "category": "stub_limit (stop-phase reversal of target_lane)",
+      "verdict": "Breach of 0.65 threshold is expected and structurally explained by the arbitration pattern. NOT a true tactical error. Apply per-case override: threshold = 0.30 for this case."
+    },
+    {
+      "case_id": "adjacent_right_unsafe_hold",
+      "alignment_rate_expected": "0.0–0.10",
+      "is_real_warning": false,
+      "category": "stub_limit (metric inapplicable to stop-dominated case)",
+      "verdict": "Systematic threshold breach on every run. Metric is wrong tool for this case: stop-dominated preferred_lane='right' case will always show near-0 alignment because target_lane is correctly 'current' during stop. Do NOT use alignment gate for this case type."
+    }
+  ],
+
+  "recommendations": [
+    {
+      "id": "R1",
+      "title": "Fix _synthesize_frames_from_frozen() — target_lane must use corridor.preferred_lane",
+      "priority": "HIGH",
+      "category": "contract_mapping_issue fix",
+      "action": "In stage7_agent_shadow_online_smoke.py _synthesize_frames_from_frozen(), change target_lane from hardcoded 'current' to str(corridor.get('preferred_lane') or 'current')",
+      "impact": "Removes false-positive 1.0 alignment on ml_right_positive_core. Makes the metric meaningful for LC cases using synthetic frames.",
+      "affects_gate": "No change to pass/fail — alignment threshold remains. Metric value becomes more realistic.",
+      "code_location": "benchmark/stage7_agent_shadow_online_smoke.py:268–286"
+    },
+    {
+      "id": "R2",
+      "title": "Fix stub adapter — derive target_lane from route_context.preferred_lane when intent is not LC",
+      "priority": "MEDIUM",
+      "category": "stub_limit fix",
+      "action": "In agent_shadow_adapter.py _call_stub(), when baseline intent is keep_lane/follow/stop/slow_down, set target_lane = route_context.get('preferred_lane', 'current') instead of baseline_context.get('target_lane', 'current')",
+      "impact": "Removes stub_limit misalignment on keep_right/keep_left cases during non-LC frames. Makes alignment rate reflect route intent, not just baseline_context.target_lane.",
+      "affects_gate": "YES — alignment rate will increase for keep_right/keep_left cases. May convert soft_guardrail warnings to passes.",
+      "code_location": "benchmark/agent_shadow_adapter.py:309–313",
+      "important_caveat": "Only apply when not in LC phase. During LC intent, target_lane should come from baseline.",
+      "do_not_do": "Do NOT change the validation or contract logic. Only change the stub's lane target derivation."
+    },
+    {
+      "id": "R3",
+      "title": "Add per-case alignment threshold override for stop-dominated cases",
+      "priority": "MEDIUM",
+      "category": "metric design fix",
+      "action": "In stage7_controlled_expansion_gate.json, add per-case threshold override: arbitration_stop_during_prepare_right.agent_route_alignment_rate.min = 0.30. adjacent_right_unsafe_hold = exempt from alignment gate.",
+      "rationale": "alignment_rate metric is not meaningful for stop-dominated cases where preferred_lane != 'current'. Penalizing correct stop behavior as 'misaligned' is a metric design error.",
+      "affects_gate": "YES — prevents false hard failures on arbitration case. Must not change global default threshold.",
+      "do_not_do": "Do NOT raise global threshold to 0.30. The 0.65/0.70 default is correct for LC-dominated cases."
+    },
+    {
+      "id": "R4",
+      "title": "Wire live stage3b_behavior_timeline for ml_right and stop_follow cases",
+      "priority": "HIGH",
+      "category": "input quality fix",
+      "action": "Add missing stage3b_behavior_timeline artifact paths to case spec yamls for ml_right_positive_core and stop_follow_ambiguity_core. Confirm outputs/stage3b/ directories exist.",
+      "impact": "Eliminates synthetic frame fallback. All four warning categories become accurate because metric operates on real baseline frames.",
+      "affects_gate": "INDIRECT — alignment values will change when synthetic frames are replaced with live timeline. Run at least 1 pass after timeline is wired to establish new baseline alignment values."
+    },
+    {
+      "id": "R5",
+      "title": "Do NOT fix: accept stub_v1 zero-disagreement alignment inflation",
+      "priority": "ACCEPT_AS_IS",
+      "category": "stub characteristic — not a bug",
+      "action": "No action. stub_v1 mirrors baseline. Zero disagreement = zero disagreement-driven misalignment. Alignment from stub_v1 = always high when preferred_lane matches target_lane. This is expected behavior.",
+      "rationale": "stub_v1 is a contract pipeline validator, not a real agent. Alignment signal from stub is valuable only as a lower bound / sanity check. When LLM adapter is wired, alignment will produce real variance."
+    }
+  ],
+
+  "next_steps": [
+    {
+      "step": 1,
+      "action": "Apply R1 immediately — fix _synthesize_frames_from_frozen() to use corridor.preferred_lane as target_lane",
+      "why": "Removes false-positive 1.0 alignment measurement that makes the metric misleading for ml_right_positive_core"
+    },
+    {
+      "step": 2,
+      "action": "Apply R3 — add per-case threshold override in expansion gate before running arbitration_stop case",
+      "why": "Without this, arbitration_stop will always breach 0.65 threshold. Breach is expected and not a real contract issue."
+    },
+    {
+      "step": 3,
+      "action": "Apply R4 — wire live stage3b timelines for current 2-case smoke set",
+      "why": "Current alignment values (both 1.0) are synthetic artifacts, not real measurements. Live timeline required for any meaningful alignment analysis."
+    },
+    {
+      "step": 4,
+      "action": "Apply R2 — stub adapter preferred_lane derivation fix (before LLM adapter runs)",
+      "why": "Ensures stub establishes accurate alignment baseline so LLM adapter deviations are detectable"
+    },
+    {
+      "step": 5,
+      "action": "Re-run stage7c_online_shadow_smoke after R1+R4. Compare alignment values. Validate new values against expected ranges in case_breakdown.",
+      "why": "Need to confirm alignment becomes meaningful before declaring alignment gate as a signal quality metric"
+    }
+  ],
+
+  "what_not_to_do": [
+    "Do NOT lower global alignment threshold from 0.65/0.70 to make cases pass",
+    "Do NOT add adjacent_right_unsafe_hold to Stage 7C expansion (status=provisional, alignment gate will always fail)",
+    "Do NOT interpret current 1.0 values as proof alignment is healthy — they are measurement artifacts",
+    "Do NOT discuss assist mode based on alignment analysis",
+    "Do NOT skip R3 before running arbitration_stop in 4-case expansion"
+  ]
+}

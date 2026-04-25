@@ -1,0 +1,123 @@
+{
+  "benchmark_version": "system_benchmark_v1",
+  "generated_at_utc": "2026-04-12T13:53:41+00:00",
+  "set": "golden",
+  "cases": {
+    "ml_right_positive_core": {
+      "status": "pass",
+      "case_status": "ready",
+      "metrics": {
+        "artifact_completeness": 1.0,
+        "behavior_execution_mismatch_rate": 0.27388535031847133,
+        "blocker_binding_accuracy": 1.0,
+        "critical_actor_detected_rate": 1.0,
+        "critical_actor_track_continuity_rate": 0.9868421052631579,
+        "expected_behavior_presence": 20,
+        "front_hazard_signal_present": 1.0,
+        "lane_assignment_consistency": 1.0,
+        "lane_change_success_count": 1,
+        "lane_change_success_rate": 0.5,
+        "mean_lane_change_time_s": 3.6000000536441803,
+        "route_conditioned_override_rate": 0.2597402597402597,
+        "route_context_consistency": 1.0,
+        "route_influence_correctness": 1.0,
+        "route_option_match": 1.0,
+        "stop_success_rate": 0.5,
+        "unsafe_lane_change_intent_count": 0
+      }
+    },
+    "ml_left_positive_core": {
+      "status": "pass",
+      "case_status": "ready",
+      "metrics": {
+        "artifact_completeness": 1.0,
+        "behavior_execution_mismatch_rate": 0.018691588785046728,
+        "blocker_binding_accuracy": 0.8617021276595744,
+        "critical_actor_detected_rate": 1.0,
+        "critical_actor_track_continuity_rate": 0.9891304347826086,
+        "expected_behavior_presence": 34,
+        "front_hazard_signal_present": 1.0,
+        "lane_assignment_consistency": 0.9361702127659575,
+        "lane_change_success_count": 1,
+        "lane_change_success_rate": 1.0,
+        "mean_lane_change_time_s": 2.500000037252903,
+        "route_conditioned_override_rate": 0.723404255319149,
+        "route_context_consistency": 1.0,
+        "route_influence_correctness": 1.0,
+        "route_option_match": 1.0,
+        "stop_success_rate": 0.9692307692307692,
+        "unsafe_lane_change_intent_count": 0
+      }
+    },
+    "stop_follow_ambiguity_core": {
+      "status": "pass",
+      "case_status": "ready",
+      "metrics": {
+        "abort_rate": 0.05405405405405406,
+        "artifact_completeness": 1.0,
+        "behavior_execution_mismatch_rate": 0.06329113924050633,
+        "blocker_binding_accuracy": 0.7008547008547008,
+        "critical_actor_detected_rate": 1.0,
+        "critical_actor_track_continuity_rate": 0.9741379310344828,
+        "expected_behavior_presence": 91,
+        "front_hazard_signal_present": 1.0,
+        "lane_assignment_consistency": 0.8803418803418803,
+        "route_conditioned_override_rate": 0.13675213675213677,
+        "route_context_consistency": 1.0,
+        "route_option_match": 1.0,
+        "stop_overshoot_rate": 0.0,
+        "stop_success_rate": 0.9562841530054644,
+        "unsafe_lane_change_intent_count": 0
+      }
+    },
+    "junction_straight_core": {
+      "status": "pass",
+      "case_status": "ready",
+      "metrics": {
+        "artifact_completeness": 1.0,
+        "behavior_execution_mismatch_rate": 0.0,
+        "expected_behavior_presence": 21,
+        "forbidden_behavior_count": 0,
+        "front_hazard_signal_present": 1.0,
+        "junction_keep_route_presence": 21,
+        "route_conditioned_override_rate": 1.0,
+        "route_option_match": 1.0
+      }
+    },
+    "adjacent_right_unsafe_hold": {
+      "status": "pass",
+      "case_status": "provisional",
+      "metrics": {
+        "abort_rate": 0.05405405405405406,
+        "artifact_completeness": 1.0,
+        "behavior_execution_mismatch_rate": 0.06329113924050633,
+        "expected_behavior_presence": 91,
+        "front_hazard_signal_present": 1.0,
+        "route_conditioned_override_rate": 0.13675213675213677,
+        "route_option_match": 1.0,
+        "stop_overshoot_rate": 0.0,
+        "stop_success_rate": 0.9562841530054644,
+        "unsafe_lane_change_intent_count": 0
+      }
+    },
+    "arbitration_stop_during_prepare_right": {
+      "status": "pass",
+      "case_status": "ready",
+      "metrics": {
+        "abort_rate": 0.05405405405405406,
+        "arbitration_conflict_count": 13,
+        "artifact_completeness": 1.0,
+        "behavior_execution_mismatch_rate": 0.06329113924050633,
+        "blocker_binding_accuracy": 0.7008547008547008,
+        "critical_actor_detected_rate": 1.0,
+        "expected_behavior_presence": 68,
+        "lane_change_success_count": 0,
+        "route_conditioned_override_rate": 0.13675213675213677,
+        "route_context_consistency": 1.0,
+        "route_option_match": 1.0,
+        "stop_success_rate": 0.9562841530054644,
+        "unsafe_lane_change_intent_count": 0
+      }
+    }
+  }
+}

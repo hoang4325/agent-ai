@@ -1,0 +1,74 @@
+{
+  "frame_id": 60039,
+  "sample_name": "sample_000038",
+  "requested_intent_stage2": {
+    "frame_id": 60039,
+    "timestamp": 438.819700807333,
+    "maneuver": "keep_lane",
+    "target_speed_mps": 8.0,
+    "lane_preference": "prefer_left",
+    "constraints": [],
+    "confidence": 0.6,
+    "reasoning_tags": [
+      "cruise"
+    ]
+  },
+  "validated_maneuver_stage3a": {
+    "frame_id": 60039,
+    "requested_intent": {
+      "frame_id": 60039,
+      "timestamp": 438.819700807333,
+      "maneuver": "keep_lane",
+      "target_speed_mps": 8.0,
+      "lane_preference": "prefer_left",
+      "constraints": [],
+      "confidence": 0.6,
+      "reasoning_tags": [
+        "cruise"
+      ]
+    },
+    "valid_maneuvers": [
+      "keep_lane",
+      "follow",
+      "slow_down",
+      "stop"
+    ],
+    "invalid_maneuvers": [
+      {
+        "maneuver": "yield",
+        "reason": "no_vru_yield_condition"
+      },
+      {
+        "maneuver": "lane_change_left",
+        "reason": "no_left_lane"
+      },
+      {
+        "maneuver": "lane_change_right",
+        "reason": "right_lane_front_gap_too_small"
+      }
+    ],
+    "selected_behavior": "stop_before_obstacle",
+    "selected_maneuver": "stop",
+    "lane_change_permission": {
+      "left": false,
+      "right": false,
+      "left_reason": "no_left_lane",
+      "right_reason": "right_lane_front_gap_too_small"
+    },
+    "reasoning_tags": [
+      "current_lane_stop_zone"
+    ]
+  },
+  "route_conditioned_behavior": "stop_before_obstacle",
+  "lane_change_stage": "none",
+  "selected_behavior": "stop_before_obstacle",
+  "target_lane": "current",
+  "override_reason": "stage3a_safety_behavior_preserved",
+  "route_influence": false,
+  "reasoning_tags": [],
+  "behavior_constraints": [
+    "minimal_route_hint_applied",
+    "route_mode_minimal_route_hint"
+  ],
+  "scene_constraints": []
+}

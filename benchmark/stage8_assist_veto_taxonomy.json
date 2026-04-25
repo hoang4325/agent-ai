@@ -1,0 +1,131 @@
+{
+  "schema_version": "stage8_veto_taxonomy_v1",
+  "generated_at_utc": "2026-04-18T03:46:00+00:00",
+  "stage": "8_assist_sandbox",
+  "total_veto_codes": 10,
+  "veto_codes": [
+    {
+      "code": "V-001",
+      "name": "VETO_FORBIDDEN_FIELD",
+      "severity": "hard",
+      "trigger": "BRP contains any of: target_speed_mps, steering, throttle, brake, trajectory, acceleration_mps2, waypoints, control_surface",
+      "handler": "hard_reject",
+      "rollback_type": "ROLLBACK_CONTRACT_BREACH",
+      "audit_level": "RED",
+      "disable_assist": true,
+      "description": "Agent attempted to bind a control-surface or kinematic field. Direct contract violation. Assist mode is suspended."
+    },
+    {
+      "code": "V-002",
+      "name": "VETO_INVALID_INTENT",
+      "severity": "hard",
+      "trigger": "agent_tactical_intent not in allowed_agent_intents whitelist",
+      "handler": "hard_reject",
+      "rollback_type": "ROLLBACK_VETO",
+      "audit_level": "RED",
+      "disable_assist": false,
+      "description": "Agent produced a tactical intent not in the allowed set. BRP rejected. Baseline resumes."
+    },
+    {
+      "code": "V-003",
+      "name": "VETO_NO_LC_PERMISSION",
+      "severity": "hard",
+      "trigger": "Agent recommends any lane-change intent AND Safety Spine reports lane_change_permission=False",
+      "handler": "hard_reject",
+      "rollback_type": "ROLLBACK_VETO",
+      "audit_level": "ORANGE",
+      "disable_assist": false,
+      "description": "Safety Spine has not cleared the lane change. AE overrides agent recommendation."
+    },
+    {
+      "code": "V-004",
+      "name": "VETO_COLLISION_RISK",
+      "severity": "hard",
+      "trigger": "MPC geometry check detects TTC < 2.5s in agent's target lane or forward zone",
+      "handler": "hard_reject",
+      "rollback_type": "ROLLBACK_VETO",
+      "audit_level": "RED",
+      "disable_assist": false,
+      "description": "Predicted collision risk if agent intent is executed. Physical safety override."
+    },
+    {
+      "code": "V-005",
+      "name": "VETO_LOW_CONFIDENCE",
+      "severity": "auto",
+      "trigger": "agent_confidence < 0.50",
+      "handler": "auto_reject_no_ae_review",
+      "rollback_type": "ROLLBACK_VETO",
+      "audit_level": "YELLOW",
+      "disable_assist": false,
+      "description": "Agent confidence too low for binding advisory. Auto-vetoed before AE review. BRP logged as advisory-only."
+    },
+    {
+      "code": "V-006",
+      "name": "VETO_TEMPORAL_CONFLICT",
+      "severity": "soft",
+      "trigger": "BRP intent contradicts active_maneuver in temporal memory window (e.g., cancel committed LC mid-execution without abort signal)",
+      "handler": "soft_reject_escalate_mpc",
+      "rollback_type": "ROLLBACK_VETO",
+      "audit_level": "ORANGE",
+      "disable_assist": false,
+      "description": "Agent is attempting to thrash between intents while a maneuver is already committed. MPC overrides and continues the committed maneuver."
+    },
+    {
+      "code": "V-007",
+      "name": "VETO_STOP_OVERRIDE_ATTEMPT",
+      "severity": "hard",
+      "trigger": "Agent recommends any non-stop intent AND Stop Spine is binding (binding_status=active)",
+      "handler": "hard_reject",
+      "rollback_type": "ROLLBACK_VETO",
+      "audit_level": "RED",
+      "disable_assist": false,
+      "description": "Stop target is binding. Agent is not permitted to override stop authority. Hard veto."
+    },
+    {
+      "code": "V-008",
+      "name": "VETO_STALE_BRP",
+      "severity": "silent",
+      "trigger": "BRP frame_id < current_frame_id (packet arrived late)",
+      "handler": "silent_discard",
+      "rollback_type": null,
+      "audit_level": "GREY",
+      "disable_assist": false,
+      "description": "BRP arrived for a frame that has already passed. Discarded silently. No disruption to current frame."
+    },
+    {
+      "code": "V-009",
+      "name": "VETO_AUTHORITY_SCOPE_EXCEEDED",
+      "severity": "hard",
+      "trigger": "BRP.assist_scope != 'tactical_only' OR BRP attempts to modify MPC parameters directly",
+      "handler": "hard_reject",
+      "rollback_type": "ROLLBACK_CONTRACT_BREACH",
+      "audit_level": "RED",
+      "disable_assist": true,
+      "description": "Agent attempted to exceed tactical binding scope. This is a contract breach. Assist mode suspended immediately."
+    },
+    {
+      "code": "V-010",
+      "name": "VETO_RATE_LIMIT",
+      "severity": "silent",
+      "trigger": "More than 1 BRP submitted for the same frame_id",
+      "handler": "silent_discard_extras",
+      "rollback_type": null,
+      "audit_level": "GREY",
+      "disable_assist": false,
+      "description": "Only 1 BRP per frame is permitted. Extra packets are silently discarded. First valid BRP wins."
+    }
+  ],
+  "veto_escalation_policy": {
+    "consecutive_hard_veto_threshold": 3,
+    "consequence": "assist_mode_disabled_for_10_frames",
+    "alert_ops": true,
+    "resume_after_frames": 10
+  },
+  "veto_statistics_tracked": [
+    "veto_count_by_code",
+    "veto_rate_per_case",
+    "consecutive_veto_streak",
+    "approved_count",
+    "approval_rate"
+  ]
+}

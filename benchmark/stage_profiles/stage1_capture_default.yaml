@@ -1,0 +1,8 @@
+name: stage1_capture_default
+runner_script: scripts/run_carla_dump.py
+args:
+  --output-root: "{stage1_capture_output_root}"
+  --scenario-manifest: "{scenario_manifest}"
+  --fixed-delta-seconds: "0.10"
+  --num-samples: "120"
+  --warmup-ticks: "6"

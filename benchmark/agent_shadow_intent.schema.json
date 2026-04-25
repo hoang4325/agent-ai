@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "agent_shadow_intent.schema.json",
+  "title": "AgentShadowIntent",
+  "description": "Per-frame agent tactical shadow intent. Shadow mode ONLY — agent has NO control authority. Baseline tactical + MPC remain the sole authority.",
+  "type": "object",
+  "required": [
+    "case_id",
+    "frame_id",
+    "shadow_mode",
+    "model_id",
+    "tactical_intent",
+    "target_lane",
+    "reason_tags",
+    "route_context_summary",
+    "confidence",
+    "timeout_flag",
+    "validation_status",
+    "fallback_to_baseline",
+    "provenance",
+    "baseline_intent",
+    "agrees_with_baseline"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "Benchmark case identifier"
+    },
+    "frame_id": {
+      "type": "integer",
+      "description": "Per-frame tick identifier matching the baseline timeline"
+    },
+    "shadow_mode": {
+      "type": "boolean",
+      "const": true,
+      "description": "MUST always be true. Marks this record as non-authoritative shadow output."
+    },
+    "model_id": {
+      "type": "string",
+      "description": "Model or provider identifier (e.g. stub_v1, gemini-2.5-pro)"
+    },
+    "tactical_intent": {
+      "type": "string",
+      "enum": [
+        "keep_lane",
+        "follow",
+        "slow_down",
+        "stop",
+        "yield",
+        "prepare_lane_change_left",
+        "prepare_lane_change_right",
+        "commit_lane_change_left",
+        "commit_lane_change_right",
+        "keep_route_through_junction"
+      ],
+      "description": "Agent shadow tactical intent — from canonical allowed set ONLY"
+    },
+    "target_lane": {
+      "type": "string",
+      "enum": ["current", "left", "right"],
+      "description": "Target lane for lane-change intents. 'current' for non-LC intents."
+    },
+    "reason_tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Structured reason codes explaining the intent choice"
+    },
+    "route_context_summary": {
+      "type": "object",
+      "description": "Agent-consumed route context summary",
+      "properties": {
+        "route_option": { "type": ["string", "null"] },
+        "preferred_lane": { "type": ["string", "null"] },
+        "route_mode": { "type": ["string", "null"] },
+        "route_conflict_flags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "stop_context_summary": {
+      "type": ["object", "null"],
+      "description": "Agent-consumed stop context summary (optional)",
+      "properties": {
+        "stop_target_binding": { "type": ["string", "null"] },
+        "distance_to_stop_m": { "type": ["number", "null"] }
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Agent confidence in its tactical intent [0.0 – 1.0]. Set to 0.0 when fallback_to_baseline=True."
+    },
+    "timeout_flag": {
+      "type": "boolean",
+      "description": "True if agent did not respond within the configured timeout budget"
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": ["valid", "invalid_intent", "forbidden_field", "malformed", "fallback"],
+      "description": "Result of contract validation for this agent response"
+    },
+    "fallback_to_baseline": {
+      "type": "boolean",
+      "description": "True when agent timed-out, produced invalid output, or requested a forbidden behavior. Baseline authority is unchanged regardless."
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["model_id", "provider", "call_latency_ms"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "provider": { "type": "string", "enum": ["stub", "api", "local"] },
+        "call_latency_ms": { "type": "number" },
+        "fallback_reason": { "type": ["string", "null"] },
+        "raw_intent_received": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "baseline_intent": {
+      "type": "string",
+      "description": "The baseline tactical behavior at this frame (from Stage 3B). Copied for comparison."
+    },
+    "agrees_with_baseline": {
+      "type": "boolean",
+      "description": "True if agent tactical_intent semantically matches the baseline_intent"
+    },
+    "disagreement_useful": {
+      "type": ["boolean", "null"],
+      "description": "True if this disagreement is structurally valid and on a clean contract boundary (null when no disagreement)"
+    }
+  },
+  "not": {
+    "required": ["target_speed_mps"],
+    "description": "FORBIDDEN: agent output must NOT contain direct speed control fields"
+  }
+}

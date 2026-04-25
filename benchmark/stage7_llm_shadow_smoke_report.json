@@ -1,0 +1,483 @@
+{
+  "schema_version": "stage7_llm_shadow_smoke_report_v1",
+  "generated_at_utc": "2026-04-18T03:28:32+00:00",
+  "stage": "7_llm_smoke",
+  "mode": "llm_api_shadow_smoke",
+  "adapter_mode": "api",
+  "api_key_configured": true,
+  "agent_authority": "shadow_only",
+  "no_control_authority": true,
+  "no_assist_mode": true,
+  "no_takeover": true,
+  "subset_cases": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core"
+  ],
+  "overall_status": "pass",
+  "run_output_dir": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916",
+  "adapter": {
+    "mode": "api",
+    "model_id": "api_gemini",
+    "timeout_s": 10.0,
+    "api_key_env_var": "AGENT_API_KEY",
+    "api_key_present": true
+  },
+  "contract_audit_summary": {
+    "stage7a_ready": "no_ready_cases"
+  },
+  "cases": [
+    {
+      "case_id": "ml_right_positive_core",
+      "status": "pass",
+      "timeline_source": "stage3b_behavior_timeline",
+      "frames_processed": 60,
+      "hard_failures": [],
+      "soft_warnings": [],
+      "metrics": {
+        "agent_contract_validity_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 0.95
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_timeout_rate": {
+          "value": 0.0,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0.05
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_fallback_to_baseline_rate": {
+          "value": 0.0,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0.1
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_baseline_disagreement_rate": {
+          "value": 0.03333333333333333,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0.4
+          },
+          "maturity": "soft_guardrail"
+        },
+        "agent_useful_disagreement_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 0.2
+          },
+          "maturity": "soft_guardrail"
+        },
+        "agent_route_alignment_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 0.65
+          },
+          "maturity": "soft_guardrail"
+        },
+        "agent_stop_context_correctness_rate": {
+          "value": null,
+          "threshold_passed": null,
+          "threshold": null,
+          "maturity": "diagnostic_only"
+        },
+        "agent_lane_change_intent_validity_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 1.0
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_forbidden_intent_count": {
+          "value": 0,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_shadow_artifact_completeness": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 1.0
+          },
+          "maturity": "hard_gate_ready"
+        }
+      },
+      "summary": {
+        "case_id": "ml_right_positive_core",
+        "schema_version": "agent_shadow_summary_v1",
+        "generated_at_utc": "2026-04-18T03:23:55+00:00",
+        "total_frames": 60,
+        "valid_frames": 60,
+        "fallback_frames": 0,
+        "timeout_frames": 0,
+        "agreement_frames": 58,
+        "disagreement_frames": 2,
+        "agent_contract_validity_rate": 1.0,
+        "agent_timeout_rate": 0.0,
+        "agent_fallback_to_baseline_rate": 0.0,
+        "agent_baseline_disagreement_rate": 0.03333333333333333,
+        "intent_counts": {
+          "commit_lane_change_right": 20,
+          "keep_lane": 40
+        },
+        "model_id": "api_gemini",
+        "mean_call_latency_ms": 539.65,
+        "max_call_latency_ms": 890.0
+      },
+      "artifacts": {
+        "agent_shadow_intent": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\ml_right_positive_core\\stage7_llm\\agent_shadow_intent.jsonl",
+        "agent_shadow_summary": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\ml_right_positive_core\\stage7_llm\\agent_shadow_summary.json",
+        "agent_baseline_comparison": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\ml_right_positive_core\\stage7_llm\\agent_baseline_comparison.json",
+        "agent_disagreement_events": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\ml_right_positive_core\\stage7_llm\\agent_disagreement_events.jsonl",
+        "agent_contract_validation": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\ml_right_positive_core\\stage7_llm\\agent_contract_validation.json",
+        "agent_timeout_fallback_events": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\ml_right_positive_core\\stage7_llm\\agent_timeout_fallback_events.jsonl"
+      },
+      "contract_validation": {
+        "schema_version": "agent_contract_validation_v1",
+        "case_id": "ml_right_positive_core",
+        "generated_at_utc": "2026-04-18T03:23:55+00:00",
+        "stage": "7_llm_smoke",
+        "mode": "llm_api_shadow_smoke",
+        "shadow_mode_enforced": true,
+        "control_authority": "baseline_tactical_and_mpc_only",
+        "total_frames": 60,
+        "validation_status_counts": {
+          "valid": 60
+        },
+        "forbidden_fields_found": [],
+        "lc_permission_violations": 0,
+        "contract_valid": true,
+        "shadow_mode_violations": 0,
+        "binding_rules_checked": [
+          "tactical_intent in ALLOWED_AGENT_INTENTS",
+          "target_speed_mps NOT in output",
+          "shadow_mode == True",
+          "fallback_to_baseline == True when timeout or invalid",
+          "LC not requested when lane_change_permission == False"
+        ]
+      },
+      "disagree_sample": [
+        {
+          "case_id": "ml_right_positive_core",
+          "frame_id": 726289,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle_not_required",
+            "risk_level_none",
+            "lane_change_permission_right_true"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 500.0
+        },
+        {
+          "case_id": "ml_right_positive_core",
+          "frame_id": 726290,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle_not_required",
+            "lane_change_permission_right",
+            "preferred_lane_right"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 547.0
+        }
+      ]
+    },
+    {
+      "case_id": "stop_follow_ambiguity_core",
+      "status": "pass",
+      "timeline_source": "stage3b_behavior_timeline",
+      "frames_processed": 60,
+      "hard_failures": [],
+      "soft_warnings": [],
+      "metrics": {
+        "agent_contract_validity_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 0.95
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_timeout_rate": {
+          "value": 0.0,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0.05
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_fallback_to_baseline_rate": {
+          "value": 0.0,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0.1
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_baseline_disagreement_rate": {
+          "value": 0.26666666666666666,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0.4
+          },
+          "maturity": "soft_guardrail"
+        },
+        "agent_useful_disagreement_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 0.2
+          },
+          "maturity": "soft_guardrail"
+        },
+        "agent_route_alignment_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 0.65
+          },
+          "maturity": "soft_guardrail"
+        },
+        "agent_stop_context_correctness_rate": {
+          "value": 0.0,
+          "threshold_passed": null,
+          "threshold": null,
+          "maturity": "diagnostic_only"
+        },
+        "agent_lane_change_intent_validity_rate": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 1.0
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_forbidden_intent_count": {
+          "value": 0,
+          "threshold_passed": true,
+          "threshold": {
+            "max": 0
+          },
+          "maturity": "hard_gate_ready"
+        },
+        "agent_shadow_artifact_completeness": {
+          "value": 1.0,
+          "threshold_passed": true,
+          "threshold": {
+            "min": 1.0
+          },
+          "maturity": "hard_gate_ready"
+        }
+      },
+      "summary": {
+        "case_id": "stop_follow_ambiguity_core",
+        "schema_version": "agent_shadow_summary_v1",
+        "generated_at_utc": "2026-04-18T03:28:32+00:00",
+        "total_frames": 60,
+        "valid_frames": 60,
+        "fallback_frames": 0,
+        "timeout_frames": 0,
+        "agreement_frames": 44,
+        "disagreement_frames": 16,
+        "agent_contract_validity_rate": 1.0,
+        "agent_timeout_rate": 0.0,
+        "agent_fallback_to_baseline_rate": 0.0,
+        "agent_baseline_disagreement_rate": 0.26666666666666666,
+        "intent_counts": {
+          "keep_lane": 22,
+          "commit_lane_change_right": 7,
+          "prepare_lane_change_right": 5,
+          "slow_down": 4,
+          "follow": 22
+        },
+        "model_id": "api_gemini",
+        "mean_call_latency_ms": 512.7666666666667,
+        "max_call_latency_ms": 828.0
+      },
+      "artifacts": {
+        "agent_shadow_intent": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\stop_follow_ambiguity_core\\stage7_llm\\agent_shadow_intent.jsonl",
+        "agent_shadow_summary": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\stop_follow_ambiguity_core\\stage7_llm\\agent_shadow_summary.json",
+        "agent_baseline_comparison": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\stop_follow_ambiguity_core\\stage7_llm\\agent_baseline_comparison.json",
+        "agent_disagreement_events": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\stop_follow_ambiguity_core\\stage7_llm\\agent_disagreement_events.jsonl",
+        "agent_contract_validation": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\stop_follow_ambiguity_core\\stage7_llm\\agent_contract_validation.json",
+        "agent_timeout_fallback_events": "D:\\Agent-AI\\benchmark\\reports\\stage7_llm_shadow_smoke_20260418_101916\\stop_follow_ambiguity_core\\stage7_llm\\agent_timeout_fallback_events.jsonl"
+      },
+      "contract_validation": {
+        "schema_version": "agent_contract_validation_v1",
+        "case_id": "stop_follow_ambiguity_core",
+        "generated_at_utc": "2026-04-18T03:28:32+00:00",
+        "stage": "7_llm_smoke",
+        "mode": "llm_api_shadow_smoke",
+        "shadow_mode_enforced": true,
+        "control_authority": "baseline_tactical_and_mpc_only",
+        "total_frames": 60,
+        "validation_status_counts": {
+          "valid": 60
+        },
+        "forbidden_fields_found": [],
+        "lc_permission_violations": 0,
+        "contract_valid": true,
+        "shadow_mode_violations": 0,
+        "binding_rules_checked": [
+          "tactical_intent in ALLOWED_AGENT_INTENTS",
+          "target_speed_mps NOT in output",
+          "shadow_mode == True",
+          "fallback_to_baseline == True when timeout or invalid",
+          "LC not requested when lane_change_permission == False"
+        ]
+      },
+      "disagree_sample": [
+        {
+          "case_id": "stop_follow_ambiguity_core",
+          "frame_id": 60021,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle",
+            "keep_right",
+            "no_risk"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 437.0
+        },
+        {
+          "case_id": "stop_follow_ambiguity_core",
+          "frame_id": 60022,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle",
+            "keep_right",
+            "no_risk"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 421.0
+        },
+        {
+          "case_id": "stop_follow_ambiguity_core",
+          "frame_id": 60023,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle",
+            "keep_right",
+            "no_risk"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 484.0
+        },
+        {
+          "case_id": "stop_follow_ambiguity_core",
+          "frame_id": 60024,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle",
+            "keep_right",
+            "no_lane_change_permission"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 484.0
+        },
+        {
+          "case_id": "stop_follow_ambiguity_core",
+          "frame_id": 60025,
+          "baseline_intent": "stop_before_obstacle",
+          "agent_intent": "keep_lane",
+          "agent_confidence": 1.0,
+          "disagreement_useful": true,
+          "reason_tags": [
+            "stop_before_obstacle",
+            "keep_right",
+            "no_lane_change_permission"
+          ],
+          "fallback_to_baseline": false,
+          "validation_status": "valid",
+          "route_context_summary": {
+            "route_option": "keep_right",
+            "preferred_lane": "right",
+            "route_mode": "minimal_route_hint",
+            "route_conflict_flags": []
+          },
+          "call_latency_ms": 532.0
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Stage 7 LLM/API adapter shadow smoke \u2014 shadow only.",
+    "Adapter mode: api.",
+    "api_simulated: full pipeline test with intelligent local LLM shim (no production key required).",
+    "api: real Gemini call via urllib; missing AGENT_API_KEY \u2192 all frames timeout-fallback.",
+    "Baseline tactical + MPC are the sole authority at all times.",
+    "No control authority, no assist mode, no takeover is permitted."
+  ]
+}

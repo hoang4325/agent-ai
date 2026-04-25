@@ -1,0 +1,35 @@
+{
+  "schema_version": "system_benchmark_semantics_v1_1",
+  "scenario_id": "fr_arbitration_missing_cancel",
+  "route_binding": {
+    "route_mode": "minimal_route_hint",
+    "route_option": "keep_right",
+    "preferred_lane": "right",
+    "route_priority": "high",
+    "source_of_route_binding": "cli_route_hint",
+    "route_confidence": 0.13675213675213677,
+    "route_conflict_flags": [],
+    "route_conditioned_override_count": 16,
+    "route_conditioned_override_rate": 0.13675213675213677,
+    "route_influenced_frames": 16,
+    "route_overrides": {
+      "count": 16,
+      "samples": []
+    }
+  },
+  "session_binding": {
+    "session_binding_source": "existing_artifact_bundle",
+    "mode": "failure_replay_artifact_audit",
+    "stage1_session_dir": "outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2",
+    "stage2_dir": "outputs/stage2/st2_s3a_ml_long_v2",
+    "stage3a_dir": "outputs/stage3/st3_s3a_ml_long_v2",
+    "stage3b_dir": "outputs/stage3b/st3b_s3a_ml_long_v2",
+    "stage3c_dir": "outputs/stage3c/st3c_s3a_ml_long_v2_mp4_topdown",
+    "stage4_dir": null
+  },
+  "expected_binding": {
+    "expected_route_option": "keep_right",
+    "expected_preferred_lane": "right"
+  },
+  "notes": []
+}

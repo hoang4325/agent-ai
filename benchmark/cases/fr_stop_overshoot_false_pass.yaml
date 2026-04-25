@@ -1,0 +1,116 @@
+scenario_id: fr_stop_overshoot_false_pass
+status: ready
+family: failure_replay
+mode: failure_replay_artifact_audit
+source:
+  type: existing_artifact_bundle
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long2_manifest.json
+  stage1_session_dir: outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2
+  stage2_dir: outputs/stage2/st2_s3a_ml_long_v2
+  stage3a_dir: outputs/stage3/st3_s3a_ml_long_v2
+  stage3b_dir: outputs/stage3b/st3b_s3a_ml_long_v2
+  stage3c_dir: outputs/stage3c/st3c_s3a_ml_long_v2_mp4_topdown
+owner: agentai_system_benchmark
+determinism_level: medium
+route_option: keep_right
+critical_actors:
+- blocker_ahead_current_lane
+expected_behaviors:
+- stop_before_obstacle
+forbidden_behaviors:
+- commit_lane_change_left
+expected_execution:
+  stop_successes_min: 100
+  stop_overshoots_max: 0
+pending_ground_truth_binding: false
+stage5a_failure_class: stop_overshoot_false_pass
+stage5a_failure_description: Catches regression where a stop overshoot event is incorrectly classified as a success, inflating
+  stop_success_rate.
+mandatory_artifacts:
+- ground_truth_actor_roles
+- stage1_session_summary
+- stage2_evaluation_summary
+- stage2_world_state_sample
+- stage2_tracked_objects_sample
+- stage3a_evaluation_summary
+- stage3a_lane_world_state_sample
+- stage3b_evaluation_summary
+- stage3b_behavior_timeline
+- stage3b_behavior_request_sample
+- stage3c_execution_summary
+- stage3c_execution_timeline
+- stage3c_lane_change_events
+primary_metrics:
+- artifact_completeness
+- stop_success_rate
+- stop_overshoot_rate
+secondary_metrics:
+- behavior_execution_mismatch_rate
+metric_thresholds:
+  stop_success_rate:
+    min: 0.9
+  stop_overshoot_rate:
+    max: 0.0
+notes: 'Stage 5A failure replay: stop overshoot false pass.
+
+  Monitors for the specific regression where overshoot events are
+
+  counted as success, masking real stop control failures.
+
+  '
+benchmark_mode: replay_regression
+supported_benchmark_modes:
+- replay_regression
+- scenario_replay
+execution_profile: stage5a_failure_replay_fr_stop_overshoot_false_pass
+scenario_recipe:
+  source_type: scenario_manifest
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long2_manifest.json
+  attach_strategy: manifest_ego_actor
+  stage1_session_dir: outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2
+route_profile:
+  route_option: keep_right
+  preferred_lane: right
+  route_priority: normal
+stage_profiles:
+  stage1: stage1_session_attach_default
+  stage2: stage2_replay_default
+  stage3a: stage3a_replay_default
+  stage3b: stage3b_replay_default
+  stage3c: stage3c_closed_loop_default
+expected_stage_chain:
+- spawn
+- stage1
+- stage2
+- stage3a
+- stage3b
+- stage3c
+- evaluate
+trace_requirements:
+  require_current_run_artifacts: true
+  required_steps:
+  - spawn
+  - stage1
+  - stage2
+  - stage3a
+  - stage3b
+  - stage3c
+  - evaluate
+artifacts:
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long2_manifest.json
+  ground_truth_actor_roles: benchmark/reference_artifacts/fr_stop_overshoot_false_pass/ground_truth_actor_roles.json
+  critical_actor_binding: benchmark/reference_artifacts/fr_stop_overshoot_false_pass/critical_actor_binding.jsonl
+  behavior_arbitration_events: benchmark/reference_artifacts/fr_stop_overshoot_false_pass/behavior_arbitration_events.jsonl
+  route_session_binding: benchmark/reference_artifacts/fr_stop_overshoot_false_pass/route_session_binding.json
+  stage1_session_summary: outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2/session_summary.json
+  stage2_evaluation_summary: outputs/stage2/st2_s3a_ml_long_v2/evaluation_summary.json
+  stage2_world_state_sample: outputs/stage2/st2_s3a_ml_long_v2/frames/sample_000029/world_state.json
+  stage2_tracked_objects_sample: outputs/stage2/st2_s3a_ml_long_v2/frames/sample_000029/tracked_objects.json
+  stage3a_evaluation_summary: outputs/stage3/st3_s3a_ml_long_v2/evaluation_summary.json
+  stage3a_lane_world_state_sample: outputs/stage3/st3_s3a_ml_long_v2/frames/sample_000029/lane_aware_world_state.json
+  stage3b_evaluation_summary: outputs/stage3b/st3b_s3a_ml_long_v2/evaluation_summary.json
+  stage3b_behavior_timeline: outputs/stage3b/st3b_s3a_ml_long_v2/behavior_timeline_v2.jsonl
+  stage3b_behavior_request_sample: outputs/stage3b/st3b_s3a_ml_long_v2/frames/sample_000029/behavior_request_v2.json
+  stage3c_execution_summary: outputs/stage3c/st3c_s3a_ml_long_v2_mp4_topdown/execution_summary.json
+  stage3c_execution_timeline: outputs/stage3c/st3c_s3a_ml_long_v2_mp4_topdown/execution_timeline.jsonl
+  stage3c_lane_change_events: outputs/stage3c/st3c_s3a_ml_long_v2_mp4_topdown/lane_change_events.jsonl

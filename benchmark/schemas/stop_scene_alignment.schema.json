@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/stop_scene_alignment.schema.json",
+  "title": "Stage6 Stop Scene Alignment Contract",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "alignment_source",
+    "alignment_window_id",
+    "expected_ego_pose",
+    "runtime_ego_pose",
+    "expected_blocker_pose",
+    "runtime_blocker_pose",
+    "expected_blocker_gap_m",
+    "runtime_blocker_gap_m",
+    "alignment_error_m",
+    "alignment_consistent",
+    "alignment_ready",
+    "binding_status",
+    "provenance",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "stage6.stop_scene_alignment.v1" },
+    "alignment_source": { "type": "string" },
+    "alignment_window_id": { "type": ["string", "null"] },
+    "sample_name": { "type": ["string", "null"] },
+    "request_frame": { "type": ["integer", "null"] },
+    "gap_tolerance_m": { "type": ["number", "null"] },
+    "expected_blocker_gap_m": { "type": ["number", "null"] },
+    "runtime_blocker_gap_m": { "type": ["number", "null"] },
+    "alignment_error_m": { "type": ["number", "null"] },
+    "alignment_consistent": { "type": "boolean" },
+    "alignment_ready": { "type": "boolean" },
+    "binding_status": { "type": "string", "enum": ["exact", "heuristic", "approximate", "missing"] },
+    "expected_ego_pose": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/pose" }
+      ]
+    },
+    "runtime_ego_pose": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/pose" }
+      ]
+    },
+    "expected_blocker_pose": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/pose" }
+      ]
+    },
+    "runtime_blocker_pose": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/pose" }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_stage", "source_artifact", "derivation_mode"],
+      "properties": {
+        "source_stage": { "type": "string" },
+        "source_artifact": { "type": "string" },
+        "derivation_mode": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "pose": {
+      "type": "object",
+      "required": ["location", "rotation"],
+      "properties": {
+        "location": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "z": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "rotation": {
+          "type": "object",
+          "required": ["roll", "pitch", "yaw"],
+          "properties": {
+            "roll": { "type": "number" },
+            "pitch": { "type": "number" },
+            "yaw": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

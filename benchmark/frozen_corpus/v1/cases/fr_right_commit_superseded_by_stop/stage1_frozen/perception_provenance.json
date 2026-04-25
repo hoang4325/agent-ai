@@ -1,0 +1,96 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.stage1_provenance",
+  "materialized_at": "2026-04-13T14:50:31+00:00",
+  "source_session_dir": "outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2",
+  "stage1_run_id": "lw_s3a_ml_long_v2",
+  "session_summary": {
+    "session_root": "/workspace/Agent-AI/outputs/live_watch_compare_multilane/lw_s3a_ml_long_v2",
+    "mode": "watch",
+    "observed_samples": 120,
+    "history_skipped_samples": 3,
+    "inference_runs": 117,
+    "compare_zero_radar": false
+  },
+  "session_manifest_args": {
+    "host": "127.0.0.1",
+    "port": 2000,
+    "tm_port": 8000,
+    "repo_root": "/workspace/Bevfusion-Z",
+    "config": "/workspace/Bevfusion-Z/configs/nuscenes/det/transfusion/secfpn/camera+lidar+radar/swint_v0p075/sefuser_radarbev.yaml",
+    "checkpoint": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "output_root": "/workspace/Agent-AI/outputs/live_watch_compare_multilane",
+    "samples_root": "/workspace/Agent-AI/outputs/s3a_ml_long_v2",
+    "session_name": "lw_s3a_ml_long_v2",
+    "num_samples": 120,
+    "warmup_ticks": 5,
+    "fixed_delta_seconds": 0.05,
+    "image_width": 1600,
+    "image_height": 900,
+    "camera_fov": 70.0,
+    "vehicle_filter": "vehicle.lincoln.mkz_2020",
+    "spawn_point_index": 0,
+    "town": null,
+    "device": "cuda",
+    "score_threshold": 0.2,
+    "timeout_seconds": 3.0,
+    "poll_interval_seconds": 0.5,
+    "idle_timeout_seconds": 30.0,
+    "adapter_lidar_sweeps_test": 3,
+    "adapter_radar_sweeps": 3,
+    "adapter_lidar_max_points": 120000,
+    "adapter_radar_max_points": 1200,
+    "radar_bridge": "minimal",
+    "radar_ablation": "zero_bev",
+    "compare_zero_radar": false,
+    "autopilot": true
+  },
+  "model_runtime": {
+    "checkpoint_path": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "radar_bridge": "minimal",
+    "radar_ablation": "zero_bev",
+    "radar_bridge_details": {
+      "bridge_strategy": "minimal_6d_runtime_patch",
+      "kept_input_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff"
+      ],
+      "kept_checkpoint_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff",
+        "f_center_x",
+        "f_center_y"
+      ],
+      "kept_checkpoint_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        45,
+        46
+      ],
+      "original_shape": [
+        128,
+        47
+      ],
+      "patched_shape": [
+        128,
+        8
+      ]
+    }
+  },
+  "sample_payload_scope": "meta_only",
+  "notes": [
+    "live_summary_paths_rewritten_relative_to_session_root",
+    "raw_sensor_blobs_not_copied_into_frozen_bundle"
+  ]
+}

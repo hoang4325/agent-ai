@@ -1,0 +1,162 @@
+{
+  "schema_version": "stage7_controlled_expansion_design_v2",
+  "generated_at_utc": "2026-04-17T17:35:32+00:00",
+  "stage": "7C",
+  "mode": "online_shadow_smoke",
+  "agent_authority": "shadow_only",
+  "no_control_authority": true,
+  "no_assist_mode": true,
+  "no_takeover": true,
+  "verdict": "pass",
+
+  "precondition": {
+    "description": "This design expands Stage 7C from the original 2-case smoke into a 4-case controlled expansion.",
+    "required_prior_status": "stage7_agent_shadow_online_smoke_result.overall_status = pass",
+    "current_4_case_subset": [
+      "ml_right_positive_core",
+      "stop_follow_ambiguity_core",
+      "ml_left_positive_core",
+      "arbitration_stop_during_prepare_right"
+    ]
+  },
+
+  "objective": {
+    "summary": "Expand Stage 7C shadow subset from 2 cases to 4 cases. No gate relaxing. No authority change. No assist mode.",
+    "expansion_size": "2 additional cases only",
+    "authority_after_expansion": "shadow_only — baseline tactical + MPC remain sole authority",
+    "max_frames_per_new_case": 60,
+    "adapter": "stub",
+    "reason_for_controlled_expansion": "The 4-case controlled expansion passed with all hard gates intact. It probes two orthogonal behavioral dimensions: mirrored lane-change direction and stop-vs-prepare arbitration."
+  },
+
+  "case_selection": {
+    "new_cases": [
+      {
+        "case_id": "ml_left_positive_core",
+        "family": "multi_lane_positive",
+        "status": "ready",
+        "determinism_level": "high",
+        "why_selected": [
+          "Orthogonal to ml_right_positive_core — same LC contract but mirrored direction (left).",
+          "Exposes whether agent respects route_option=keep_left and preferred_lane=left in shadow output.",
+          "stage3b_behavior_timeline is present in case spec (no synthetic fallback needed).",
+          "High determinism_level — low risk of timeline instability.",
+          "Existing Stage 5A + 5B gate confirming this case is clean on baseline contracts.",
+          "LC permission gate tested on both directions across the 4-case ring."
+        ],
+        "shadow_interest": "Does agent correctly shadow prepare_lane_change_left / commit_lane_change_left under route constraint? Disagreement logging should be rich here.",
+        "risk": "LOW — mirror of already-passing ml_right case."
+      },
+      {
+        "case_id": "arbitration_stop_during_prepare_right",
+        "family": "arbitration",
+        "status": "ready",
+        "determinism_level": "medium",
+        "why_selected": [
+          "Covers a third behavioral dimension: arbitration override (stop supersedes in-flight LC prepare).",
+          "Agent shadow must NOT request LC when baseline drops it due to emergency_override arbitration.",
+          "Tests agent_lane_change_intent_validity_rate under a dynamic arbitration scenario, not just static frames.",
+          "stage3b_behavior_timeline is present in case spec.",
+          "Expected baseline behaviors include both prepare_lane_change_right and stop_before_obstacle — two distinct intent regimes for agent to shadow.",
+          "The 'stop supersedes prepare' pattern is the highest-risk shadow disagreement surface in the existing corpus."
+        ],
+        "shadow_interest": "Will agent correctly mirror the arbitration-triggered stop, or will it continue requesting LC after baseline has cancelled? Disagreement events here are the most analytically valuable in the expansion.",
+        "risk": "MEDIUM — determinism_level=medium. Need to confirm stage3b_behavior_timeline is stable enough for shadow. If it is, agent contract enforcement on this case is the most important thing to verify before any future expansion."
+      }
+    ],
+    "cases_explicitly_excluded": [
+      {
+        "case_id": "junction_straight_core",
+        "reason": "Topology mismatch — junction_straight is structurally different from the LC/stop regime. Adding it now dilutes the focused expansion signal. Add in the next wave if 4-case ring is stable."
+      },
+      {
+        "case_id": "fr_lc_commit_no_permission",
+        "reason": "Failure replay case. Family=failure_replay. Running shadow on a failure replay case is premature — the baseline intentionally produces a forbidden behavior pattern. Shadow on this case requires separate design to avoid masking agent contract violations as expected failures."
+      },
+      {
+        "case_id": "fr_right_commit_superseded_by_stop",
+        "reason": "Same as above — failure replay, separate wave."
+      },
+      {
+        "case_id": "adjacent_left_unsafe_hold",
+        "reason": "status=planned/corpus_pending. Not ready for Stage 7C expansion."
+      },
+      {
+        "case_id": "late_emerging_obstacle",
+        "reason": "status=planned/corpus_pending. Not ready."
+      }
+    ],
+    "resulting_4_case_subset": [
+      "ml_right_positive_core",
+      "stop_follow_ambiguity_core",
+      "ml_left_positive_core",
+      "arbitration_stop_during_prepare_right"
+    ]
+  },
+
+  "invariants_unchanged": [
+    "shadow_mode = True in all agent outputs",
+    "agent has NO control / trajectory / MPC authority",
+    "baseline tactical + MPC remain sole authority",
+    "no assist mode, no takeover, no authority hand-off",
+    "agent timeout → fallback_to_baseline = True",
+    "LC not requested when lane_change_permission = False"
+  ],
+
+  "warnings_acceptable": [
+    {
+      "warning": "stage3b_behavior_timeline missing",
+      "acceptable": true,
+      "condition": "For the actual controlled expansion run, the case specs must resolve to existing stage3b_behavior_timeline artifacts."
+    },
+    {
+      "warning": "stage6_shadow_readiness != 'ready'",
+      "acceptable": true,
+      "condition": "Stage 7C runs on shadow tactical layer, not MPC shadow path. Stage 6 readiness is not a blocker for Stage 7C. Flag is informational only."
+    },
+    {
+      "warning": "stage7a_gate_result not found",
+      "acceptable": true,
+      "condition": "Must be resolved before the 4-case expansion stabilizes. Stage 7A replay gate should be run first to confirm contract layer works on frozen corpus before running online. Acceptable as warning only for first expansion pass."
+    },
+    {
+      "warning": "agent_useful_disagreement_rate = null (no disagreements observed)",
+      "acceptable": true,
+      "condition": "Stub adapter in stub_v1 mirrors baseline — zero disagreement is expected. When a real LLM adapter is wired, this metric must become non-null. For stub runs: acceptable."
+    },
+    {
+      "warning": "agent_stop_context_correctness_rate = null",
+      "acceptable": true,
+      "condition": "Diagnostic only metric. Null is expected when stop_target artifact is missing."
+    }
+  ],
+
+  "warnings_not_acceptable": [
+    {
+      "warning": "agent_forbidden_intent_count > 0",
+      "action_required": "STOP expansion. Fix adapter contract enforcement before proceeding."
+    },
+    {
+      "warning": "agent_contract_validity_rate < 0.95 on any case",
+      "action_required": "STOP expansion. Root cause before adding new cases."
+    },
+    {
+      "warning": "agent_timeout_rate > 0.05 on any case",
+      "action_required": "Fix adapter or timeout budget before expansion."
+    },
+    {
+      "warning": "agent_fallback_to_baseline_rate > 0.10 on any case",
+      "action_required": "Fix adapter before expansion."
+    },
+    {
+      "warning": "agent_lane_change_intent_validity_rate < 1.0 on any LC case",
+      "action_required": "STOP expansion immediately — agent is requesting unsafe LC. This is a contract violation, not a warning."
+    },
+    {
+      "warning": "stage3b_behavior_timeline missing for new cases (ml_left, arbitration_stop)",
+      "action_required": "Do NOT add the case to expansion set until live timeline is confirmed present. Using synthetic frames for new cases defeats the expansion objective."
+    }
+  ],
+
+  "assist_mode_discussion": "NOT APPLICABLE at Stage 7C. Assist mode requires a separate Stage 8 design review with distinct authority transfer contracts, safety proof, and human operator sign-off. Stage 7C is shadow analysis only."
+}

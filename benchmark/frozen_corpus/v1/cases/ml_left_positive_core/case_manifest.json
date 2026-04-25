@@ -1,0 +1,36 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.case_manifest",
+  "bundle_version": "frozen_case_bundle_v1",
+  "case_id": "ml_left_positive_core",
+  "scenario_id": "ml_left_positive_core",
+  "family": "multi_lane_positive",
+  "status": "ready",
+  "corpus_readiness": "corpus_ready",
+  "determinism_level": "high",
+  "source": "existing_artifact_bundle",
+  "owner": "agentai_system_benchmark",
+  "case_version": "benchmark_case_v1",
+  "build_timestamp": "2026-04-13T14:50:43+00:00",
+  "supported_benchmark_modes": [
+    "replay_regression",
+    "scenario_replay"
+  ],
+  "pending_ground_truth_binding": false,
+  "readiness_checks": {
+    "case_status_ready": true,
+    "runner_scenario_manifest_available": true,
+    "stage1_frozen_replayable": true,
+    "reference_outputs_complete": true,
+    "semantic_reference_complete": true,
+    "provenance_complete": true,
+    "pending_ground_truth_binding": false
+  },
+  "bundle_paths": {
+    "scenario_manifest": "scenario_manifest.json",
+    "runner_scenario_manifest": "scenario_artifacts/runner_manifest.json",
+    "stage1_session_dir": "stage1_frozen/session",
+    "benchmark_reference": "benchmark_reference/benchmark_reference.json",
+    "provenance": "provenance/provenance.json"
+  },
+  "warnings": []
+}

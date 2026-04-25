@@ -1,0 +1,132 @@
+{
+  "schema_version": "frozen_case_bundle_v1.schema.provenance",
+  "bundle_version": "frozen_case_bundle_v1",
+  "case_id": "route_bias_fork_keep_right",
+  "build": {
+    "built_at": "2026-04-13T14:50:46+00:00",
+    "tool": "scripts/build_frozen_corpus.py",
+    "bundle_dir": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right"
+  },
+  "source_case_path": "D:\\Agent-AI\\benchmark\\cases\\route_bias_fork_keep_right.yaml",
+  "source_artifact_paths": {
+    "type": "planned_case",
+    "scenario_manifest": "outputs/scenario_manifests/stage3a_multilane_right_manifest.json",
+    "backlog_reason": "no clean fork/branch route-conditioning artifact bundle exists yet",
+    "ground_truth_actor_roles": "benchmark/reference_artifacts/route_bias_fork_keep_right/ground_truth_actor_roles.json"
+  },
+  "source_run_ids": {
+    "stage1": null,
+    "stage2": null,
+    "stage3a": null,
+    "stage3b": null,
+    "stage3c": null
+  },
+  "source_baseline": {
+    "default_metrics_path": "benchmark/baselines/system_benchmark_v1/baseline_metrics.json",
+    "default_commit_path": "benchmark/baselines/system_benchmark_v1/baseline_commit.json"
+  },
+  "semantic_hardening_version": "system_benchmark_semantics_v1_1",
+  "trace_lineage": {
+    "primary_input": "scenario_manifest + stage1_frozen_session",
+    "reference_outputs": [
+      "stage2",
+      "stage3a",
+      "stage3b",
+      "stage3c",
+      "semantic"
+    ],
+    "online_smoke_role": "not_primary_input"
+  },
+  "runner_manifest": {
+    "available": true,
+    "origin": "existing",
+    "notes": [
+      "copied_existing_runner_manifest"
+    ]
+  },
+  "artifact_lineage": [
+    {
+      "artifact_name": "stage2",
+      "stage_origin": "stage2",
+      "source_path": null,
+      "bundled_path": null,
+      "available": false,
+      "role": "reference_output"
+    },
+    {
+      "artifact_name": "stage3a",
+      "stage_origin": "stage3a",
+      "source_path": null,
+      "bundled_path": null,
+      "available": false,
+      "role": "reference_output"
+    },
+    {
+      "artifact_name": "stage3b",
+      "stage_origin": "stage3b",
+      "source_path": null,
+      "bundled_path": null,
+      "available": false,
+      "role": "reference_output"
+    },
+    {
+      "artifact_name": "stage3c",
+      "stage_origin": "stage3c",
+      "source_path": null,
+      "bundled_path": null,
+      "available": false,
+      "role": "reference_output"
+    },
+    {
+      "artifact_name": "ground_truth_actor_roles",
+      "stage_origin": "benchmark_semantics",
+      "source_path": "D:\\Agent-AI\\benchmark\\reference_artifacts\\route_bias_fork_keep_right\\ground_truth_actor_roles.json",
+      "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\semantic\\ground_truth_actor_roles.json",
+      "available": true,
+      "role": "reference_output",
+      "source_type": "existing",
+      "notes": []
+    },
+    {
+      "artifact_name": "critical_actor_binding",
+      "stage_origin": "benchmark_semantics",
+      "source_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\_derived_semantics\\route_bias_fork_keep_right\\critical_actor_binding.jsonl",
+      "bundled_path": "D:\\Agent-AI\\benchmark\\frozen_corpus\\v1\\cases\\route_bias_fork_keep_right\\reference_outputs\\semantic\\critical_actor_binding.jsonl",
+      "available": true,
+      "role": "reference_output",
+      "source_type": "generated_empty_not_applicable",
+      "notes": [
+        "no_actor_roles_in_ground_truth"
+      ]
+    },
+    {
+      "artifact_name": "behavior_arbitration_events",
+      "stage_origin": "benchmark_semantics",
+      "source_path": null,
+      "bundled_path": null,
+      "available": false,
+      "role": "reference_output",
+      "source_type": "missing",
+      "notes": [
+        "unable_to_derive_arbitration_events"
+      ]
+    },
+    {
+      "artifact_name": "route_session_binding",
+      "stage_origin": "benchmark_semantics",
+      "source_path": null,
+      "bundled_path": null,
+      "available": false,
+      "role": "reference_output",
+      "source_type": "missing",
+      "notes": [
+        "unable_to_derive_route_session_binding"
+      ]
+    }
+  ],
+  "warnings": [
+    "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+    "missing_semantic_reference:behavior_arbitration_events,route_session_binding",
+    "pending_ground_truth_binding_true"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-ai/benchmark/schemas/fallback_events.schema.json",
+  "title": "Stage6 Fallback Event Row",
+  "type": "object",
+  "required": [
+    "tick_id",
+    "request_frame",
+    "sample_name",
+    "carla_frame",
+    "timestamp",
+    "requested_behavior",
+    "executing_behavior",
+    "planner_status",
+    "fallback_required",
+    "fallback_activated",
+    "fallback_reason",
+    "fallback_source",
+    "fallback_mode",
+    "fallback_action",
+    "takeover_latency_ms",
+    "fallback_success",
+    "missing_when_required",
+    "notes"
+  ],
+  "properties": {
+    "tick_id": { "type": ["integer", "null"] },
+    "request_frame": { "type": ["integer", "null"] },
+    "sample_name": { "type": "string" },
+    "carla_frame": { "type": ["integer", "null"] },
+    "timestamp": { "type": ["number", "null"] },
+    "requested_behavior": { "type": "string" },
+    "executing_behavior": { "type": "string" },
+    "planner_status": { "type": "string" },
+    "fallback_required": { "type": "boolean" },
+    "fallback_activated": { "type": "boolean" },
+    "fallback_reason": { "type": "string" },
+    "fallback_source": { "type": ["string", "null"] },
+    "fallback_mode": { "type": ["string", "null"] },
+    "fallback_action": { "type": ["string", "null"] },
+    "takeover_latency_ms": { "type": ["number", "null"] },
+    "fallback_success": { "type": ["boolean", "null"] },
+    "missing_when_required": { "type": "boolean" },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,79 @@
+{
+  "frame_id": 60082,
+  "sample_name": "sample_000081",
+  "requested_intent_stage2": {
+    "frame_id": 60082,
+    "timestamp": 443.119700871408,
+    "maneuver": "lane_change_left",
+    "target_speed_mps": 3.2389992554772817,
+    "lane_preference": "prefer_left",
+    "constraints": [
+      "lane_change_requires_validation",
+      "respect_front_obstacle_buffer"
+    ],
+    "confidence": 0.62,
+    "reasoning_tags": [
+      "front_vehicle_slow",
+      "left_gap_preferred"
+    ]
+  },
+  "validated_maneuver_stage3a": {
+    "frame_id": 60082,
+    "requested_intent": {
+      "frame_id": 60082,
+      "timestamp": 443.119700871408,
+      "maneuver": "lane_change_left",
+      "target_speed_mps": 3.2389992554772817,
+      "lane_preference": "prefer_left",
+      "constraints": [
+        "lane_change_requires_validation",
+        "respect_front_obstacle_buffer"
+      ],
+      "confidence": 0.62,
+      "reasoning_tags": [
+        "front_vehicle_slow",
+        "left_gap_preferred"
+      ]
+    },
+    "valid_maneuvers": [
+      "keep_lane",
+      "follow",
+      "slow_down",
+      "stop",
+      "lane_change_right"
+    ],
+    "invalid_maneuvers": [
+      {
+        "maneuver": "yield",
+        "reason": "no_vru_yield_condition"
+      },
+      {
+        "maneuver": "lane_change_left",
+        "reason": "no_left_lane"
+      }
+    ],
+    "selected_behavior": "stop_before_obstacle",
+    "selected_maneuver": "stop",
+    "lane_change_permission": {
+      "left": false,
+      "right": true,
+      "left_reason": "no_left_lane",
+      "right_reason": null
+    },
+    "reasoning_tags": [
+      "current_lane_stop_zone"
+    ]
+  },
+  "route_conditioned_behavior": "stop_before_obstacle",
+  "lane_change_stage": "none",
+  "selected_behavior": "stop_before_obstacle",
+  "target_lane": "current",
+  "override_reason": "stage3a_safety_behavior_preserved",
+  "route_influence": false,
+  "reasoning_tags": [],
+  "behavior_constraints": [
+    "minimal_route_hint_applied",
+    "route_mode_minimal_route_hint"
+  ],
+  "scene_constraints": []
+}

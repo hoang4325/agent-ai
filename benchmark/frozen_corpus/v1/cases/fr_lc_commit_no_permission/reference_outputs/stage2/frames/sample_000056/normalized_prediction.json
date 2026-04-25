@@ -1,0 +1,160 @@
+{
+  "sample_name": "sample_000056",
+  "sequence_index": 56,
+  "frame_id": 726329,
+  "timestamp": 5002.794624801725,
+  "prediction_variant": "single",
+  "source_sample_dir": "D:\\Agent-AI\\outputs\\s3a_ml_long_v1\\sample_000056",
+  "source_prediction_dir": "D:\\Agent-AI\\outputs\\live_watch_compare_multilane\\lw_s3a_ml_long_v1\\inference\\sample_000056",
+  "ego": {
+    "frame_id": 726329,
+    "timestamp": 5002.794624801725,
+    "sample_name": "sample_000056",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      103.61872863769531,
+      37.356021881103516,
+      -0.004491882398724556
+    ],
+    "velocity_world": [
+      1.1911642104678322e-05,
+      -2.801096525217872e-05,
+      -1.7738342421580455e-06
+    ],
+    "speed_mps": 3.0490127581027954e-05,
+    "yaw_deg": -109.1600341796875,
+    "route_progress_m": 15.600476833269568,
+    "world_from_ego_bevfusion": [
+      [
+        -0.3282078504562378,
+        -0.9446055293083191,
+        -1.6673537174938247e-05,
+        103.61872863769531
+      ],
+      [
+        0.9446055293083191,
+        -0.3282078504562378,
+        3.825052408501506e-05,
+        37.356021881103516
+      ],
+      [
+        -4.1604042053222656e-05,
+        -3.1957933970261365e-06,
+        1.0,
+        -0.004491882398724556
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "detections": [
+    {
+      "detection_id": "sample_000056_det_0000",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.7001953125,
+      "position_ego": [
+        6.472415924072266,
+        0.22599029541015625,
+        -1.462890625
+      ],
+      "size_xyz": [
+        2.154296875,
+        4.9609375,
+        1.794921875
+      ],
+      "yaw_rad": -1.6943359375,
+      "velocity_ego": [
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ],
+      "speed_mps": 6.9930754170600005e-06,
+      "distance_m": 6.476360050815876,
+      "bearing_deg": 1.9997219418497758,
+      "source_confidence": 0.7001953125,
+      "raw_box_9d": [
+        6.472415924072266,
+        0.22599029541015625,
+        -1.462890625,
+        2.154296875,
+        4.9609375,
+        1.794921875,
+        -1.6943359375,
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ]
+    },
+    {
+      "detection_id": "sample_000056_det_0001",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.2264404296875,
+      "position_ego": [
+        6.031497955322266,
+        -3.1851539611816406,
+        -1.58984375
+      ],
+      "size_xyz": [
+        2.193359375,
+        5.1953125,
+        1.7861328125
+      ],
+      "yaw_rad": -1.6474609375,
+      "velocity_ego": [
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ],
+      "speed_mps": 6.9930754170600005e-06,
+      "distance_m": 6.82086309358924,
+      "bearing_deg": -27.837939201983698,
+      "source_confidence": 0.2264404296875,
+      "raw_box_9d": [
+        6.031497955322266,
+        -3.1851539611816406,
+        -1.58984375,
+        2.193359375,
+        5.1953125,
+        1.7861328125,
+        -1.6474609375,
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ]
+    }
+  ],
+  "class_names": [
+    "car",
+    "truck",
+    "construction_vehicle",
+    "bus",
+    "trailer",
+    "barrier",
+    "motorcycle",
+    "bicycle",
+    "pedestrian",
+    "traffic_cone"
+  ],
+  "raw_prediction_count": 200,
+  "filtered_prediction_count": 2
+}

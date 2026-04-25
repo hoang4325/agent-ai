@@ -1,0 +1,39 @@
+{
+  "schema_version": "system_benchmark_semantics_v1_1",
+  "scenario_id": "arbitration_stop_during_prepare_right",
+  "pending_ground_truth_binding": false,
+  "determinism_level": "medium",
+  "actors": [
+    {
+      "role": "blocker_current_lane",
+      "entity_type": "actor",
+      "actor_source": "track_binding_hint",
+      "expected_actor_ref": "role:blocker_current_lane",
+      "expected_lane_relation": "current_lane",
+      "expected_behavioral_effect": "prepare_right_then_stop",
+      "binding_hints": {
+        "class_groups": [
+          "vehicle"
+        ],
+        "allowed_lane_relations": [
+          "current_lane"
+        ],
+        "prefer_flags": [
+          "is_blocking_current_lane",
+          "is_front_in_current_lane"
+        ],
+        "risk_hint": "front_hazard_track_id",
+        "require_same_direction": true
+      },
+      "evaluation_scope": [
+        "critical_actor_detected_rate",
+        "blocker_binding_accuracy"
+      ],
+      "notes": "Blocker that forces stop while route still prefers right-lane preparation."
+    }
+  ],
+  "route_binding_expectations": {
+    "route_option": "keep_right",
+    "preferred_lane": "right"
+  }
+}

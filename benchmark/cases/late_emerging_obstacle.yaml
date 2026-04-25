@@ -1,0 +1,32 @@
+scenario_id: late_emerging_obstacle
+status: planned
+family: late_hazard
+mode: replay_closed_loop
+source:
+  type: planned_case
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long2_manifest.json
+  backlog_reason: late-emergence timing is not yet isolated in a dedicated artifact bundle
+owner: agentai_system_benchmark
+determinism_level: unknown
+route_option: keep_right
+critical_actors:
+  - late_emerging_front_obstacle
+expected_behaviors:
+  - slow_down
+  - stop_before_obstacle
+forbidden_behaviors:
+  - commit_lane_change_left
+expected_execution:
+  stop_successes_min: 1
+pending_ground_truth_binding: true
+artifacts:
+  scenario_manifest: outputs/scenario_manifests/stage3a_multilane_right_long2_manifest.json
+  ground_truth_actor_roles: benchmark/reference_artifacts/late_emerging_obstacle/ground_truth_actor_roles.json
+mandatory_artifacts: []
+primary_metrics: []
+secondary_metrics:
+  - front_hazard_signal_present
+  - stale_tick_rate
+notes: |
+  Planned placeholder for a future dedicated late-emergence case. v1 does not claim this
+  scenario is benchmark-ready yet.

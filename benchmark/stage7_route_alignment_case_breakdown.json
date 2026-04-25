@@ -1,0 +1,125 @@
+{
+  "schema_version": "stage7_route_alignment_case_breakdown_v1",
+  "generated_at_utc": "2026-04-17T17:47:00+00:00",
+  "metric": "agent_route_alignment_rate",
+  "threshold_online_smoke": {"min": 0.65},
+  "threshold_default": {"min": 0.70},
+  "adapter": "stub_v1",
+  "frame_budget_per_case": 60,
+
+  "cases": [
+    {
+      "case_id": "ml_right_positive_core",
+      "family": "multi_lane_positive",
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "status": "in_current_2_case_smoke_set",
+      "timeline_source_current_run": "synthetic_frozen_corpus",
+      "frames_analyzed": 60,
+      "intent_distribution_stub_v1": {
+        "prepare_lane_change_right": 60,
+        "stop": 0,
+        "follow": 0,
+        "keep_lane": 0
+      },
+      "target_lane_distribution": {
+        "current": 60,
+        "right": 0
+      },
+      "preferred_lane_in_route_context_summary": "current (synthetic fallback sets preferred_lane='current')",
+      "alignment_rate_observed": 1.0,
+      "alignment_rate_expected_with_live_timeline": "0.0 to 0.5 depending on how many frames have target_lane='right' vs 'current' in baseline",
+      "warning_category": "contract_mapping_issue",
+      "warning_level": "false_positive — 1.0 is artifact of synthetic preferred_lane='current'",
+      "run_to_run_stability": "deterministic at 1.0 every run with synthetic frames",
+      "remediation": "Wire live stage3b_behavior_timeline. Fix _synthesize_frames_from_frozen() to emit target_lane = corridor.preferred_lane.",
+      "is_real_warning": false,
+      "note": "Current 1.0 is NOT a good signal. It means the metric is not measuring anything useful for this case."
+    },
+    {
+      "case_id": "stop_follow_ambiguity_core",
+      "family": "stop_follow",
+      "route_option": "straight",
+      "preferred_lane": "current",
+      "status": "in_current_2_case_smoke_set",
+      "timeline_source_current_run": "synthetic_frozen_corpus",
+      "frames_analyzed": 60,
+      "intent_distribution_stub_v1": {
+        "follow": 60,
+        "stop": 0,
+        "keep_lane": 0
+      },
+      "target_lane_distribution": {
+        "current": 60
+      },
+      "preferred_lane_in_route_context_summary": "current",
+      "alignment_rate_observed": 1.0,
+      "alignment_rate_expected_with_live_timeline": "1.0 — route_option=straight → preferred_lane always 'current' → all frames eligible and aligned by definition",
+      "warning_category": "route_context_issue (preferred_lane='current' eliminates discriminative signal)",
+      "warning_level": "acceptable — metric is trivially correct but uninformative",
+      "run_to_run_stability": "deterministic at 1.0 every run",
+      "remediation": "None needed for contract gate. For signal quality: acceptable as is. Alignment metric is not useful for straight-route cases.",
+      "is_real_warning": false,
+      "note": "1.0 is technically correct. The metric alignment signal is zero-information for straight-route stop/follow cases. Do not attempt to improve this by changing threshold."
+    },
+    {
+      "case_id": "arbitration_stop_during_prepare_right",
+      "family": "arbitration",
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "status": "planned_for_4_case_expansion",
+      "timeline_source_if_added": "outputs/stage3b/st3b_s3a_ml_long_v2/behavior_timeline_v2.jsonl (live)",
+      "expected_frame_count": 60,
+      "intent_distribution_expected_with_live_timeline": {
+        "phase_1_prepare_LC_right (frames ~0-30)": "prepare_lane_change_right → target_lane='right' → ALIGNED with preferred_lane='right'",
+        "phase_2_stop_downgrade (frames ~31-60)": "stop_before_obstacle → target_lane='current' → MISALIGNED with preferred_lane='right'"
+      },
+      "alignment_rate_expected_range": "0.30 to 0.55",
+      "alignment_rate_threshold": 0.65,
+      "threshold_breach_expected": true,
+      "warning_category": "stub_limit",
+      "warning_level": "IMPORTANT — will breach soft_guardrail threshold 0.65. But this is structurally expected: when baseline arbitrates from LC to stop, target_lane legitimately reverts to 'current'.",
+      "run_to_run_stability": "deterministic — split-phase pattern repeats every run identically",
+      "remediation": "Two options: (1) Accept as soft warning — the metric is correctly detecting the arbitration-phase split, not a real error. (2) Apply per-case threshold override: alignment threshold for arbitration_stop = 0.30 (not 0.65).",
+      "is_real_warning": "SOFT — breach is expected and structurally explained. NOT a contract issue.",
+      "highest_disagreement_surface": true,
+      "note": "This case will produce the most analytically interesting alignment data in the expansion. The pattern (high alignment in prepare-phase, low in stop-phase) is the signal to track."
+    },
+    {
+      "case_id": "adjacent_right_unsafe_hold",
+      "family": "adjacent_lane_unsafe",
+      "route_option": "keep_right",
+      "preferred_lane": "right",
+      "status": "provisional — NOT in current expansion set",
+      "timeline_source_if_added": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+      "expected_frame_count": 60,
+      "intent_distribution_expected_with_live_timeline": {
+        "stop_before_obstacle": "dominant — ~40-50 frames → target_lane='current'",
+        "follow": "~10-20 frames → target_lane='current'",
+        "keep_lane": "0-5 frames → target_lane='current'"
+      },
+      "target_lane_distribution_expected": {
+        "current": "~55-60 frames (all stop/follow intents)",
+        "right": "0 frames"
+      },
+      "alignment_rate_expected_range": "0.0 to 0.10",
+      "alignment_rate_threshold": 0.65,
+      "threshold_breach_expected": true,
+      "breach_severity": "SEVERE — systematic 0.0-0.10 on every run, every frame",
+      "warning_category": "stub_limit",
+      "warning_level": "HIGH — will always breach threshold. But this is structurally inherent: stop-dominated case with preferred_lane != 'current' always misaligns.",
+      "run_to_run_stability": "deterministic — same value every run",
+      "remediation": "Must apply per-case threshold exemption OR exclude alignment metric from gate for stop-dominated cases. Do NOT change global threshold.",
+      "is_real_warning": "NO — this is a metric design issue: alignment metric is not appropriate for stop-dominated cases where preferred_lane='right' but target_lane is correctly 'current' during stop behavior.",
+      "important_status_note": "status=provisional. Do NOT add to expansion set before status=ready."
+    }
+  ],
+
+  "cross_case_summary": {
+    "cases_with_real_alignment_warning": [],
+    "cases_with_stub_limit_warning": ["arbitration_stop_during_prepare_right", "adjacent_right_unsafe_hold"],
+    "cases_with_false_positive_pass": ["ml_right_positive_core (1.0 via synthetic frames — not real)"],
+    "cases_with_uninformative_metric": ["stop_follow_ambiguity_core (preferred_lane='current' → trivially aligned)"],
+    "intent_causing_most_misalignment": "stop_before_obstacle, follow (both emit target_lane='current' while preferred_lane='right')"
+  }
+}

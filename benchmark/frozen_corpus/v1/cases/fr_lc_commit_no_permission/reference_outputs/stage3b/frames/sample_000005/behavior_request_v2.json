@@ -1,0 +1,34 @@
+{
+  "frame": 726278,
+  "sample_name": "sample_000005",
+  "requested_behavior": "commit_lane_change_right",
+  "target_lane": "right",
+  "route_mode": "minimal_route_hint",
+  "route_option": "keep_right",
+  "preferred_lane": "right",
+  "route_priority": "high",
+  "lane_change_stage": "commit",
+  "target_speed_mps": 4.302084739201392,
+  "longitudinal_horizon_m": 40.0,
+  "blocking_object_id": null,
+  "stop_reason": null,
+  "lane_change_permission": {
+    "left": false,
+    "right": true,
+    "left_reason": "no_left_lane",
+    "right_reason": null
+  },
+  "behavior_constraints": [
+    "lane_change_commit_requires_local_planner_support",
+    "minimal_route_hint_applied",
+    "no_left_lane_available",
+    "route_conditioned_behavior_v2",
+    "route_mode_minimal_route_hint"
+  ],
+  "scene_constraints": [
+    "reduce_speed_due_to_lane_context",
+    "route_option_keep_right"
+  ],
+  "route_conflict_flags": [],
+  "confidence": 0.8000000000000002
+}

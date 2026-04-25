@@ -1,0 +1,12 @@
+set_name: stage5a_failure_replay
+description: >
+  Stage 5A failure replay gate set. Historical and synthesized failure cases
+  targeting Stage 5A-specific regressions: blocker binding, route/session binding,
+  arbitration contract violations, stop semantics, lane-change semantics.
+cases:
+  - fr_right_commit_superseded_by_stop
+  - fr_blocker_binding_wrong_lane
+  - fr_route_session_mismatch
+  - fr_arbitration_missing_cancel
+  - fr_stop_overshoot_false_pass
+  - fr_lc_commit_no_permission

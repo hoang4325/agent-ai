@@ -1,0 +1,21 @@
+name: stage4_online_external_watch_fallback_route_uncertainty_low_memory
+runner_script: scripts/run_stage4_online.py
+python_executable: "{stage4_python_executable}"
+args:
+  --output-dir: "{stage4_output_dir}"
+  --scenario-manifest: "{scenario_manifest}"
+  --spawn-ego-if-missing: "true"
+  --carla-pythonapi-root: "D:/carla/PythonAPI"
+  --num-ticks: "10"
+  --warmup-ticks: "0"
+  --fixed-delta-seconds: "0.10"
+  --route-option: "{route_option}"
+  --preferred-lane: "{preferred_lane}"
+  --route-priority: "{route_priority}"
+  --stage1-launch-mode: "external_watch"
+  --stage1-session-root: "{stage1_session_dir}"
+  --external-watch-start-sequence-index: "20"
+  --sensor-rig-profile: "low_memory_shadow"
+  --shadow-mode: "true"
+  --fallback-perturbation-mode: "route_uncertainty"
+  --fallback-perturbation-start-tick: "1"

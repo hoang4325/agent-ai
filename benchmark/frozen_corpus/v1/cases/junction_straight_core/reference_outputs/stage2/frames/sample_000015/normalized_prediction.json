@@ -1,0 +1,160 @@
+{
+  "sample_name": "sample_000015",
+  "sequence_index": 15,
+  "frame_id": 2192,
+  "timestamp": 33.640632305294275,
+  "prediction_variant": "bridge_minimal",
+  "source_sample_dir": "/workspace/Agent-AI/outputs/samples/sample_000015",
+  "source_prediction_dir": "/workspace/Agent-AI/outputs/live_watch_compare/live_20260401_095649/inference/sample_000015/bridge_minimal",
+  "ego": {
+    "frame_id": 2192,
+    "timestamp": 33.640632305294275,
+    "sample_name": "sample_000015",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      -58.18671798706055,
+      -23.187389373779297,
+      -0.006487693637609482
+    ],
+    "velocity_world": [
+      7.353714466094971,
+      2.5976343154907227,
+      -0.00037631989107467234
+    ],
+    "speed_mps": 7.799026902600481,
+    "yaw_deg": -16.228107452392578,
+    "route_progress_m": 2.1035340235015973,
+    "world_from_ego_bevfusion": [
+      [
+        0.9601061344146729,
+        -0.27957335114479065,
+        -0.005909731145948172,
+        -58.18671798706055
+      ],
+      [
+        0.27944743633270264,
+        0.9600206613540649,
+        -0.016413312405347824,
+        -23.187389373779297
+      ],
+      [
+        0.01026218943297863,
+        0.014107064343988895,
+        0.9998478293418884,
+        -0.006487693637609482
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "detections": [
+    {
+      "detection_id": "sample_000015_det_0000",
+      "class_id": 7,
+      "class_name": "bicycle",
+      "class_group": "vru",
+      "score": 0.10833740234375,
+      "position_ego": [
+        24.146484375,
+        -21.62240982055664,
+        -0.9111328125
+      ],
+      "size_xyz": [
+        0.6943359375,
+        1.998046875,
+        1.2880859375
+      ],
+      "yaw_rad": -1.3505859375,
+      "velocity_ego": [
+        0.0001983642578125,
+        0.00020492076873779297
+      ],
+      "speed_mps": 0.00028520326126745465,
+      "distance_m": 32.41267212249282,
+      "bearing_deg": -41.84343531854457,
+      "source_confidence": 0.10833740234375,
+      "raw_box_9d": [
+        24.146484375,
+        -21.62240982055664,
+        -0.9111328125,
+        0.6943359375,
+        1.998046875,
+        1.2880859375,
+        -1.3505859375,
+        0.0001983642578125,
+        0.00020492076873779297
+      ]
+    },
+    {
+      "detection_id": "sample_000015_det_0001",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.10540771484375,
+      "position_ego": [
+        48.016700744628906,
+        -0.11396408081054688,
+        -1.72265625
+      ],
+      "size_xyz": [
+        2.111328125,
+        4.8203125,
+        1.7744140625
+      ],
+      "yaw_rad": 1.8154296875,
+      "velocity_ego": [
+        -2.025390625,
+        0.54443359375
+      ],
+      "speed_mps": 2.097287562982585,
+      "distance_m": 48.01683598708854,
+      "bearing_deg": -0.1359870312716147,
+      "source_confidence": 0.10540771484375,
+      "raw_box_9d": [
+        48.016700744628906,
+        -0.11396408081054688,
+        -1.72265625,
+        2.111328125,
+        4.8203125,
+        1.7744140625,
+        1.8154296875,
+        -2.025390625,
+        0.54443359375
+      ]
+    }
+  ],
+  "class_names": [
+    "car",
+    "truck",
+    "construction_vehicle",
+    "bus",
+    "trailer",
+    "barrier",
+    "motorcycle",
+    "bicycle",
+    "pedestrian",
+    "traffic_cone"
+  ],
+  "raw_prediction_count": 200,
+  "filtered_prediction_count": 2
+}

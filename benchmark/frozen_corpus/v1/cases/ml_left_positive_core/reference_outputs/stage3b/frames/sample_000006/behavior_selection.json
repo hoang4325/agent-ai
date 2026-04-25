@@ -1,0 +1,78 @@
+{
+  "frame_id": 3926,
+  "sample_name": "sample_000006",
+  "requested_intent_stage2": {
+    "frame_id": 3926,
+    "timestamp": 39.73108655586839,
+    "maneuver": "keep_lane",
+    "target_speed_mps": 8.0,
+    "lane_preference": "prefer_right",
+    "constraints": [],
+    "confidence": 0.6,
+    "reasoning_tags": [
+      "cruise"
+    ]
+  },
+  "validated_maneuver_stage3a": {
+    "frame_id": 3926,
+    "requested_intent": {
+      "frame_id": 3926,
+      "timestamp": 39.73108655586839,
+      "maneuver": "keep_lane",
+      "target_speed_mps": 8.0,
+      "lane_preference": "prefer_right",
+      "constraints": [],
+      "confidence": 0.6,
+      "reasoning_tags": [
+        "cruise"
+      ]
+    },
+    "valid_maneuvers": [
+      "keep_lane",
+      "lane_change_left"
+    ],
+    "invalid_maneuvers": [
+      {
+        "maneuver": "follow",
+        "reason": "no_front_object_in_current_lane"
+      },
+      {
+        "maneuver": "slow_down",
+        "reason": "scene_not_constrained"
+      },
+      {
+        "maneuver": "stop",
+        "reason": "no_immediate_stop_condition"
+      },
+      {
+        "maneuver": "yield",
+        "reason": "no_vru_yield_condition"
+      },
+      {
+        "maneuver": "lane_change_right",
+        "reason": "no_right_lane"
+      }
+    ],
+    "selected_behavior": "keep_lane",
+    "selected_maneuver": "keep_lane",
+    "lane_change_permission": {
+      "left": true,
+      "right": false,
+      "left_reason": null,
+      "right_reason": "no_right_lane"
+    },
+    "reasoning_tags": []
+  },
+  "route_conditioned_behavior": "keep_lane",
+  "lane_change_stage": "none",
+  "selected_behavior": "keep_lane",
+  "target_lane": "current",
+  "override_reason": null,
+  "route_influence": false,
+  "reasoning_tags": [],
+  "behavior_constraints": [
+    "minimal_route_hint_applied",
+    "route_mode_minimal_route_hint"
+  ],
+  "scene_constraints": []
+}

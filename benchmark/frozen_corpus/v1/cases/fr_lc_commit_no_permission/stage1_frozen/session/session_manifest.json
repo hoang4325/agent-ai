@@ -1,0 +1,93 @@
+{
+  "session_root": ".",
+  "mode": "watch",
+  "source_samples_root": "../materialized_samples",
+  "inference_root": "inference",
+  "args": {
+    "host": "127.0.0.1",
+    "port": 2000,
+    "tm_port": 8000,
+    "repo_root": "/workspace/Bevfusion-Z",
+    "config": "/workspace/Bevfusion-Z/configs/nuscenes/det/transfusion/secfpn/camera+lidar+radar/swint_v0p075/sefuser_radarbev.yaml",
+    "checkpoint": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "output_root": ".",
+    "samples_root": "../materialized_samples",
+    "session_name": "lw_s3a_ml_long_v1",
+    "num_samples": 80,
+    "warmup_ticks": 5,
+    "fixed_delta_seconds": 0.05,
+    "image_width": 1600,
+    "image_height": 900,
+    "camera_fov": 70.0,
+    "vehicle_filter": "vehicle.lincoln.mkz_2020",
+    "spawn_point_index": 0,
+    "town": null,
+    "device": "cuda",
+    "score_threshold": 0.2,
+    "timeout_seconds": 3.0,
+    "poll_interval_seconds": 0.5,
+    "idle_timeout_seconds": 30.0,
+    "adapter_lidar_sweeps_test": 3,
+    "adapter_radar_sweeps": 3,
+    "adapter_lidar_max_points": 120000,
+    "adapter_radar_max_points": 1200,
+    "radar_bridge": "minimal",
+    "radar_ablation": "zero_bev",
+    "compare_zero_radar": false,
+    "autopilot": true
+  },
+  "model_runtime": {
+    "checkpoint_path": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "radar_bridge": "minimal",
+    "radar_ablation": "zero_bev",
+    "radar_bridge_details": {
+      "bridge_strategy": "minimal_6d_runtime_patch",
+      "kept_input_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff"
+      ],
+      "kept_checkpoint_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff",
+        "f_center_x",
+        "f_center_y"
+      ],
+      "kept_checkpoint_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        45,
+        46
+      ],
+      "original_shape": [
+        128,
+        47
+      ],
+      "patched_shape": [
+        128,
+        8
+      ]
+    }
+  },
+  "build_seconds": 12.871085677004885,
+  "history_gate": {
+    "required_previous_samples": 3,
+    "required_previous_lidar_samples": 3,
+    "required_previous_radar_samples": 2,
+    "available_previous_samples": 0,
+    "ready": false
+  },
+  "compare_zero_radar": false,
+  "source_session_root": "outputs\\live_watch_compare_multilane\\lw_s3a_ml_long_v1"
+}

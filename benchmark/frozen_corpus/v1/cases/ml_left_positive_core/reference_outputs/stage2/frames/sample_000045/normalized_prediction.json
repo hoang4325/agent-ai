@@ -1,0 +1,160 @@
+{
+  "sample_name": "sample_000045",
+  "sequence_index": 45,
+  "frame_id": 3965,
+  "timestamp": 43.631086613982916,
+  "prediction_variant": "single",
+  "source_sample_dir": "D:\\Agent-AI\\outputs\\s3a_left_v3\\sample_000045",
+  "source_prediction_dir": "D:\\Agent-AI\\outputs\\live_watch_compare_multilane\\lw_left_positive_v1\\inference\\sample_000045",
+  "ego": {
+    "frame_id": 3965,
+    "timestamp": 43.631086613982916,
+    "sample_name": "sample_000045",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      106.65809631347656,
+      39.1683349609375,
+      -0.004642448388040066
+    ],
+    "velocity_world": [
+      -1.1132636070251465,
+      2.9513309001922607,
+      7.44819635656313e-06
+    ],
+    "speed_mps": 3.154316081373548,
+    "yaw_deg": -109.72703552246094,
+    "route_progress_m": 18.430004075565606,
+    "world_from_ego_bevfusion": [
+      [
+        -0.337539404630661,
+        -0.9413111209869385,
+        0.0007206610171124339,
+        106.65809631347656
+      ],
+      [
+        0.9413111209869385,
+        -0.33753979206085205,
+        -0.0004500158247537911,
+        39.1683349609375
+      ],
+      [
+        0.0006668566493317485,
+        0.0005264682113192976,
+        0.9999996423721313,
+        -0.004642448388040066
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "detections": [
+    {
+      "detection_id": "sample_000045_det_0000",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.765625,
+      "position_ego": [
+        6.241153717041016,
+        0.2629585266113281,
+        -1.5146484375
+      ],
+      "size_xyz": [
+        2.13671875,
+        4.8828125,
+        1.853515625
+      ],
+      "yaw_rad": -1.6982421875,
+      "velocity_ego": [
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ],
+      "speed_mps": 6.9930754170600005e-06,
+      "distance_m": 6.246690876492328,
+      "bearing_deg": 2.412616109289156,
+      "source_confidence": 0.765625,
+      "raw_box_9d": [
+        6.241153717041016,
+        0.2629585266113281,
+        -1.5146484375,
+        2.13671875,
+        4.8828125,
+        1.853515625,
+        -1.6982421875,
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ]
+    },
+    {
+      "detection_id": "sample_000045_det_0001",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.5078125,
+      "position_ego": [
+        22.982742309570312,
+        10.954689025878906,
+        -1.4814453125
+      ],
+      "size_xyz": [
+        2.158203125,
+        4.95703125,
+        1.8515625
+      ],
+      "yaw_rad": -2.15625,
+      "velocity_ego": [
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ],
+      "speed_mps": 6.9930754170600005e-06,
+      "distance_m": 25.460001094301333,
+      "bearing_deg": 25.484732025560643,
+      "source_confidence": 0.5078125,
+      "raw_box_9d": [
+        22.982742309570312,
+        10.954689025878906,
+        -1.4814453125,
+        2.158203125,
+        4.95703125,
+        1.8515625,
+        -2.15625,
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ]
+    }
+  ],
+  "class_names": [
+    "car",
+    "truck",
+    "construction_vehicle",
+    "bus",
+    "trailer",
+    "barrier",
+    "motorcycle",
+    "bicycle",
+    "pedestrian",
+    "traffic_cone"
+  ],
+  "raw_prediction_count": 200,
+  "filtered_prediction_count": 2
+}

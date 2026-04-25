@@ -1,0 +1,123 @@
+{
+  "sample_name": "sample_000019",
+  "sequence_index": 19,
+  "frame_id": 2196,
+  "timestamp": 33.84063230827451,
+  "prediction_variant": "bridge_minimal",
+  "source_sample_dir": "/workspace/Agent-AI/outputs/samples/sample_000019",
+  "source_prediction_dir": "/workspace/Agent-AI/outputs/live_watch_compare/live_20260401_095649/inference/sample_000019/bridge_minimal",
+  "ego": {
+    "frame_id": 2196,
+    "timestamp": 33.84063230827451,
+    "sample_name": "sample_000019",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      -56.64912414550781,
+      -22.599220275878906,
+      -0.006190948188304901
+    ],
+    "velocity_world": [
+      7.704861164093018,
+      3.3906681537628174,
+      -0.00024415014195255935
+    ],
+    "speed_mps": 8.417928257386103,
+    "yaw_deg": -20.83456039428711,
+    "route_progress_m": 3.7502212408150037,
+    "world_from_ego_bevfusion": [
+      [
+        0.9345753788948059,
+        -0.3557608127593994,
+        -0.0017731529660522938,
+        -56.64912414550781
+      ],
+      [
+        0.35565710067749023,
+        0.9344025254249573,
+        -0.019999569281935692,
+        -22.599220275878906
+      ],
+      [
+        0.008771901950240135,
+        0.0180604699999094,
+        0.9997984170913696,
+        -0.006190948188304901
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "detections": [
+    {
+      "detection_id": "sample_000019_det_0000",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.28271484375,
+      "position_ego": [
+        46.16045379638672,
+        -4.000267028808594,
+        -1.5673828125
+      ],
+      "size_xyz": [
+        2.076171875,
+        4.78125,
+        1.7861328125
+      ],
+      "yaw_rad": 1.921875,
+      "velocity_ego": [
+        -1.3740234375,
+        0.439208984375
+      ],
+      "speed_mps": 1.4425134102513693,
+      "distance_m": 46.33346124552024,
+      "bearing_deg": -4.952880944027172,
+      "source_confidence": 0.28271484375,
+      "raw_box_9d": [
+        46.16045379638672,
+        -4.000267028808594,
+        -1.5673828125,
+        2.076171875,
+        4.78125,
+        1.7861328125,
+        1.921875,
+        -1.3740234375,
+        0.439208984375
+      ]
+    }
+  ],
+  "class_names": [
+    "car",
+    "truck",
+    "construction_vehicle",
+    "bus",
+    "trailer",
+    "barrier",
+    "motorcycle",
+    "bicycle",
+    "pedestrian",
+    "traffic_cone"
+  ],
+  "raw_prediction_count": 200,
+  "filtered_prediction_count": 1
+}

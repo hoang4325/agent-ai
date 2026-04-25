@@ -1,0 +1,670 @@
+{
+  "sample_name": "sample_000009",
+  "radar_mode": "minimal",
+  "radar_ablation": "none",
+  "runtime_info": {
+    "checkpoint_path": "/workspace/Data-Train/epoch_8_3sensor.pth",
+    "radar_bridge": "minimal",
+    "radar_ablation": "none",
+    "radar_bridge_details": {
+      "bridge_strategy": "minimal_6d_runtime_patch",
+      "kept_input_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff"
+      ],
+      "kept_checkpoint_columns": [
+        "x",
+        "y",
+        "z",
+        "vx_comp",
+        "vy_comp",
+        "time_diff",
+        "f_center_x",
+        "f_center_y"
+      ],
+      "kept_checkpoint_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        45,
+        46
+      ],
+      "original_shape": [
+        128,
+        47
+      ],
+      "patched_shape": [
+        128,
+        8
+      ]
+    }
+  },
+  "lidar_debug": {
+    "keyframe_points": 17417,
+    "prefilter_point_count": 173974,
+    "history_used": [
+      {
+        "sample_name": "sample_000008",
+        "point_count": 17432,
+        "time_diff": 0.05000000074505806
+      },
+      {
+        "sample_name": "sample_000007",
+        "point_count": 17404,
+        "time_diff": 0.10000000149011612
+      },
+      {
+        "sample_name": "sample_000006",
+        "point_count": 17396,
+        "time_diff": 0.15000000596046448
+      },
+      {
+        "sample_name": "sample_000005",
+        "point_count": 17407,
+        "time_diff": 0.20000000298023224
+      },
+      {
+        "sample_name": "sample_000004",
+        "point_count": 17386,
+        "time_diff": 0.25
+      },
+      {
+        "sample_name": "sample_000003",
+        "point_count": 17378,
+        "time_diff": 0.30000001192092896
+      },
+      {
+        "sample_name": "sample_000002",
+        "point_count": 17384,
+        "time_diff": 0.3499999940395355
+      },
+      {
+        "sample_name": "sample_000001",
+        "point_count": 17384,
+        "time_diff": 0.4000000059604645
+      },
+      {
+        "sample_name": "sample_000000",
+        "point_count": 17386,
+        "time_diff": 0.45000001788139343
+      }
+    ],
+    "final_point_count": 144821,
+    "point_cloud_range": [
+      -54.0,
+      -54.0,
+      -5.0,
+      54.0,
+      54.0,
+      3.0
+    ]
+  },
+  "radar_debug": {
+    "bridge_strategy": "minimal_6d_runtime_patch",
+    "input_columns": [
+      "x",
+      "y",
+      "z",
+      "vx_comp",
+      "vy_comp",
+      "time_diff"
+    ],
+    "repo_expected_selected_columns": [
+      "x",
+      "y",
+      "z",
+      "rcs",
+      "vx_comp",
+      "vy_comp",
+      "time_diff",
+      "dynprop_oh_0",
+      "dynprop_oh_1",
+      "dynprop_oh_2",
+      "dynprop_oh_3",
+      "dynprop_oh_4",
+      "dynprop_oh_5",
+      "dynprop_oh_6",
+      "dynprop_oh_7",
+      "ambig_state_oh_0",
+      "ambig_state_oh_1",
+      "ambig_state_oh_2",
+      "ambig_state_oh_3",
+      "ambig_state_oh_4",
+      "invalid_state_oh_0",
+      "invalid_state_oh_1",
+      "invalid_state_oh_2",
+      "invalid_state_oh_3",
+      "invalid_state_oh_4",
+      "invalid_state_oh_5",
+      "invalid_state_oh_6",
+      "invalid_state_oh_7",
+      "invalid_state_oh_8",
+      "invalid_state_oh_9",
+      "invalid_state_oh_10",
+      "invalid_state_oh_11",
+      "invalid_state_oh_12",
+      "invalid_state_oh_13",
+      "invalid_state_oh_14",
+      "invalid_state_oh_15",
+      "invalid_state_oh_16",
+      "invalid_state_oh_17",
+      "pdh0_ord_gt_0",
+      "pdh0_ord_gt_1",
+      "pdh0_ord_gt_2",
+      "pdh0_ord_gt_3",
+      "pdh0_ord_gt_4",
+      "pdh0_ord_gt_5",
+      "pdh0_ord_gt_6"
+    ],
+    "sensor_velocity_estimation": "finite_difference_in_current_lidar_frame_with_ego_velocity_fallback",
+    "history_used": [
+      {
+        "sensor": "RADAR_FRONT",
+        "sample_name": "sample_000009",
+        "sweep_index": 0,
+        "raw_count": 66,
+        "in_bev_xy_count": 39,
+        "in_full_xyz_count": 30,
+        "time_diff": 0.0,
+        "sensor_velocity_current_lidar": [
+          5.7367706298828125,
+          0.56732177734375,
+          -0.0007152557373046875
+        ],
+        "radial_velocity_min": -5.763426303863525,
+        "radial_velocity_max": -5.448072910308838
+      },
+      {
+        "sensor": "RADAR_FRONT",
+        "sample_name": "sample_000008",
+        "sweep_index": 1,
+        "raw_count": 66,
+        "in_bev_xy_count": 43,
+        "in_full_xyz_count": 36,
+        "time_diff": 0.05000000074505806,
+        "sensor_velocity_current_lidar": [
+          5.7367706298828125,
+          0.56732177734375,
+          -0.0007152557373046875
+        ],
+        "radial_velocity_min": -5.371758937835693,
+        "radial_velocity_max": -5.013758182525635
+      },
+      {
+        "sensor": "RADAR_FRONT",
+        "sample_name": "sample_000007",
+        "sweep_index": 2,
+        "raw_count": 54,
+        "in_bev_xy_count": 31,
+        "in_full_xyz_count": 25,
+        "time_diff": 0.10000000149011612,
+        "sensor_velocity_current_lidar": [
+          5.345458984375,
+          0.5424690246582031,
+          -0.07149457931518555
+        ],
+        "radial_velocity_min": -5.370043754577637,
+        "radial_velocity_max": -4.9408392906188965
+      },
+      {
+        "sensor": "RADAR_FRONT",
+        "sample_name": "sample_000006",
+        "sweep_index": 3,
+        "raw_count": 52,
+        "in_bev_xy_count": 39,
+        "in_full_xyz_count": 32,
+        "time_diff": 0.15000000223517418,
+        "sensor_velocity_current_lidar": [
+          5.3482818603515625,
+          0.47756195068359375,
+          -0.07889509201049805
+        ],
+        "radial_velocity_min": -5.3776445388793945,
+        "radial_velocity_max": -5.042247295379639
+      },
+      {
+        "sensor": "RADAR_FRONT",
+        "sample_name": "sample_000005",
+        "sweep_index": 4,
+        "raw_count": 64,
+        "in_bev_xy_count": 44,
+        "in_full_xyz_count": 35,
+        "time_diff": 0.20000000298023224,
+        "sensor_velocity_current_lidar": [
+          5.357818603515625,
+          0.4574775695800781,
+          -0.08270740509033203
+        ],
+        "radial_velocity_min": -5.365662097930908,
+        "radial_velocity_max": -5.003772258758545
+      },
+      {
+        "sensor": "RADAR_FRONT",
+        "sample_name": "sample_000004",
+        "sweep_index": 5,
+        "raw_count": 57,
+        "in_bev_xy_count": 42,
+        "in_full_xyz_count": 36,
+        "time_diff": 0.2500000037252903,
+        "sensor_velocity_current_lidar": [
+          5.361480712890625,
+          0.22731781005859375,
+          -0.07816076278686523
+        ],
+        "radial_velocity_min": -5.385493278503418,
+        "radial_velocity_max": -5.0952301025390625
+      },
+      {
+        "sensor": "RADAR_FRONT_LEFT",
+        "sample_name": "sample_000009",
+        "sweep_index": 0,
+        "raw_count": 70,
+        "in_bev_xy_count": 68,
+        "in_full_xyz_count": 40,
+        "time_diff": 0.0,
+        "sensor_velocity_current_lidar": [
+          5.5854034423828125,
+          0.4976463317871094,
+          -0.003566741943359375
+        ],
+        "radial_velocity_min": -5.1467437744140625,
+        "radial_velocity_max": -3.143800973892212
+      },
+      {
+        "sensor": "RADAR_FRONT_LEFT",
+        "sample_name": "sample_000008",
+        "sweep_index": 1,
+        "raw_count": 73,
+        "in_bev_xy_count": 72,
+        "in_full_xyz_count": 49,
+        "time_diff": 0.05000000074505806,
+        "sensor_velocity_current_lidar": [
+          5.5854034423828125,
+          0.4976463317871094,
+          -0.003566741943359375
+        ],
+        "radial_velocity_min": -4.791762828826904,
+        "radial_velocity_max": -2.9125256538391113
+      },
+      {
+        "sensor": "RADAR_FRONT_LEFT",
+        "sample_name": "sample_000007",
+        "sweep_index": 2,
+        "raw_count": 73,
+        "in_bev_xy_count": 73,
+        "in_full_xyz_count": 45,
+        "time_diff": 0.10000000149011612,
+        "sensor_velocity_current_lidar": [
+          5.18402099609375,
+          0.4701042175292969,
+          -0.0622868537902832
+        ],
+        "radial_velocity_min": -4.798332691192627,
+        "radial_velocity_max": -3.1064674854278564
+      },
+      {
+        "sensor": "RADAR_FRONT_LEFT",
+        "sample_name": "sample_000006",
+        "sweep_index": 3,
+        "raw_count": 72,
+        "in_bev_xy_count": 69,
+        "in_full_xyz_count": 42,
+        "time_diff": 0.15000000223517418,
+        "sensor_velocity_current_lidar": [
+          5.19561767578125,
+          0.41103363037109375,
+          -0.06303787231445312
+        ],
+        "radial_velocity_min": -4.7304487228393555,
+        "radial_velocity_max": -2.935683488845825
+      },
+      {
+        "sensor": "RADAR_FRONT_LEFT",
+        "sample_name": "sample_000005",
+        "sweep_index": 4,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 59,
+        "time_diff": 0.20000000298023224,
+        "sensor_velocity_current_lidar": [
+          5.1879119873046875,
+          0.3856468200683594,
+          -0.05230903625488281
+        ],
+        "radial_velocity_min": -4.71046257019043,
+        "radial_velocity_max": -3.2299931049346924
+      },
+      {
+        "sensor": "RADAR_FRONT_LEFT",
+        "sample_name": "sample_000004",
+        "sweep_index": 5,
+        "raw_count": 75,
+        "in_bev_xy_count": 74,
+        "in_full_xyz_count": 44,
+        "time_diff": 0.2500000037252903,
+        "sensor_velocity_current_lidar": [
+          5.245361328125,
+          0.17963409423828125,
+          -0.04942178726196289
+        ],
+        "radial_velocity_min": -4.815520286560059,
+        "radial_velocity_max": -3.0837066173553467
+      },
+      {
+        "sensor": "RADAR_FRONT_RIGHT",
+        "sample_name": "sample_000009",
+        "sweep_index": 0,
+        "raw_count": 75,
+        "in_bev_xy_count": 72,
+        "in_full_xyz_count": 54,
+        "time_diff": 0.0,
+        "sensor_velocity_current_lidar": [
+          5.887298583984375,
+          0.4961395263671875,
+          -0.010802745819091797
+        ],
+        "radial_velocity_min": -4.945581912994385,
+        "radial_velocity_max": -2.3915138244628906
+      },
+      {
+        "sensor": "RADAR_FRONT_RIGHT",
+        "sample_name": "sample_000008",
+        "sweep_index": 1,
+        "raw_count": 75,
+        "in_bev_xy_count": 73,
+        "in_full_xyz_count": 53,
+        "time_diff": 0.05000000074505806,
+        "sensor_velocity_current_lidar": [
+          5.887298583984375,
+          0.4961395263671875,
+          -0.010802745819091797
+        ],
+        "radial_velocity_min": -4.549149990081787,
+        "radial_velocity_max": -2.2838079929351807
+      },
+      {
+        "sensor": "RADAR_FRONT_RIGHT",
+        "sample_name": "sample_000007",
+        "sweep_index": 2,
+        "raw_count": 75,
+        "in_bev_xy_count": 74,
+        "in_full_xyz_count": 49,
+        "time_diff": 0.10000000149011612,
+        "sensor_velocity_current_lidar": [
+          5.5046844482421875,
+          0.4651641845703125,
+          -0.06486892700195312
+        ],
+        "radial_velocity_min": -4.604990005493164,
+        "radial_velocity_max": -2.1792290210723877
+      },
+      {
+        "sensor": "RADAR_FRONT_RIGHT",
+        "sample_name": "sample_000006",
+        "sweep_index": 3,
+        "raw_count": 75,
+        "in_bev_xy_count": 73,
+        "in_full_xyz_count": 63,
+        "time_diff": 0.15000000223517418,
+        "sensor_velocity_current_lidar": [
+          5.4975128173828125,
+          0.4032707214355469,
+          -0.07584571838378906
+        ],
+        "radial_velocity_min": -4.525712966918945,
+        "radial_velocity_max": -2.3159193992614746
+      },
+      {
+        "sensor": "RADAR_FRONT_RIGHT",
+        "sample_name": "sample_000005",
+        "sweep_index": 4,
+        "raw_count": 75,
+        "in_bev_xy_count": 71,
+        "in_full_xyz_count": 53,
+        "time_diff": 0.20000000298023224,
+        "sensor_velocity_current_lidar": [
+          5.5218505859375,
+          0.3734016418457031,
+          -0.09241819381713867
+        ],
+        "radial_velocity_min": -4.417331695556641,
+        "radial_velocity_max": -2.207493305206299
+      },
+      {
+        "sensor": "RADAR_FRONT_RIGHT",
+        "sample_name": "sample_000004",
+        "sweep_index": 5,
+        "raw_count": 75,
+        "in_bev_xy_count": 72,
+        "in_full_xyz_count": 52,
+        "time_diff": 0.2500000037252903,
+        "sensor_velocity_current_lidar": [
+          5.472564697265625,
+          0.1691436767578125,
+          -0.08745670318603516
+        ],
+        "radial_velocity_min": -4.564476013183594,
+        "radial_velocity_max": -2.5485541820526123
+      },
+      {
+        "sensor": "RADAR_BACK_LEFT",
+        "sample_name": "sample_000009",
+        "sweep_index": 0,
+        "raw_count": 75,
+        "in_bev_xy_count": 55,
+        "in_full_xyz_count": 39,
+        "time_diff": 0.0,
+        "sensor_velocity_current_lidar": [
+          5.58197021484375,
+          -0.16696929931640625,
+          -0.06456613540649414
+        ],
+        "radial_velocity_min": 2.919825792312622,
+        "radial_velocity_max": 4.950366497039795
+      },
+      {
+        "sensor": "RADAR_BACK_LEFT",
+        "sample_name": "sample_000008",
+        "sweep_index": 1,
+        "raw_count": 75,
+        "in_bev_xy_count": 62,
+        "in_full_xyz_count": 45,
+        "time_diff": 0.05000000074505806,
+        "sensor_velocity_current_lidar": [
+          5.58197021484375,
+          -0.16696929931640625,
+          -0.06456613540649414
+        ],
+        "radial_velocity_min": 2.6439311504364014,
+        "radial_velocity_max": 4.6576080322265625
+      },
+      {
+        "sensor": "RADAR_BACK_LEFT",
+        "sample_name": "sample_000007",
+        "sweep_index": 2,
+        "raw_count": 75,
+        "in_bev_xy_count": 62,
+        "in_full_xyz_count": 54,
+        "time_diff": 0.10000000149011612,
+        "sensor_velocity_current_lidar": [
+          5.173187255859375,
+          -0.2350616455078125,
+          0.012364387512207031
+        ],
+        "radial_velocity_min": 2.739861488342285,
+        "radial_velocity_max": 4.583270072937012
+      },
+      {
+        "sensor": "RADAR_BACK_LEFT",
+        "sample_name": "sample_000006",
+        "sweep_index": 3,
+        "raw_count": 75,
+        "in_bev_xy_count": 60,
+        "in_full_xyz_count": 45,
+        "time_diff": 0.15000000223517418,
+        "sensor_velocity_current_lidar": [
+          5.178375244140625,
+          -0.2531623840332031,
+          0.026102066040039062
+        ],
+        "radial_velocity_min": 2.5922160148620605,
+        "radial_velocity_max": 4.483204364776611
+      },
+      {
+        "sensor": "RADAR_BACK_LEFT",
+        "sample_name": "sample_000005",
+        "sweep_index": 4,
+        "raw_count": 75,
+        "in_bev_xy_count": 66,
+        "in_full_xyz_count": 53,
+        "time_diff": 0.20000000298023224,
+        "sensor_velocity_current_lidar": [
+          5.160980224609375,
+          -0.3489875793457031,
+          0.0452113151550293
+        ],
+        "radial_velocity_min": 2.7994186878204346,
+        "radial_velocity_max": 4.576008319854736
+      },
+      {
+        "sensor": "RADAR_BACK_LEFT",
+        "sample_name": "sample_000004",
+        "sweep_index": 5,
+        "raw_count": 75,
+        "in_bev_xy_count": 65,
+        "in_full_xyz_count": 50,
+        "time_diff": 0.2500000037252903,
+        "sensor_velocity_current_lidar": [
+          5.222015380859375,
+          -0.3195762634277344,
+          0.04219770431518555
+        ],
+        "radial_velocity_min": 2.7287392616271973,
+        "radial_velocity_max": 4.515482425689697
+      },
+      {
+        "sensor": "RADAR_BACK_RIGHT",
+        "sample_name": "sample_000009",
+        "sweep_index": 0,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 75,
+        "time_diff": 0.0,
+        "sensor_velocity_current_lidar": [
+          5.883941650390625,
+          -0.16855239868164062,
+          -0.07179975509643555
+        ],
+        "radial_velocity_min": 2.607957601547241,
+        "radial_velocity_max": 4.917693138122559
+      },
+      {
+        "sensor": "RADAR_BACK_RIGHT",
+        "sample_name": "sample_000008",
+        "sweep_index": 1,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 75,
+        "time_diff": 0.05000000074505806,
+        "sensor_velocity_current_lidar": [
+          5.883941650390625,
+          -0.16855239868164062,
+          -0.07179975509643555
+        ],
+        "radial_velocity_min": 2.7563655376434326,
+        "radial_velocity_max": 4.638674736022949
+      },
+      {
+        "sensor": "RADAR_BACK_RIGHT",
+        "sample_name": "sample_000007",
+        "sweep_index": 2,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 70,
+        "time_diff": 0.10000000149011612,
+        "sensor_velocity_current_lidar": [
+          5.4937744140625,
+          -0.23996353149414062,
+          0.009779930114746094
+        ],
+        "radial_velocity_min": 2.856301784515381,
+        "radial_velocity_max": 4.77138090133667
+      },
+      {
+        "sensor": "RADAR_BACK_RIGHT",
+        "sample_name": "sample_000006",
+        "sweep_index": 3,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 74,
+        "time_diff": 0.15000000223517418,
+        "sensor_velocity_current_lidar": [
+          5.480499267578125,
+          -0.26092529296875,
+          0.013294219970703125
+        ],
+        "radial_velocity_min": 2.5931591987609863,
+        "radial_velocity_max": 4.561983108520508
+      },
+      {
+        "sensor": "RADAR_BACK_RIGHT",
+        "sample_name": "sample_000005",
+        "sweep_index": 4,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 70,
+        "time_diff": 0.20000000298023224,
+        "sensor_velocity_current_lidar": [
+          5.494842529296875,
+          -0.36121368408203125,
+          0.005095005035400391
+        ],
+        "radial_velocity_min": 2.797574043273926,
+        "radial_velocity_max": 4.65717887878418
+      },
+      {
+        "sensor": "RADAR_BACK_RIGHT",
+        "sample_name": "sample_000004",
+        "sweep_index": 5,
+        "raw_count": 75,
+        "in_bev_xy_count": 75,
+        "in_full_xyz_count": 74,
+        "time_diff": 0.2500000037252903,
+        "sensor_velocity_current_lidar": [
+          5.449371337890625,
+          -0.330047607421875,
+          0.004172325134277344
+        ],
+        "radial_velocity_min": 2.62701678276062,
+        "radial_velocity_max": 4.682971477508545
+      }
+    ],
+    "raw_total": 2147,
+    "in_bev_xy_total": 1924,
+    "in_full_xyz_total": 1521,
+    "z_out_of_range_total": 403,
+    "final_point_count_before_cap": 1924,
+    "final_point_count": 1924,
+    "point_cloud_range": [
+      -54.0,
+      -54.0,
+      -5.0,
+      54.0,
+      54.0,
+      3.0
+    ],
+    "radar_sweeps_requested": 6,
+    "radar_sweeps_used": 6
+  },
+  "timings": {
+    "infer_seconds": 7.374064404999444,
+    "visualize_seconds": 0.6925639299988688
+  }
+}

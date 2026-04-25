@@ -1,0 +1,76 @@
+{
+  "stage3b_output_dir": "D:\\Agent-AI\\outputs\\stage3b\\st3b_s3a_ml_long_v2",
+  "output_dir": "D:\\Agent-AI\\outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown",
+  "scenario_manifest": "D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_long2_manifest.json",
+  "attach_to_actor_id": 28,
+  "carla_host": "127.0.0.1",
+  "carla_port": 2000,
+  "carla_pythonapi_root": "D:\\carla\\PythonAPI",
+  "fixed_delta_seconds": 0.1,
+  "prepare_offset_m": 0.75,
+  "lane_change_success_hold_ticks": 4,
+  "max_lane_change_ticks": 45,
+  "lane_change_min_lateral_shift_m": 0.5,
+  "lane_change_min_lateral_shift_fraction": 0.15,
+  "stop_hold_ticks": 10,
+  "stop_full_stop_speed_threshold_mps": 0.35,
+  "stop_near_distance_m": 8.0,
+  "stop_hard_brake_distance_m": 3.0,
+  "num_requests": 117,
+  "execution_mode": "local_planner_bridge",
+  "backend_note": "CARLA LocalPlanner/PID used as temporary execution backend, not a production local planner.",
+  "scenario_manifest_payload": {
+    "town": "Carla/Maps/Town10HD_Opt",
+    "host": "127.0.0.1",
+    "port": 2000,
+    "tm_port": 8000,
+    "ego_actor_id": 28,
+    "blocker_actor_id": 29,
+    "adjacent_actor_id": 30,
+    "adjacent_side": "right",
+    "scenario_type": "stage3a_non_junction_multilane",
+    "corridor": {
+      "road_id": 0,
+      "section_id": 0,
+      "lane_id": -1,
+      "s": 10.000000000000002,
+      "lane_width_m": 3.5,
+      "lane_change": "Right",
+      "adjacent_lane_id": -2,
+      "junction_distance_m": null,
+      "ego_transform": {
+        "location": {
+          "x": 106.4453125,
+          "y": -19.35972023010254,
+          "z": 0.4000000059604645
+        },
+        "rotation": {
+          "roll": 0.0,
+          "pitch": 0.0,
+          "yaw": 270.3343200683594
+        }
+      }
+    },
+    "placements": {
+      "blocker_distance_m": 100.0,
+      "adjacent_distance_m": 140.0
+    },
+    "recommended_commands": {
+      "stage1_dump_from_manifest": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 80 --fixed-delta-seconds 0.05 --image-width 1600 --image-height 900 --camera-fov 70 --scenario-manifest D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_long2_manifest.json --autopilot",
+      "stage1_dump_attach_id": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 80 --fixed-delta-seconds 0.05 --image-width 1600 --image-height 900 --camera-fov 70 --attach-to-actor-id 28 --autopilot",
+      "stage1_dump_stable_from_manifest": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 60 --fixed-delta-seconds 0.05 --image-width 1280 --image-height 720 --camera-fov 70 --warmup-ticks 8 --scenario-manifest D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_long2_manifest.json --autopilot",
+      "stage1_dump_ultrastable_from_manifest": "python D:\\Agent-AI\\scripts\\run_carla_dump.py --host 127.0.0.1 --port 2000 --tm-port 8000 --output-root D:\\Agent-AI\\outputs\\samples_stage3a_multilane_right --num-samples 50 --fixed-delta-seconds 0.10 --image-width 960 --image-height 540 --camera-fov 70 --warmup-ticks 10 --shutdown-settle-ticks 4 --scenario-manifest D:\\Agent-AI\\outputs\\scenario_manifests\\stage3a_multilane_right_long2_manifest.json --autopilot"
+    }
+  },
+  "recording": {
+    "enabled": true,
+    "path": "D:\\Agent-AI\\outputs\\stage3c\\st3c_s3a_ml_long_v2_mp4_topdown\\video\\closed_loop.mp4",
+    "camera_mode": "topdown",
+    "width": 1280,
+    "height": 720,
+    "fov": 90.0,
+    "fps": 4.0,
+    "overlay": true,
+    "post_roll_ticks": 120
+  }
+}

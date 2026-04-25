@@ -1,0 +1,1154 @@
+{
+  "generated_at": "2026-04-13T14:50:49+00:00",
+  "bundle_version": "frozen_case_bundle_v1",
+  "corpus_root": "benchmark/frozen_corpus/v1",
+  "cases": {
+    "adjacent_left_unsafe_hold": {
+      "readiness": "corpus_pending",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/provenance/provenance.json",
+      "mapping_modes": {
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/adjacent_left_unsafe_hold/reference_outputs/semantic/ground_truth_actor_roles.json"
+          }
+        }
+      },
+      "warnings": [
+        "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+        "missing_semantic_reference:critical_actor_binding,behavior_arbitration_events,route_session_binding",
+        "pending_ground_truth_binding_true"
+      ]
+    },
+    "adjacent_right_unsafe_hold": {
+      "readiness": "corpus_partial",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/adjacent_right_unsafe_hold/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "arbitration_stop_during_prepare_right": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/arbitration_stop_during_prepare_right/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "fr_arbitration_missing_cancel": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_arbitration_missing_cancel/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "fr_blocker_binding_wrong_lane": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_blocker_binding_wrong_lane/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "fr_lc_commit_no_permission": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_lc_commit_no_permission/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "fr_right_commit_superseded_by_stop": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_right_commit_superseded_by_stop/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "fr_route_session_mismatch": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_route_session_mismatch/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "fr_stop_overshoot_false_pass": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/fr_stop_overshoot_false_pass/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "junction_straight_core": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/junction_straight_core/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/junction_straight_core/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage2/frames/sample_000010/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage2/frames/sample_000010/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3a/frames/sample_000010/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3b/frames/sample_000010/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/junction_straight_core/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/junction_straight_core"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/junction_straight_core/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/junction_straight_core/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "late_emerging_obstacle": {
+      "readiness": "corpus_pending",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/provenance/provenance.json",
+      "mapping_modes": {
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/late_emerging_obstacle/reference_outputs/semantic/ground_truth_actor_roles.json"
+          }
+        }
+      },
+      "warnings": [
+        "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+        "missing_semantic_reference:critical_actor_binding,behavior_arbitration_events,route_session_binding",
+        "pending_ground_truth_binding_true"
+      ]
+    },
+    "ml_left_positive_core": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/ml_left_positive_core/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "ml_right_positive_core": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/ml_right_positive_core/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "route_bias_fork_keep_right": {
+      "readiness": "corpus_pending",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/provenance/provenance.json",
+      "mapping_modes": {
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/route_bias_fork_keep_right/reference_outputs/semantic/critical_actor_binding.jsonl"
+          }
+        }
+      },
+      "warnings": [
+        "missing_reference_outputs:stage2,stage3a,stage3b,stage3c",
+        "missing_semantic_reference:behavior_arbitration_events,route_session_binding",
+        "pending_ground_truth_binding_true"
+      ]
+    },
+    "stop_follow_ambiguity_core": {
+      "readiness": "corpus_ready",
+      "bundle_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core",
+      "case_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/case_manifest.json",
+      "scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_manifest.json",
+      "runner_scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_artifacts/runner_manifest.json",
+      "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/stage1_frozen/session",
+      "benchmark_reference_path": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/benchmark_reference/benchmark_reference.json",
+      "provenance_path": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/provenance/provenance.json",
+      "mapping_modes": {
+        "replay_regression": {
+          "source": {
+            "type": "frozen_case_bundle_v1_reference",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/stage1_frozen/session",
+            "stage2_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage2",
+            "stage3a_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3a",
+            "stage3b_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3b",
+            "stage3c_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/stage1_frozen/session/session_summary.json",
+            "stage2_evaluation_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage2/evaluation_summary.json",
+            "stage2_world_state_sample": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage2/frames/sample_000029/world_state.json",
+            "stage2_tracked_objects_sample": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage2/frames/sample_000029/tracked_objects.json",
+            "stage3a_evaluation_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3a/evaluation_summary.json",
+            "stage3a_lane_world_state_sample": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3a/frames/sample_000029/lane_aware_world_state.json",
+            "stage3b_evaluation_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3b/evaluation_summary.json",
+            "stage3b_behavior_timeline": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3b/behavior_timeline_v2.jsonl",
+            "stage3b_behavior_request_sample": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3b/frames/sample_000029/behavior_request_v2.json",
+            "stage3c_execution_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/execution_summary.json",
+            "stage3c_execution_timeline": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/execution_timeline.jsonl",
+            "stage3c_lane_change_events": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/lane_change_events.jsonl",
+            "stage3c_lane_change_events_enriched": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/lane_change_events_enriched.jsonl",
+            "stage3c_stop_events": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/stop_events.jsonl",
+            "stage3c_trajectory_trace": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/trajectory_trace.jsonl",
+            "stage3c_control_trace": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/control_trace.jsonl",
+            "stage3c_lane_change_phase_trace": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/lane_change_phase_trace.jsonl",
+            "stage3c_stop_target": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/stop_target.json",
+            "stage3c_planner_control_latency": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/planner_control_latency.jsonl",
+            "stage3c_fallback_events": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/fallback_events.jsonl",
+            "stage3c_planner_quality_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/stage3c/planner_quality_summary.json"
+          }
+        },
+        "scenario_replay": {
+          "source": {
+            "type": "frozen_case_bundle_v1_input",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/stage1_frozen/session",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core"
+          },
+          "scenario_recipe": {
+            "source_type": "frozen_case_bundle_v1",
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_artifacts/runner_manifest.json",
+            "stage1_session_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/stage1_frozen/session",
+            "stage1_materialization": "frozen_stage1_session"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/route_session_binding.json",
+            "stage1_session_summary": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/stage1_frozen/session/session_summary.json"
+          }
+        },
+        "online_e2e": {
+          "source": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_artifacts/runner_manifest.json",
+            "frozen_bundle_dir": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core"
+          },
+          "scenario_recipe": {
+            "scenario_manifest": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/scenario_artifacts/runner_manifest.json",
+            "source_type": "frozen_case_bundle_v1_reference_online"
+          },
+          "artifacts": {
+            "ground_truth_actor_roles": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/ground_truth_actor_roles.json",
+            "critical_actor_binding": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/critical_actor_binding.jsonl",
+            "behavior_arbitration_events": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/behavior_arbitration_events.jsonl",
+            "route_session_binding": "benchmark/frozen_corpus/v1/cases/stop_follow_ambiguity_core/reference_outputs/semantic/route_session_binding.json"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+}

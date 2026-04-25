@@ -1,0 +1,21 @@
+name: stage4_online_default
+runner_script: scripts/run_stage4_online.py
+python_executable: "{stage4_python_executable}"
+args:
+  --output-dir: "{stage4_output_dir}"
+  --scenario-manifest: "{scenario_manifest}"
+  --spawn-ego-if-missing: "true"
+  --carla-pythonapi-root: "D:/carla/PythonAPI"
+  --num-ticks: "80"
+  --warmup-ticks: "8"
+  --fixed-delta-seconds: "0.10"
+  --route-option: "{route_option}"
+  --preferred-lane: "{preferred_lane}"
+  --route-priority: "{route_priority}"
+  --stage1-launch-mode: "docker_watch"
+  --stage1-container-name: "bevfusion-cu128"
+  --stage1-container-agent-root: "{stage1_container_agent_root}"
+  --stage1-container-repo-root: "/workspace/Bevfusion-Z"
+  --stage1-container-config: "/workspace/Bevfusion-Z/configs/nuscenes/det/transfusion/secfpn/camera+lidar+radar/swint_v0p075/sefuser_radarbev.yaml"
+  --stage1-container-checkpoint: "/workspace/Data-Train/epoch_8_3sensor.pth"
+  --stage1-device: "{stage1_device}"

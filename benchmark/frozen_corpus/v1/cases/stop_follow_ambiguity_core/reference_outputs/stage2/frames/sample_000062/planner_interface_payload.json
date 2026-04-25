@@ -1,0 +1,402 @@
+{
+  "frame_id": 60063,
+  "timestamp": 441.2197008430958,
+  "ego": {
+    "speed_mps": 6.866944348837654,
+    "yaw_deg": -151.54714965820312,
+    "route_progress_m": 45.98804557043185,
+    "position_world": [
+      84.02140808105469,
+      59.61467742919922,
+      -0.0033560560550540686
+    ]
+  },
+  "decision_intent": {
+    "frame_id": 60063,
+    "timestamp": 441.2197008430958,
+    "maneuver": "lane_change_right",
+    "target_speed_mps": 6.866944348837654,
+    "lane_preference": "prefer_right",
+    "constraints": [
+      "lane_change_requires_validation"
+    ],
+    "confidence": 0.62,
+    "reasoning_tags": [
+      "front_vehicle_slow",
+      "right_gap_preferred"
+    ]
+  },
+  "hard_constraints": [],
+  "soft_constraints": [
+    "prefer_right_if_replan"
+  ],
+  "tracked_objects": [
+    {
+      "track_id": 2,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000062_det_0001",
+      "age_frames": 60,
+      "hits": 60,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.6123046875,
+      "mean_score": 0.5396809895833335,
+      "position_ego": [
+        13.37705794920345,
+        2.2855373842730056,
+        -1.373046875
+      ],
+      "velocity_ego": [
+        -3.8069889852574237,
+        -1.231768775711536
+      ],
+      "speed_mps": 4.001302219364247,
+      "bbox": [
+        13.37705794920345,
+        2.2855373842730056,
+        -1.373046875,
+        2.140625,
+        5.08203125,
+        1.767578125,
+        -1.9365234375,
+        -3.8069889852574237,
+        -1.231768775711536
+      ],
+      "size_xyz": [
+        2.140625,
+        5.08203125,
+        1.767578125
+      ],
+      "yaw_rad": -1.9365234375,
+      "distance_m": 13.570901241673551,
+      "bearing_deg": 9.695651104876015,
+      "ttc_seconds": 3.513815774357674,
+      "relative_sector": "front",
+      "source_confidence": 0.6123046875,
+      "risk_score": 0.6982182406874484,
+      "risk_level": "high",
+      "reasoning_tags": [
+        "near_field",
+        "ahead",
+        "frontal_corridor",
+        "ttc_medium",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 1,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000062_det_0000",
+      "age_frames": 60,
+      "hits": 60,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.6845703125,
+      "mean_score": 0.7089680989583333,
+      "position_ego": [
+        -21.705894955738803,
+        1.6590237330180801,
+        -1.474609375
+      ],
+      "velocity_ego": [
+        -4.363816648140469,
+        1.841689680273848
+      ],
+      "speed_mps": 4.736530018591153,
+      "bbox": [
+        -21.705894955738803,
+        1.6590237330180801,
+        -1.474609375,
+        2.111328125,
+        4.93359375,
+        1.76171875,
+        -1.0283203125,
+        -4.363816648140469,
+        1.841689680273848
+      ],
+      "size_xyz": [
+        2.111328125,
+        4.93359375,
+        1.76171875
+      ],
+      "yaw_rad": -1.0283203125,
+      "distance_m": 21.769203834230694,
+      "bearing_deg": 175.629270047239,
+      "ttc_seconds": null,
+      "relative_sector": "rear",
+      "source_confidence": 0.6845703125,
+      "risk_score": 0.18673097124326982,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 8,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000062_det_0003",
+      "age_frames": 43,
+      "hits": 43,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.412353515625,
+      "mean_score": 0.30013967114825585,
+      "position_ego": [
+        42.08637359646551,
+        13.373656794373353,
+        -0.748046875
+      ],
+      "velocity_ego": [
+        -3.473409834944526,
+        -4.134817219160752
+      ],
+      "speed_mps": 5.400119379917227,
+      "bbox": [
+        42.08637359646551,
+        13.373656794373353,
+        -0.748046875,
+        2.15234375,
+        4.8828125,
+        1.8359375,
+        1.099609375,
+        -3.473409834944526,
+        -4.134817219160752
+      ],
+      "size_xyz": [
+        2.15234375,
+        4.8828125,
+        1.8359375
+      ],
+      "yaw_rad": 1.099609375,
+      "distance_m": 44.16013517364907,
+      "bearing_deg": 17.628534489013724,
+      "ttc_seconds": 12.116731280326347,
+      "relative_sector": "front_left",
+      "source_confidence": 0.412353515625,
+      "risk_score": 0.15000000000000002,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "ahead",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 7,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000062_det_0002",
+      "age_frames": 44,
+      "hits": 44,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.438232421875,
+      "mean_score": 0.3494318181818183,
+      "position_ego": [
+        43.766818951534574,
+        10.895103264202582,
+        -0.84716796875
+      ],
+      "velocity_ego": [
+        -3.6601151660925337,
+        -4.197301561085878
+      ],
+      "speed_mps": 5.56900201326544,
+      "bbox": [
+        43.766818951534574,
+        10.895103264202582,
+        -0.84716796875,
+        2.171875,
+        4.89453125,
+        1.810546875,
+        1.080078125,
+        -3.6601151660925337,
+        -4.197301561085878
+      ],
+      "size_xyz": [
+        2.171875,
+        4.89453125,
+        1.810546875
+      ],
+      "yaw_rad": 1.080078125,
+      "distance_m": 45.10252450001046,
+      "bearing_deg": 13.97881105863831,
+      "ttc_seconds": 11.957770989555819,
+      "relative_sector": "front_left",
+      "source_confidence": 0.438232421875,
+      "risk_score": 0.15000000000000002,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "ahead",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 15,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000062_det_0004",
+      "age_frames": 22,
+      "hits": 22,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.12274169921875,
+      "mean_score": 0.29550170898437506,
+      "position_ego": [
+        48.77069298553859,
+        21.220963767511115,
+        -0.94140625
+      ],
+      "velocity_ego": [
+        -2.594513876945965,
+        -4.258692438740388
+      ],
+      "speed_mps": 4.986778874729632,
+      "bbox": [
+        48.77069298553859,
+        21.220963767511115,
+        -0.94140625,
+        2.2109375,
+        5.015625,
+        1.880859375,
+        1.0771484375,
+        -2.594513876945965,
+        -4.258692438740388
+      ],
+      "size_xyz": [
+        2.2109375,
+        5.015625,
+        1.880859375
+      ],
+      "yaw_rad": 1.0771484375,
+      "distance_m": 53.187496627606784,
+      "bearing_deg": 23.51468300921879,
+      "ttc_seconds": 18.797622714181507,
+      "relative_sector": "front_left",
+      "source_confidence": 0.12274169921875,
+      "risk_score": 0.15000000000000002,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "ahead",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 26,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000060_det_0005",
+      "age_frames": 6,
+      "hits": 4,
+      "missed_frames": 2,
+      "is_occluded_est": true,
+      "score": 0.1265869140625,
+      "mean_score": 0.19842529296875,
+      "position_ego": [
+        -29.208140021688237,
+        -7.593426903798774,
+        -1.162109375
+      ],
+      "velocity_ego": [
+        -4.977982183767908,
+        2.5569658512699744
+      ],
+      "speed_mps": 5.596282782925778,
+      "bbox": [
+        -29.208140021688237,
+        -7.593426903798774,
+        -1.162109375,
+        2.220703125,
+        5.0078125,
+        1.87890625,
+        -1.953125,
+        -4.977982183767908,
+        2.5569658512699744
+      ],
+      "size_xyz": [
+        2.220703125,
+        5.0078125,
+        1.87890625
+      ],
+      "yaw_rad": -1.953125,
+      "distance_m": 30.179058561689452,
+      "bearing_deg": -165.42705071875108,
+      "ttc_seconds": null,
+      "relative_sector": "rear_right",
+      "source_confidence": 0.10759887695312499,
+      "risk_score": 0.10510850166922973,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "vehicle",
+        "occluded_est"
+      ]
+    }
+  ],
+  "scene_summary": {
+    "active_object_count": 6,
+    "front_free_space_m": 12.30674544920345,
+    "left_side_occupancy": 0.8219964974698585,
+    "right_side_occupancy": 0.0,
+    "rear_gap_m": 21.705894955738803,
+    "nearest_front_vehicle": {
+      "track_id": 2,
+      "class": "car",
+      "distance_m": 13.570901241673551,
+      "bearing_deg": 9.695651104876015,
+      "position_ego": [
+        13.37705794920345,
+        2.2855373842730056,
+        -1.373046875
+      ],
+      "velocity_ego": [
+        -3.8069889852574237,
+        -1.231768775711536
+      ],
+      "risk_level": "high",
+      "risk_score": 0.6982182406874484
+    },
+    "nearest_vru": null,
+    "nearest_any_object": {
+      "track_id": 2,
+      "class": "car",
+      "distance_m": 13.570901241673551,
+      "bearing_deg": 9.695651104876015,
+      "position_ego": [
+        13.37705794920345,
+        2.2855373842730056,
+        -1.373046875
+      ],
+      "velocity_ego": [
+        -3.8069889852574237,
+        -1.231768775711536
+      ],
+      "risk_level": "high",
+      "risk_score": 0.6982182406874484
+    },
+    "abnormal_flags": [
+      "high_risk_scene"
+    ]
+  },
+  "risk_summary": {
+    "highest_risk_level": "high",
+    "highest_risk_score": 0.6982182406874484,
+    "urgent_track_ids": [
+      2
+    ],
+    "front_hazard_track_id": 2,
+    "nearest_front_vehicle_distance_m": 13.570901241673551,
+    "nearest_vru_distance_m": null,
+    "minimum_ttc_seconds": 3.513815774357674,
+    "flags": [
+      "hazard_present"
+    ]
+  }
+}

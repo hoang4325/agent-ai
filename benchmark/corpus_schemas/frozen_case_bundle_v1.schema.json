@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen Case Bundle v1",
+  "type": "object",
+  "required": [
+    "case_manifest",
+    "scenario_manifest",
+    "benchmark_reference",
+    "provenance"
+  ],
+  "properties": {
+    "case_manifest": {
+      "$ref": "./case_manifest.schema.json",
+      "x-population": "materialized_file"
+    },
+    "scenario_manifest": {
+      "$ref": "./scenario_manifest.schema.json",
+      "x-population": "materialized_file"
+    },
+    "benchmark_reference": {
+      "$ref": "./benchmark_reference.schema.json",
+      "x-population": "materialized_file"
+    },
+    "provenance": {
+      "$ref": "./provenance.schema.json",
+      "x-population": "materialized_file"
+    },
+    "stage1_frozen": {
+      "type": "object",
+      "required": [
+        "session_dir",
+        "perception_provenance"
+      ],
+      "properties": {
+        "session_dir": {
+          "type": "string",
+          "x-population": "existing_and_rewritten"
+        },
+        "perception_provenance": {
+          "type": "string",
+          "x-population": "derived"
+        }
+      }
+    },
+    "reference_outputs": {
+      "type": "object",
+      "properties": {
+        "stage2": {
+          "type": "string",
+          "x-population": "existing_artifact_bundle"
+        },
+        "stage3a": {
+          "type": "string",
+          "x-population": "existing_artifact_bundle"
+        },
+        "stage3b": {
+          "type": "string",
+          "x-population": "existing_artifact_bundle"
+        },
+        "stage3c": {
+          "type": "string",
+          "x-population": "existing_artifact_bundle"
+        },
+        "semantic": {
+          "type": "string",
+          "x-population": "existing_or_derived_semantic_artifact"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "frame": 3951,
+  "timestamp": 42.23108659312129,
+  "sample_name": "sample_000031",
+  "sequence_index": 31,
+  "ego": {
+    "frame_id": 3951,
+    "timestamp": 42.23108659312129,
+    "sample_name": "sample_000031",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      108.11178588867188,
+      34.883216857910156,
+      -0.006008453201502562
+    ],
+    "velocity_world": [
+      -0.9824045300483704,
+      3.2124710083007812,
+      -8.405685366597027e-05
+    ],
+    "speed_mps": 3.3593286006132463,
+    "yaw_deg": -105.18594360351562,
+    "route_progress_m": 13.903427631496966,
+    "world_from_ego_bevfusion": [
+      [
+        -0.2619457542896271,
+        -0.9650769233703613,
+        0.0033269452396780252,
+        108.11178588867188
+      ],
+      [
+        0.9650562405586243,
+        -0.26196253299713135,
+        -0.006493426859378815,
+        34.883216857910156
+      ],
+      [
+        0.007138191256672144,
+        0.0015097635332494974,
+        0.9999734163284302,
+        -0.006008453201502562
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "objects": [
+    {
+      "track_id": 1,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000031_det_0000",
+      "age_frames": 29,
+      "hits": 29,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.6669921875,
+      "mean_score": 0.7081088362068966,
+      "position_ego": [
+        10.838867985386388,
+        1.029728510170643,
+        -1.6025390625
+      ],
+      "velocity_ego": [
+        -1.457874255595376,
+        -0.5362964217842453
+      ],
+      "speed_mps": 1.5533870081683947,
+      "bbox": [
+        10.838867985386388,
+        1.029728510170643,
+        -1.6025390625,
+        2.166015625,
+        4.94921875,
+        1.8486328125,
+        -1.7548828125,
+        -1.457874255595376,
+        -0.5362964217842453
+      ],
+      "size_xyz": [
+        2.166015625,
+        4.94921875,
+        1.8486328125
+      ],
+      "yaw_rad": -1.7548828125,
+      "distance_m": 10.887671927886707,
+      "bearing_deg": 5.427001367577753,
+      "ttc_seconds": 7.434707035799834,
+      "relative_sector": "front",
+      "source_confidence": 0.6669921875,
+      "risk_score": 0.6183424605408497,
+      "risk_level": "high",
+      "reasoning_tags": [
+        "near_field",
+        "ahead",
+        "frontal_corridor",
+        "vehicle"
+      ]
+    },
+    {
+      "track_id": 2,
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "latest_detection_id": "sample_000031_det_0001",
+      "age_frames": 29,
+      "hits": 29,
+      "missed_frames": 0,
+      "is_occluded_est": false,
+      "score": 0.56787109375,
+      "mean_score": 0.43339591190732757,
+      "position_ego": [
+        26.73673519148334,
+        13.165792711505976,
+        -1.564453125
+      ],
+      "velocity_ego": [
+        -0.925378649114744,
+        -0.8787082766041411
+      ],
+      "speed_mps": 1.2761088823490134,
+      "bbox": [
+        26.73673519148334,
+        13.165792711505976,
+        -1.564453125,
+        2.201171875,
+        5.078125,
+        1.8759765625,
+        -2.234375,
+        -0.925378649114744,
+        -0.8787082766041411
+      ],
+      "size_xyz": [
+        2.201171875,
+        5.078125,
+        1.8759765625
+      ],
+      "yaw_rad": -2.234375,
+      "distance_m": 29.802535234805905,
+      "bearing_deg": 26.216711703947578,
+      "ttc_seconds": 28.892751326239072,
+      "relative_sector": "front_left",
+      "source_confidence": 0.56787109375,
+      "risk_score": 0.2264809857389557,
+      "risk_level": "low",
+      "reasoning_tags": [
+        "ahead",
+        "vehicle"
+      ]
+    }
+  ],
+  "scene": {
+    "active_object_count": 2,
+    "front_free_space_m": 9.755860172886388,
+    "left_side_occupancy": 0.006582158839803176,
+    "right_side_occupancy": 0.0,
+    "rear_gap_m": null,
+    "nearest_front_vehicle": {
+      "track_id": 1,
+      "class": "car",
+      "distance_m": 10.887671927886707,
+      "bearing_deg": 5.427001367577753,
+      "position_ego": [
+        10.838867985386388,
+        1.029728510170643,
+        -1.6025390625
+      ],
+      "velocity_ego": [
+        -1.457874255595376,
+        -0.5362964217842453
+      ],
+      "risk_level": "high",
+      "risk_score": 0.6183424605408497
+    },
+    "nearest_vru": null,
+    "nearest_any_object": {
+      "track_id": 1,
+      "class": "car",
+      "distance_m": 10.887671927886707,
+      "bearing_deg": 5.427001367577753,
+      "position_ego": [
+        10.838867985386388,
+        1.029728510170643,
+        -1.6025390625
+      ],
+      "velocity_ego": [
+        -1.457874255595376,
+        -0.5362964217842453
+      ],
+      "risk_level": "high",
+      "risk_score": 0.6183424605408497
+    },
+    "abnormal_flags": [
+      "high_risk_scene"
+    ]
+  },
+  "risk_summary": {
+    "highest_risk_level": "high",
+    "highest_risk_score": 0.6183424605408497,
+    "urgent_track_ids": [
+      1
+    ],
+    "front_hazard_track_id": 1,
+    "nearest_front_vehicle_distance_m": 10.887671927886707,
+    "nearest_vru_distance_m": null,
+    "minimum_ttc_seconds": 7.434707035799834,
+    "flags": [
+      "hazard_present"
+    ]
+  },
+  "decision_context": {
+    "recommended_maneuvers": [
+      "keep_lane"
+    ],
+    "hard_constraints": [],
+    "soft_constraints": [
+      "prefer_keep_lane"
+    ]
+  }
+}

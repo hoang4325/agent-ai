@@ -1,0 +1,160 @@
+{
+  "sample_name": "sample_000037",
+  "sequence_index": 37,
+  "frame_id": 3957,
+  "timestamp": 42.83108660206199,
+  "prediction_variant": "single",
+  "source_sample_dir": "D:\\Agent-AI\\outputs\\s3a_left_v3\\sample_000037",
+  "source_prediction_dir": "D:\\Agent-AI\\outputs\\live_watch_compare_multilane\\lw_left_positive_v1\\inference\\sample_000037",
+  "ego": {
+    "frame_id": 3957,
+    "timestamp": 42.83108660206199,
+    "sample_name": "sample_000037",
+    "town": "Carla/Maps/Town10HD_Opt",
+    "weather": {
+      "cloudiness": 20.0,
+      "dust_storm": 0.0,
+      "fog_density": 2.0,
+      "fog_distance": 0.75,
+      "fog_falloff": 0.10000000149011612,
+      "mie_scattering_scale": 0.029999999329447746,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 1.0,
+      "sun_altitude_angle": 45.0,
+      "sun_azimuth_angle": 300.0,
+      "wetness": 0.0,
+      "wind_intensity": 10.0
+    },
+    "position_world": [
+      107.54901123046875,
+      36.72361755371094,
+      -0.004507103003561497
+    ],
+    "velocity_world": [
+      -0.9515841603279114,
+      3.042752504348755,
+      1.5163420812314143e-06
+    ],
+    "speed_mps": 3.188080177302618,
+    "yaw_deg": -106.64066314697266,
+    "route_progress_m": 15.827958673670643,
+    "world_from_ego_bevfusion": [
+      [
+        -0.2863684594631195,
+        -0.9581195116043091,
+        0.00032364967046305537,
+        107.54901123046875
+      ],
+      [
+        0.9581195712089539,
+        -0.2863684296607971,
+        6.027926065144129e-05,
+        36.72361755371094
+      ],
+      [
+        3.49283182004001e-05,
+        0.00032735714921727777,
+        0.9999999403953552,
+        -0.004507103003561497
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "detections": [
+    {
+      "detection_id": "sample_000037_det_0000",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.75390625,
+      "position_ego": [
+        8.842533111572266,
+        0.7525672912597656,
+        -1.4462890625
+      ],
+      "size_xyz": [
+        2.14453125,
+        4.9375,
+        1.84375
+      ],
+      "yaw_rad": -1.7412109375,
+      "velocity_ego": [
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ],
+      "speed_mps": 6.9930754170600005e-06,
+      "distance_m": 8.874499949694403,
+      "bearing_deg": 4.864587013022432,
+      "source_confidence": 0.75390625,
+      "raw_box_9d": [
+        8.842533111572266,
+        0.7525672912597656,
+        -1.4462890625,
+        2.14453125,
+        4.9375,
+        1.84375,
+        -1.7412109375,
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ]
+    },
+    {
+      "detection_id": "sample_000037_det_0001",
+      "class_id": 0,
+      "class_name": "car",
+      "class_group": "vehicle",
+      "score": 0.6396484375,
+      "position_ego": [
+        25.073585510253906,
+        12.38232421875,
+        -1.314453125
+      ],
+      "size_xyz": [
+        2.1484375,
+        4.89453125,
+        1.857421875
+      ],
+      "yaw_rad": 0.86962890625,
+      "velocity_ego": [
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ],
+      "speed_mps": 6.9930754170600005e-06,
+      "distance_m": 27.964381691685183,
+      "bearing_deg": 26.28197442566541,
+      "source_confidence": 0.6396484375,
+      "raw_box_9d": [
+        25.073585510253906,
+        12.38232421875,
+        -1.314453125,
+        2.1484375,
+        4.89453125,
+        1.857421875,
+        0.86962890625,
+        -6.616115570068359e-06,
+        -2.2649765014648438e-06
+      ]
+    }
+  ],
+  "class_names": [
+    "car",
+    "truck",
+    "construction_vehicle",
+    "bus",
+    "trailer",
+    "barrier",
+    "motorcycle",
+    "bicycle",
+    "pedestrian",
+    "traffic_cone"
+  ],
+  "raw_prediction_count": 200,
+  "filtered_prediction_count": 2
+}

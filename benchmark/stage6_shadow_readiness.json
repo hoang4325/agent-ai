@@ -1,0 +1,22 @@
+{
+  "schema_version": "stage6_shadow_readiness_v1",
+  "status": "partial",
+  "required_subset": [
+    "ml_right_positive_core",
+    "stop_follow_ambiguity_core"
+  ],
+  "hard_gate_metrics": [
+    "stop_target_defined_rate",
+    "fallback_reason_coverage"
+  ],
+  "soft_guardrail_metrics": [
+    "stop_overshoot_distance_m",
+    "planner_execution_latency_ms",
+    "decision_to_execution_latency_ms",
+    "over_budget_rate"
+  ],
+  "remaining_blockers": [
+    "stop_target_contract_not_clean_enough",
+    "fallback_contract_missing_online_takeover_evidence"
+  ]
+}
