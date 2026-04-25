@@ -357,7 +357,26 @@ def run(args: argparse.Namespace) -> int:
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── 1. Input Source (CARLA or Watch Folder) ───────────────────────────────
+    # ── 1. Build BEVFusion model FIRST (before sensors start) ────────────────
+    # IMPORTANT: mmdet3d import takes ~50s. Loading model before attaching CARLA
+    # sensors prevents sensor buffer overflow / frame-sync timeouts.
+    LOGGER.info("Loading BEVFusion model (before sensor spawn to avoid timeout) …")
+    model, cfg, BoxClass = build_bevfusion_model(
+        repo_root=args.bev_repo,
+        config_path=args.bev_config,
+        checkpoint_path=args.bev_ckpt,
+        device=args.device,
+        radar_ablation=args.radar_ablation,
+    )
+    bev_adapter = BEVFusionLiveAdapter(
+        model, cfg, BoxClass,
+        device=args.device,
+        score_threshold=args.score_thresh,
+    )
+    LOGGER.info("BEVFusion ready.")
+
+    # ── 2. Input Source (CARLA or Watch Folder) ───────────────────────────────
+    # Sensors are spawned NOW, after the model is warm, so no frames are missed.
     if args.samples_root:
         sensor_source = FolderWatcherSync(args.samples_root, args.max_frames)
         ego = None
@@ -375,7 +394,7 @@ def run(args: argparse.Namespace) -> int:
             camera_fov=70.0,
             fixed_delta_seconds=args.delta_t,
         )
-        sensor_source = CarlaSensorSync( # type: ignore
+        sensor_source = CarlaSensorSync(  # type: ignore
             world, ego, preset,
             fixed_delta_seconds=args.delta_t,
             image_width=args.image_width,
@@ -383,24 +402,9 @@ def run(args: argparse.Namespace) -> int:
             enable_radar=args.enable_radar,
         )
 
-    # ── 2. Build BEVFusion model (inside container / local env) ──────────────
-    LOGGER.info("Loading BEVFusion model …")
-    model, cfg, BoxClass = build_bevfusion_model(
-        repo_root=args.bev_repo,
-        config_path=args.bev_config,
-        checkpoint_path=args.bev_ckpt,
-        device=args.device,
-        radar_ablation=args.radar_ablation,
-    )
-    bev_adapter = BEVFusionLiveAdapter(
-        model, cfg, BoxClass,
-        device=args.device,
-        score_threshold=args.score_thresh,
-    )
-    LOGGER.info("BEVFusion ready.")
-
     # ── 3. Stage 9 Arbiter (optional) ────────────────────────────────────────
     arbiter = None if args.no_stage9 else _build_stage9_arbiter(log_dir)
+
 
     # ── 4. Sensor rig + sync ──────────────────────────────────────────────────
     # (Moved setup to sensor_source initialization above)
