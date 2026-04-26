@@ -203,6 +203,68 @@ metrics:
     trend_preference: higher_better
     maturity_reason: Stable Stage 3C execution metric already validated by coverage runs.
 
+  route_completion_rate:
+    stage_layer: execution
+    description: Fraction of the planned Stage 10 route completed by the ego vehicle.
+    artifact_source: stage10_driving_metrics.json.route_completion_rate
+    required_artifacts:
+      - stage10_driving_metrics
+    fallback_behavior: skip_metric
+    formula: route_progress_m / route_length_m
+    maturity: soft_guardrail
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >
+      Stage 10 live bridge now logs route progress directly. When a destination
+      spawn point is supplied, this is true CARLA route completion. Without a
+      destination, the bridge emits a distance-proxy progress value for free-roam
+      nominal runs and should be reported as mission progress rather than strict RC.
+
+  collision_count:
+    stage_layer: execution
+    description: Number of counted CARLA collision events during a Stage 10 simulation run.
+    artifact_source: stage10_driving_metrics.json.collision_count (+ collision_events.jsonl audit trail)
+    required_artifacts:
+      - stage10_driving_metrics
+    fallback_behavior: skip_metric
+    formula: count(collision_events where intensity >= collision_impulse_threshold)
+    maturity: soft_guardrail
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: >
+      Directly logged from a CARLA collision sensor attached to the Stage 10 ego
+      vehicle. Kept soft until enough Town10 live runs establish a stable threshold.
+
+  collision_rate_per_km:
+    stage_layer: execution
+    description: Counted collision events normalized by travelled distance in kilometers.
+    artifact_source: stage10_driving_metrics.json.collision_rate_per_km
+    required_artifacts:
+      - stage10_driving_metrics
+    fallback_behavior: skip_metric
+    formula: collision_count / max(distance_traveled_km, epsilon)
+    maturity: soft_guardrail
+    gate_usage: hard_gate
+    trend_preference: lower_better
+    maturity_reason: >
+      Suitable for Table 1 nominal-driving reports once Stage 10 live runs cover
+      enough distance. Null for very short runs where travelled distance is near zero.
+
+  scenario_success_rate:
+    stage_layer: execution
+    description: Fraction of Stage 10 runs satisfying route-completion, collision, and runtime gates.
+    artifact_source: stage10_driving_metrics.json.scenario_success_rate
+    required_artifacts:
+      - stage10_driving_metrics
+    fallback_behavior: skip_metric
+    formula: 1.0 if route_completion_rate >= threshold and collision_count == 0 and runtime_errors == 0 else 0.0
+    maturity: soft_guardrail
+    gate_usage: hard_gate
+    trend_preference: higher_better
+    maturity_reason: >
+      Per-run success indicator for simulation experiments. Campaign-level success
+      rate should be computed as the mean of this value across repeated Town10 runs.
+
   stop_overshoot_rate:
     stage_layer: execution
     description: Overshoot stop events divided by total stop attempts.

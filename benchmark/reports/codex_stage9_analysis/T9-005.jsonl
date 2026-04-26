@@ -1,0 +1,5 @@
+{"ts": "2026-04-26T15:58:21.736491+00:00", "frame_id": 30, "event": "STATE_TRANSITION", "from": "BASELINE_CONTROL", "to": "AGENT_REQUESTING_AUTHORITY", "reason": "baseline_stuck"}
+{"ts": "2026-04-26T15:58:21.736851+00:00", "frame_id": 31, "event": "STATE_TRANSITION", "from": "AGENT_REQUESTING_AUTHORITY", "to": "SUPERVISED_EXECUTION", "reason": "approved"}
+{"ts": "2026-04-26T15:58:21.737118+00:00", "frame_id": 34, "event": "GRANT", "contract_id": "d570ba76-4448-4041-ba80-8c7bf18d3a29", "tactical_intent": "slow_bypass_right", "confidence": 0.93, "max_duration_s": 0.5, "state_from": "SUPERVISED_EXECUTION"}
+{"ts": "2026-04-26T15:58:21.737559+00:00", "frame_id": 35, "event": "VETO", "contract_id": "d570ba76-4448-4041-ba80-8c7bf18d3a29", "reason": "S-V006: contract expired (sim_time=4.50s >= deadline=3.50s)", "severity": "SOFT"}
+{"ts": "2026-04-26T15:58:21.737844+00:00", "frame_id": 35, "event": "REVOKE", "contract_id": "d570ba76-4448-4041-ba80-8c7bf18d3a29", "reason": "S-V006: contract expired (sim_time=4.50s >= deadline=3.50s)", "revoke_alpha_at_trigger": 1.0}

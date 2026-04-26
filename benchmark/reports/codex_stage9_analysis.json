@@ -1,0 +1,286 @@
+{
+  "run_id": "codex_stage9_analysis",
+  "timestamp": "2026-04-26T15:58:21.829797+00:00",
+  "total_scenarios": 12,
+  "passed_count": 12,
+  "failed_count": 0,
+  "scenario_pass_rate": 100.0,
+  "promotion_gate": "PASS",
+  "total_elapsed_ms": 104.44,
+  "gate_details": {
+    "scenario_pass_rate_ok": true,
+    "required_scenarios_ok": true,
+    "phase2_scenarios_ok": true
+  },
+  "scenarios": [
+    {
+      "id": "T9-001",
+      "name": "Stationary obstacle, baseline stuck",
+      "passed": true,
+      "elapsed_ms": 2.13,
+      "state_trace": [
+        "AGENT_REQUESTING_AUTHORITY",
+        "SUPERVISED_EXECUTION",
+        "AGENT_ACTIVE_BOUNDED"
+      ],
+      "checks": [
+        {
+          "label": "Reached AGENT_ACTIVE_BOUNDED",
+          "passed": true,
+          "detail": "trace=['AGENT_REQUESTING_AUTHORITY', 'SUPERVISED_EXECUTION', 'AGENT_ACTIVE_BOUNDED']"
+        },
+        {
+          "label": "Passed through REQUESTING",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-002",
+      "name": "Baseline lateral oscillation",
+      "passed": true,
+      "elapsed_ms": 1.98,
+      "state_trace": [
+        "AGENT_REQUESTING_AUTHORITY",
+        "SUPERVISED_EXECUTION",
+        "AGENT_ACTIVE_BOUNDED"
+      ],
+      "checks": [
+        {
+          "label": "Agent attempted request after oscillation",
+          "passed": true,
+          "detail": "trace=['AGENT_REQUESTING_AUTHORITY', 'SUPERVISED_EXECUTION', 'AGENT_ACTIVE_BOUNDED']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-003",
+      "name": "Agent confidence collapse mid-contract",
+      "passed": true,
+      "elapsed_ms": 3.23,
+      "state_trace": [
+        "AGENT_REQUESTING_AUTHORITY",
+        "SUPERVISED_EXECUTION",
+        "AGENT_ACTIVE_BOUNDED",
+        "AUTHORITY_REVOKE_PENDING",
+        "BASELINE_CONTROL"
+      ],
+      "checks": [
+        {
+          "label": "Entered AUTHORITY_REVOKE_PENDING",
+          "passed": true,
+          "detail": "trace=['AGENT_REQUESTING_AUTHORITY', 'SUPERVISED_EXECUTION', 'AGENT_ACTIVE_BOUNDED', 'AUTHORITY_REVOKE_PENDING', 'BASELINE_CONTROL']"
+        },
+        {
+          "label": "Returned toward baseline",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-004",
+      "name": "TTC collapse during active contract",
+      "passed": true,
+      "elapsed_ms": 3.2,
+      "state_trace": [
+        "AGENT_REQUESTING_AUTHORITY",
+        "SUPERVISED_EXECUTION",
+        "AGENT_ACTIVE_BOUNDED",
+        "AUTHORITY_REVOKE_PENDING",
+        "MINIMAL_RISK_MANEUVER"
+      ],
+      "checks": [
+        {
+          "label": "Entered MINIMAL_RISK_MANEUVER after TTC collapse",
+          "passed": true,
+          "detail": "trace=['SUPERVISED_EXECUTION', 'AGENT_ACTIVE_BOUNDED', 'AUTHORITY_REVOKE_PENDING', 'MINIMAL_RISK_MANEUVER']"
+        },
+        {
+          "label": "No crash / exception",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-005",
+      "name": "Contract normal expiry",
+      "passed": true,
+      "elapsed_ms": 2.32,
+      "state_trace": [
+        "AGENT_REQUESTING_AUTHORITY",
+        "SUPERVISED_EXECUTION",
+        "AGENT_ACTIVE_BOUNDED",
+        "AUTHORITY_REVOKE_PENDING",
+        "BASELINE_CONTROL"
+      ],
+      "checks": [
+        {
+          "label": "Entered REVOKE after contract expiry",
+          "passed": true,
+          "detail": "trace=['SUPERVISED_EXECUTION', 'AGENT_ACTIVE_BOUNDED', 'AUTHORITY_REVOKE_PENDING', 'BASELINE_CONTROL']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-006",
+      "name": "Baseline stuck but ODD_MARGIN — no grant",
+      "passed": true,
+      "elapsed_ms": 1.06,
+      "state_trace": [
+        "TOR_ACTIVE"
+      ],
+      "checks": [
+        {
+          "label": "Agent NOT granted while ODD_MARGIN",
+          "passed": true,
+          "detail": "trace=['TOR_ACTIVE']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-007",
+      "name": "ODD_EXCEEDED triggers MRM → SAFE_STOP",
+      "passed": true,
+      "elapsed_ms": 1.03,
+      "state_trace": [
+        "MINIMAL_RISK_MANEUVER",
+        "SAFE_STOP"
+      ],
+      "checks": [
+        {
+          "label": "MRM triggered on ODD_EXCEEDED",
+          "passed": true,
+          "detail": "state=MINIMAL_RISK_MANEUVER"
+        },
+        {
+          "label": "Reached SAFE_STOP or still in MRM",
+          "passed": true,
+          "detail": "state=SAFE_STOP"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-008",
+      "name": "Stale world state → immediate reject",
+      "passed": true,
+      "elapsed_ms": 0.55,
+      "state_trace": [],
+      "checks": [
+        {
+          "label": "Agent not granted with stale world",
+          "passed": true,
+          "detail": "trace=[]"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-009",
+      "name": "Preview infeasible → supervised aborted",
+      "passed": true,
+      "elapsed_ms": 5.33,
+      "state_trace": [
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL",
+        "AGENT_REQUESTING_AUTHORITY",
+        "BASELINE_CONTROL"
+      ],
+      "checks": [
+        {
+          "label": "Grant aborted — not reached AGENT_ACTIVE_BOUNDED",
+          "passed": true,
+          "detail": "trace=['AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL', 'AGENT_REQUESTING_AUTHORITY', 'BASELINE_CONTROL']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-010",
+      "name": "TOR timeout → MRM → SAFE_STOP",
+      "passed": true,
+      "elapsed_ms": 81.74,
+      "state_trace": [
+        "TOR_ACTIVE",
+        "MINIMAL_RISK_MANEUVER"
+      ],
+      "checks": [
+        {
+          "label": "Entered TOR_ACTIVE",
+          "passed": true,
+          "detail": "first_state=TOR_ACTIVE"
+        },
+        {
+          "label": "After timeout → MRM or SAFE_STOP",
+          "passed": true,
+          "detail": "state=MINIMAL_RISK_MANEUVER"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-011",
+      "name": "Human override during MRM → HUMAN_CONTROL_ACTIVE",
+      "passed": true,
+      "elapsed_ms": 1.22,
+      "state_trace": [
+        "MINIMAL_RISK_MANEUVER",
+        "HUMAN_CONTROL_ACTIVE"
+      ],
+      "checks": [
+        {
+          "label": "Started in MRM",
+          "passed": true,
+          "detail": "state=MINIMAL_RISK_MANEUVER"
+        },
+        {
+          "label": "HUMAN_CONTROL_ACTIVE after override in MRM",
+          "passed": true,
+          "detail": "state=HUMAN_CONTROL_ACTIVE"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "T9-012",
+      "name": "Repeated requests → cooldown enforced",
+      "passed": true,
+      "elapsed_ms": 0.32,
+      "state_trace": [],
+      "checks": [
+        {
+          "label": "Reject due to repeated revokes (S-013)",
+          "passed": true,
+          "detail": "reasons=['S-013: 3 revokes in last 60s — cooldown active']"
+        }
+      ],
+      "error": null
+    }
+  ],
+  "failed_scenario_ids": []
+}

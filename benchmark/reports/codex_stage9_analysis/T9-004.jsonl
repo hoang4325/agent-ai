@@ -1,0 +1,6 @@
+{"ts": "2026-04-26T15:58:21.733378+00:00", "frame_id": 30, "event": "STATE_TRANSITION", "from": "BASELINE_CONTROL", "to": "AGENT_REQUESTING_AUTHORITY", "reason": "baseline_stuck"}
+{"ts": "2026-04-26T15:58:21.734052+00:00", "frame_id": 31, "event": "STATE_TRANSITION", "from": "AGENT_REQUESTING_AUTHORITY", "to": "SUPERVISED_EXECUTION", "reason": "approved"}
+{"ts": "2026-04-26T15:58:21.734427+00:00", "frame_id": 34, "event": "GRANT", "contract_id": "570cd6f0-4dec-47b9-bab5-a71f3fdb4cd4", "tactical_intent": "slow_bypass_right", "confidence": 0.92, "max_duration_s": 4.0, "state_from": "SUPERVISED_EXECUTION"}
+{"ts": "2026-04-26T15:58:21.734961+00:00", "frame_id": 45, "event": "VETO", "contract_id": "570cd6f0-4dec-47b9-bab5-a71f3fdb4cd4", "reason": "S-V003: TTC collapsed to 0.40s < 1.5s", "severity": "HARD"}
+{"ts": "2026-04-26T15:58:21.735247+00:00", "frame_id": 45, "event": "REVOKE", "contract_id": "570cd6f0-4dec-47b9-bab5-a71f3fdb4cd4", "reason": "S-V003: TTC collapsed to 0.40s < 1.5s", "revoke_alpha_at_trigger": 1.0}
+{"ts": "2026-04-26T15:58:21.735584+00:00", "frame_id": 50, "event": "MRM_START", "reason": "baseline_unhealthy_after_revoke", "mrm_strategy": "EMERGENCY_STOP"}

@@ -38,6 +38,7 @@ import json
 import logging
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
@@ -83,6 +84,14 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--score-thresh", type=float, default=0.35)
     p.add_argument("--map",          default="Town01",  help="CARLA map name")
     p.add_argument("--spawn-point",  type=int, default=0, help="Ego spawn-point index")
+    p.add_argument("--route-target-spawn-point", type=int, default=None,
+                   help="Optional destination spawn-point index for true route-completion tracking")
+    p.add_argument("--route-distance-m", type=float, default=500.0,
+                   help="Fallback mission distance for route-completion proxy when no destination is supplied")
+    p.add_argument("--success-rc-threshold", type=float, default=0.95,
+                   help="Route-completion threshold used by stage10_driving_metrics.json")
+    p.add_argument("--collision-impulse-threshold", type=float, default=0.0,
+                   help="Minimum collision impulse magnitude counted as a collision")
     p.add_argument("--enable-radar", action="store_true", default=True)
     p.add_argument("--radar-ablation", choices=("none", "zero_bev"), default="none",
                    help="Ablate radar branch (none=active, zero_bev=disabled)")
@@ -258,6 +267,282 @@ def _apply_actuator_command(ego_actor, cmd) -> None:
         LOGGER.warning("apply_control failed: %s", exc)
 
 
+# ── Driving metric helpers ────────────────────────────────────────────────────
+
+def _append_jsonl(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, default=str) + "\n")
+
+
+def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, default=str)
+
+
+def _location_to_xyz(location) -> np.ndarray:
+    return np.array([float(location.x), float(location.y), float(location.z)], dtype=np.float64)
+
+
+class CollisionMonitor:
+    """Attach a CARLA collision sensor and collect per-run collision events."""
+
+    def __init__(self, world, ego_actor, *, impulse_threshold: float = 0.0) -> None:
+        self._world = world
+        self._ego = ego_actor
+        self._threshold = max(0.0, float(impulse_threshold))
+        self._sensor = None
+        self._events: List[Dict[str, Any]] = []
+        self._lock = threading.Lock()
+
+    def start(self) -> None:
+        try:
+            bp = self._world.get_blueprint_library().find("sensor.other.collision")
+            self._sensor = self._world.spawn_actor(bp, self._carla_transform(), attach_to=self._ego)
+            self._sensor.listen(self._on_collision)
+            LOGGER.info("CollisionMonitor attached to ego actor_id=%s", getattr(self._ego, "id", "unknown"))
+        except Exception as exc:
+            LOGGER.warning("CollisionMonitor unavailable: %s", exc)
+            self._sensor = None
+
+    def stop(self) -> None:
+        if self._sensor is None:
+            return
+        try:
+            self._sensor.stop()
+            self._sensor.destroy()
+        except Exception as exc:
+            LOGGER.debug("CollisionMonitor stop failed: %s", exc)
+        self._sensor = None
+
+    def events(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return list(self._events)
+
+    def counted_events(self) -> List[Dict[str, Any]]:
+        return [ev for ev in self.events() if float(ev.get("intensity", 0.0)) >= self._threshold]
+
+    def _carla_transform(self):
+        import carla  # type: ignore
+        return carla.Transform()
+
+    def _on_collision(self, event) -> None:
+        impulse = getattr(event, "normal_impulse", None)
+        ix = float(getattr(impulse, "x", 0.0)) if impulse is not None else 0.0
+        iy = float(getattr(impulse, "y", 0.0)) if impulse is not None else 0.0
+        iz = float(getattr(impulse, "z", 0.0)) if impulse is not None else 0.0
+        intensity = float((ix * ix + iy * iy + iz * iz) ** 0.5)
+        other = getattr(event, "other_actor", None)
+        record = {
+            "frame_id": int(getattr(event, "frame", -1)),
+            "timestamp_s": float(getattr(event, "timestamp", 0.0)),
+            "other_actor_id": int(getattr(other, "id", -1)) if other is not None else None,
+            "other_actor_type": str(getattr(other, "type_id", "")) if other is not None else None,
+            "normal_impulse": {"x": ix, "y": iy, "z": iz},
+            "intensity": round(intensity, 6),
+            "counted": intensity >= self._threshold,
+        }
+        with self._lock:
+            self._events.append(record)
+
+
+class RouteProgressTracker:
+    """
+    Tracks route completion for Stage 10.
+
+    If --route-target-spawn-point is supplied and CARLA's GlobalRoutePlanner is
+    available, progress follows the planned route. Otherwise it falls back to a
+    distance-travelled mission proxy so nominal free-roam runs still emit RC%.
+    """
+
+    def __init__(
+        self,
+        *,
+        mode: str,
+        target_distance_m: float,
+        route_points: Optional[List[np.ndarray]] = None,
+    ) -> None:
+        self.mode = mode
+        self.target_distance_m = max(1.0, float(target_distance_m))
+        self.route_points = route_points or []
+        self.route_cumulative_m = self._cumulative_distances(self.route_points)
+        self.route_length_m = (
+            float(self.route_cumulative_m[-1])
+            if self.route_cumulative_m
+            else self.target_distance_m
+        )
+        self._last_location: Optional[np.ndarray] = None
+        self._distance_traveled_m = 0.0
+        self._best_route_progress_m = 0.0
+
+    @classmethod
+    def build(
+        cls,
+        *,
+        carla_map,
+        spawn_point_index: int,
+        target_spawn_point_index: Optional[int],
+        fallback_distance_m: float,
+    ) -> "RouteProgressTracker":
+        if target_spawn_point_index is None:
+            return cls(mode="distance_proxy", target_distance_m=fallback_distance_m)
+
+        spawn_points = carla_map.get_spawn_points()
+        if not spawn_points:
+            return cls(mode="distance_proxy_no_spawn_points", target_distance_m=fallback_distance_m)
+
+        start = spawn_points[int(spawn_point_index) % len(spawn_points)].location
+        dest = spawn_points[int(target_spawn_point_index) % len(spawn_points)].location
+        route_points = cls._trace_route_points(carla_map, start, dest)
+        if len(route_points) >= 2:
+            return cls(mode="carla_global_route", route_points=route_points, target_distance_m=fallback_distance_m)
+
+        straight = [_location_to_xyz(start), _location_to_xyz(dest)]
+        return cls(mode="straight_line_route", route_points=straight, target_distance_m=fallback_distance_m)
+
+    def update(self, location_xyz: np.ndarray) -> Dict[str, Any]:
+        loc = np.asarray(location_xyz, dtype=np.float64)
+        if self._last_location is not None:
+            step = float(np.linalg.norm(loc[:2] - self._last_location[:2]))
+            if step >= 0.0:
+                self._distance_traveled_m += step
+        self._last_location = loc
+
+        if self.route_points and self.route_cumulative_m:
+            xy = np.array([p[:2] for p in self.route_points], dtype=np.float64)
+            dists = np.linalg.norm(xy - loc[:2], axis=1)
+            nearest_idx = int(np.argmin(dists))
+            route_progress_m = max(self._best_route_progress_m, float(self.route_cumulative_m[nearest_idx]))
+            self._best_route_progress_m = route_progress_m
+            denominator = max(1.0, self.route_length_m)
+        else:
+            route_progress_m = self._distance_traveled_m
+            denominator = self.target_distance_m
+
+        completion = max(0.0, min(1.0, route_progress_m / denominator))
+        return {
+            "route_mode": self.mode,
+            "route_progress_m": round(route_progress_m, 3),
+            "route_length_m": round(denominator, 3),
+            "route_completion_rate": round(completion, 6),
+            "route_completion_pct": round(completion * 100.0, 3),
+            "distance_traveled_m": round(self._distance_traveled_m, 3),
+        }
+
+    def final_summary(self) -> Dict[str, Any]:
+        denominator = max(1.0, self.route_length_m if self.route_points else self.target_distance_m)
+        progress = self._best_route_progress_m if self.route_points else self._distance_traveled_m
+        completion = max(0.0, min(1.0, progress / denominator))
+        return {
+            "route_mode": self.mode,
+            "route_progress_m": round(progress, 3),
+            "route_length_m": round(denominator, 3),
+            "route_completion_rate": round(completion, 6),
+            "route_completion_pct": round(completion * 100.0, 3),
+            "distance_traveled_m": round(self._distance_traveled_m, 3),
+        }
+
+    @staticmethod
+    def _trace_route_points(carla_map, start_location, end_location) -> List[np.ndarray]:
+        try:
+            from agents.navigation.global_route_planner import GlobalRoutePlanner  # type: ignore
+
+            planner = GlobalRoutePlanner(carla_map, 2.0)
+            if hasattr(planner, "setup"):
+                planner.setup()
+            route = planner.trace_route(start_location, end_location)
+            points: List[np.ndarray] = []
+            for item in route:
+                waypoint = item[0] if isinstance(item, tuple) else item
+                points.append(_location_to_xyz(waypoint.transform.location))
+            return points
+        except Exception as exc:
+            LOGGER.warning("GlobalRoutePlanner unavailable; falling back to straight-line RC: %s", exc)
+            return []
+
+    @staticmethod
+    def _cumulative_distances(points: List[np.ndarray]) -> List[float]:
+        if not points:
+            return []
+        cumulative = [0.0]
+        for prev, curr in zip(points, points[1:]):
+            cumulative.append(cumulative[-1] + float(np.linalg.norm(curr[:2] - prev[:2])))
+        return cumulative
+
+
+def _build_driving_metrics(
+    *,
+    args: argparse.Namespace,
+    stats: Dict[str, Any],
+    route_tracker: Optional[RouteProgressTracker],
+    collision_monitor: Optional[CollisionMonitor],
+) -> Dict[str, Any]:
+    route_summary = (
+        route_tracker.final_summary()
+        if route_tracker is not None
+        else {
+            "route_mode": "unavailable_watch_mode",
+            "route_progress_m": 0.0,
+            "route_length_m": None,
+            "route_completion_rate": None,
+            "route_completion_pct": None,
+            "distance_traveled_m": 0.0,
+        }
+    )
+    collision_events = collision_monitor.counted_events() if collision_monitor is not None else []
+    distance_km = float(route_summary.get("distance_traveled_m") or 0.0) / 1000.0
+    collision_rate_per_km = (
+        round(len(collision_events) / distance_km, 6)
+        if distance_km > 1e-6
+        else None
+    )
+    rc = route_summary.get("route_completion_rate")
+    route_ok = bool(rc is not None and float(rc) >= float(args.success_rc_threshold))
+    collision_ok = len(collision_events) == 0
+    runtime_ok = int(stats.get("errors", 0)) == 0 and int(stats.get("frames", 0)) > 0
+    success = bool(route_ok and collision_ok and runtime_ok)
+
+    return {
+        "schema_version": "stage10_driving_metrics_v1",
+        "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+        "stage": "10_live_bridge",
+        "map": args.map,
+        "agent_mode": args.agent_mode,
+        "frames": int(stats.get("frames", 0)),
+        "route_completion_rate": rc,
+        "route_completion_pct": route_summary.get("route_completion_pct"),
+        "collision_count": len(collision_events),
+        "collision_rate_per_km": collision_rate_per_km,
+        "scenario_success": success,
+        "scenario_success_rate": 1.0 if success else 0.0,
+        "success_criteria": {
+            "route_completion_rate_min": float(args.success_rc_threshold),
+            "route_completion_passed": route_ok,
+            "collision_count_max": 0,
+            "collision_passed": collision_ok,
+            "runtime_errors_max": 0,
+            "runtime_passed": runtime_ok,
+        },
+        "route": route_summary,
+        "runtime": {
+            "errors": int(stats.get("errors", 0)),
+            "avg_bev_inference_ms": round(
+                float(stats.get("bev_ms_sum", 0.0)) / max(1, int(stats.get("frames", 0))),
+                3,
+            ) if int(stats.get("frames", 0)) else None,
+            "avg_detections_per_frame": round(
+                float(stats.get("total_det", 0)) / max(1, int(stats.get("frames", 0))),
+                3,
+            ) if int(stats.get("frames", 0)) else None,
+        },
+        "artifacts": {
+            "ego_trace": str(Path(args.log_dir) / "ego_trace.jsonl"),
+            "collision_events": str(Path(args.log_dir) / "collision_events.jsonl"),
+        },
+    }
+
+
 # ── Stage 9 Arbiter bootstrap ─────────────────────────────────────────────────
 # TODO [Stage 9 hook]: Replace stubs with real Stage 9 components.
 
@@ -360,6 +645,12 @@ def run(args: argparse.Namespace) -> int:
 
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
+    ego_trace_path = log_dir / "ego_trace.jsonl"
+    collision_events_path = log_dir / "collision_events.jsonl"
+    if ego_trace_path.exists():
+        ego_trace_path.unlink()
+    if collision_events_path.exists():
+        collision_events_path.unlink()
 
     # ── 1. Build BEVFusion model FIRST (before sensors start) ────────────────
     # IMPORTANT: mmdet3d import takes ~50s. Loading model before attaching CARLA
@@ -381,6 +672,9 @@ def run(args: argparse.Namespace) -> int:
 
     # ── 2. Input Source (CARLA or Watch Folder) ───────────────────────────────
     # Sensors are spawned NOW, after the model is warm, so no frames are missed.
+    route_tracker: Optional[RouteProgressTracker] = None
+    collision_monitor: Optional[CollisionMonitor] = None
+    world = None
     if args.samples_root:
         sensor_source = FolderWatcherSync(args.samples_root, args.max_frames)
         ego = None
@@ -390,6 +684,24 @@ def run(args: argparse.Namespace) -> int:
         world = _load_map_if_needed(client, world, args.map)
         carla_map = world.get_map()
         ego = _spawn_ego(world, args.spawn_point)
+        route_tracker = RouteProgressTracker.build(
+            carla_map=carla_map,
+            spawn_point_index=args.spawn_point,
+            target_spawn_point_index=args.route_target_spawn_point,
+            fallback_distance_m=args.route_distance_m,
+        )
+        LOGGER.info(
+            "Driving metrics enabled: route_mode=%s route_length=%.1fm success_rc>=%.0f%%",
+            route_tracker.mode,
+            route_tracker.route_length_m if route_tracker is not None else 0.0,
+            float(args.success_rc_threshold) * 100.0,
+        )
+        collision_monitor = CollisionMonitor(
+            world,
+            ego,
+            impulse_threshold=float(args.collision_impulse_threshold),
+        )
+        collision_monitor.start()
 
         preset = build_rig_preset(
             args.rig_profile,
@@ -491,6 +803,33 @@ def run(args: argparse.Namespace) -> int:
 
             # ── D. WorldState ──────────────────────────────────────────────
             world_state = ws_builder.build(det_list, ego_tel)
+            route_info = (
+                route_tracker.update(ego_tel.ego_location_xyz)
+                if route_tracker is not None
+                else {
+                    "route_mode": "unavailable_watch_mode",
+                    "route_progress_m": 0.0,
+                    "route_length_m": None,
+                    "route_completion_rate": None,
+                    "route_completion_pct": None,
+                    "distance_traveled_m": 0.0,
+                }
+            )
+            _append_jsonl(
+                ego_trace_path,
+                {
+                    "frame_id": live_frame.frame_id,
+                    "frame_idx": frame_idx,
+                    "timestamp_s": live_frame.timestamp_s,
+                    "x": float(ego_tel.ego_location_xyz[0]),
+                    "y": float(ego_tel.ego_location_xyz[1]),
+                    "z": float(ego_tel.ego_location_xyz[2]),
+                    "ego_v_mps": float(ego_tel.ego_v_mps),
+                    "ego_a_mps2": float(ego_tel.ego_a_mps2),
+                    "ego_lane_id": str(ego_tel.ego_lane_id),
+                    **route_info,
+                },
+            )
 
             # ── E. Stage 9 Arbiter ─────────────────────────────────────────
             if arbiter is not None and world_state is not None:
@@ -531,6 +870,8 @@ def run(args: argparse.Namespace) -> int:
                         "timestamp_s": live_frame.timestamp_s,
                         "ego_v_mps": ego_tel.ego_v_mps,
                         "min_ttc_s": ttc_val,
+                        "route_completion_rate": route_info.get("route_completion_rate"),
+                        "route_progress_m": route_info.get("route_progress_m"),
                         "num_detections": len(det_list.detections),
                         "baseline_intent": baseline_intent,
                         "agent_intent": agent_intent,
@@ -574,6 +915,18 @@ def run(args: argparse.Namespace) -> int:
         return 1
     finally:
         sensor_source.stop()
+        if collision_monitor is not None:
+            collision_monitor.stop()
+            for event in collision_monitor.events():
+                _append_jsonl(collision_events_path, event)
+            collision_events_path.touch(exist_ok=True)
+        driving_metrics = _build_driving_metrics(
+            args=args,
+            stats=stats,
+            route_tracker=route_tracker,
+            collision_monitor=collision_monitor,
+        )
+        _write_json(log_dir / "stage10_driving_metrics.json", driving_metrics)
         if not args.samples_root and ego is not None:
             try:
                 ego.destroy()
@@ -628,6 +981,7 @@ def run(args: argparse.Namespace) -> int:
                     "avg_detections_per_frame": round(stats["total_det"] / max(total, 1), 1),
                     "avg_bev_inference_ms": round(stats["bev_ms_sum"] / max(total, 1), 1),
                 },
+                "driving_metrics": driving_metrics,
                 "frame_log": compare_log,
             }
 
@@ -663,6 +1017,10 @@ def run(args: argparse.Namespace) -> int:
         LOGGER.info("  Total detections : %d", stats["total_det"])
         if stats["frames"]:
             LOGGER.info("  Avg BEV ms : %.1f", stats["bev_ms_sum"] / stats["frames"])
+        LOGGER.info("  Route completion : %s%%", driving_metrics.get("route_completion_pct"))
+        LOGGER.info("  Collisions  : %d", driving_metrics.get("collision_count", 0))
+        LOGGER.info("  Scenario success : %s", driving_metrics.get("scenario_success"))
+        LOGGER.info("  Driving metrics  → %s", log_dir / "stage10_driving_metrics.json")
         LOGGER.info("  Errors     : %d", stats["errors"])
         LOGGER.info("=" * 60)
 

@@ -83,6 +83,8 @@ def _load_context(case_spec: dict[str, Any], repo_root: Path, generated_root: Pa
         "stage4_summary": load_json(resolved.get("stage4_online_run_summary")),
         "stage4_stack_state": load_json(resolved.get("stage4_online_stack_state")),
         "stage4_tick_records": load_jsonl(resolved.get("stage4_online_tick_record")),
+        "stage10_driving_metrics": load_json(resolved.get("stage10_driving_metrics")),
+        "collision_events": load_jsonl(resolved.get("collision_events")),
         "stage3c_metrics": _load_stage3c_metrics(case_spec, repo_root),
         "stage3c_stop_scene_alignment": load_json(resolved.get("stage3c_stop_scene_alignment")),
         "stage3c_mpc_shadow_proposal": load_jsonl(resolved.get("stage3c_mpc_shadow_proposal")),
@@ -206,6 +208,43 @@ def _stop_success_rate(context: dict[str, Any]) -> float | None:
         float(stage3c_metrics.get("stop_successes", 0)),
         float(stage3c_metrics.get("stop_attempts", 0)),
     )
+
+
+def _stage10_driving_metrics(context: dict[str, Any]) -> dict[str, Any]:
+    return context.get("stage10_driving_metrics") or {}
+
+
+def _stage10_numeric_metric(context: dict[str, Any], metric_name: str) -> float | None:
+    value = _stage10_driving_metrics(context).get(metric_name)
+    return None if value is None else float(value)
+
+
+def _route_completion_rate(context: dict[str, Any]) -> float | None:
+    return _stage10_numeric_metric(context, "route_completion_rate")
+
+
+def _collision_count(context: dict[str, Any]) -> int | None:
+    metrics = _stage10_driving_metrics(context)
+    if metrics.get("collision_count") is not None:
+        return int(metrics["collision_count"])
+    events = context.get("collision_events") or []
+    if events:
+        return int(sum(1 for event in events if bool(event.get("counted", True))))
+    return None
+
+
+def _collision_rate_per_km(context: dict[str, Any]) -> float | None:
+    return _stage10_numeric_metric(context, "collision_rate_per_km")
+
+
+def _scenario_success_rate(context: dict[str, Any]) -> float | None:
+    metrics = _stage10_driving_metrics(context)
+    if metrics.get("scenario_success_rate") is not None:
+        return float(metrics["scenario_success_rate"])
+    success = metrics.get("scenario_success")
+    if success is not None:
+        return 1.0 if bool(success) else 0.0
+    return None
 
 
 def _stop_overshoot_rate(context: dict[str, Any]) -> float | None:
@@ -693,6 +732,10 @@ def evaluate_case_metrics(
         "lane_change_success_count": lambda: _lane_change_success_count(context),
         "lane_change_success_rate": lambda: _lane_change_success_rate(context),
         "stop_success_rate": lambda: _stop_success_rate(context),
+        "route_completion_rate": lambda: _route_completion_rate(context),
+        "collision_count": lambda: _collision_count(context),
+        "collision_rate_per_km": lambda: _collision_rate_per_km(context),
+        "scenario_success_rate": lambda: _scenario_success_rate(context),
         "stop_overshoot_rate": lambda: _stop_overshoot_rate(context),
         "abort_rate": lambda: _abort_rate(context),
         "behavior_execution_mismatch_rate": lambda: _behavior_execution_mismatch_rate(context),

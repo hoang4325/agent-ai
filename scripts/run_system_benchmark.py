@@ -53,12 +53,14 @@ def main() -> int:
     )
 
     gate_result = result["gate_result"]
+    table_metrics = (result.get("simulation_table_summary") or {}).get("table_metrics") or {}
     console_summary = {
         "benchmark_version": gate_result["benchmark_version"],
         "set": gate_result["set"],
         "overall_status": gate_result["overall_status"],
         "failed_cases": gate_result["failed_cases"],
         "warning_cases": gate_result["warning_cases"],
+        "simulation_table_metrics": table_metrics,
         "report_dir": result["report_dir"],
     }
     print(json.dumps(console_summary, indent=2))

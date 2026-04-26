@@ -10,6 +10,14 @@ from .metrics import evaluate_case_metrics
 from .frozen_corpus_support import overlay_case_with_frozen_corpus
 
 
+DRIVING_TABLE_METRICS = (
+    "route_completion_rate",
+    "collision_count",
+    "collision_rate_per_km",
+    "scenario_success_rate",
+)
+
+
 @dataclass
 class ThresholdEvaluation:
     passed: bool
@@ -143,6 +151,67 @@ def _case_semantic_quality(metrics: dict[str, Any], availability: dict[str, Any]
     }
 
 
+def _mean(values: list[float]) -> float | None:
+    if not values:
+        return None
+    return float(sum(values) / len(values))
+
+
+def _round_optional(value: float | None, digits: int = 6) -> float | None:
+    return None if value is None else round(float(value), digits)
+
+
+def _build_simulation_table_summary(case_results: list[dict[str, Any]]) -> dict[str, Any]:
+    per_case: list[dict[str, Any]] = []
+    values_by_metric: dict[str, list[float]] = {name: [] for name in DRIVING_TABLE_METRICS}
+
+    for case_result in case_results:
+        driving_metrics = case_result.get("driving_metrics") or {}
+        compact_metrics: dict[str, Any] = {}
+        has_any_value = False
+        for metric_name in DRIVING_TABLE_METRICS:
+            metric_result = driving_metrics.get(metric_name) or {}
+            value = metric_result.get("value")
+            compact_metrics[metric_name] = value
+            if value is not None:
+                has_any_value = True
+                values_by_metric[metric_name].append(float(value))
+        per_case.append(
+            {
+                "scenario_id": case_result["scenario_id"],
+                "status": case_result["status"],
+                "has_driving_metrics": has_any_value,
+                "metrics": compact_metrics,
+            }
+        )
+
+    rc_mean = _mean(values_by_metric["route_completion_rate"])
+    collision_count_values = values_by_metric["collision_count"]
+    collision_rate_mean = _mean(values_by_metric["collision_rate_per_km"])
+    success_mean = _mean(values_by_metric["scenario_success_rate"])
+
+    return {
+        "schema_version": "simulation_table_summary_v1",
+        "num_cases": len(case_results),
+        "cases_with_driving_metrics": sum(1 for row in per_case if row["has_driving_metrics"]),
+        "cases_missing_driving_metrics": [
+            row["scenario_id"] for row in per_case if not row["has_driving_metrics"]
+        ],
+        "table_metrics": {
+            "route_completion_rate_mean": _round_optional(rc_mean),
+            "route_completion_pct_mean": _round_optional(None if rc_mean is None else rc_mean * 100.0, 3),
+            "collision_count_total": (
+                None if not collision_count_values else int(sum(collision_count_values))
+            ),
+            "collision_count_mean_per_run": _round_optional(_mean(collision_count_values)),
+            "collision_rate_per_km_mean": _round_optional(collision_rate_mean),
+            "success_rate": _round_optional(success_mean),
+            "success_rate_pct": _round_optional(None if success_mean is None else success_mean * 100.0, 3),
+        },
+        "per_case": per_case,
+    }
+
+
 def _build_case_result(
     *,
     case_spec: dict[str, Any],
@@ -272,6 +341,11 @@ def _build_case_result(
         },
         "missing_artifact_warnings": missing_artifact_warnings,
         "metrics": {name: metrics[name] for name in sorted(primary_metrics | secondary_metrics)},
+        "driving_metrics": {
+            name: metrics[name]
+            for name in DRIVING_TABLE_METRICS
+            if name in metrics
+        },
         "semantic_quality": _case_semantic_quality(metrics, availability),
         "baseline_regressions": baseline_regressions,
     }
@@ -366,6 +440,7 @@ def run_benchmark(
         "compare_baseline": str(resolve_repo_path(repo_root, baseline_path)) if enable_baseline_compare and baseline_path else None,
         "semantic_hardening_enabled": True,
         "semantic_hardening_version": "v1.1",
+        "simulation_table_summary": _build_simulation_table_summary(case_results),
         "cases": case_results,
     }
 
@@ -445,6 +520,7 @@ def run_benchmark(
     }
 
     dump_json(report_root / "benchmark_report.json", benchmark_report)
+    dump_json(report_root / "simulation_table_summary.json", benchmark_report["simulation_table_summary"])
     dump_json(report_root / "gate_result.json", gate_result)
     dump_json(report_root / "regression_diff.json", regression_diff)
     dump_json(report_root / "baseline_snapshot.json", baseline_snapshot)
@@ -452,6 +528,7 @@ def run_benchmark(
     return {
         "report_dir": str(report_root),
         "benchmark_report": benchmark_report,
+        "simulation_table_summary": benchmark_report["simulation_table_summary"],
         "gate_result": gate_result,
         "regression_diff": regression_diff,
         "baseline_snapshot": baseline_snapshot,
