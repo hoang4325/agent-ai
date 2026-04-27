@@ -84,14 +84,27 @@ class RealMPCAdapter:
         if self._lon_qp is not None:
             throttle, brake = self._run_real_lon_mpc(target_v, stop_mode, current_v)
             steer = self._run_real_lat_mpc(lateral_bound, tactical_intent, current_lateral_error)
+            source = "MPC_OSQP"
         else:
             throttle, brake, steer = self._p_controller_fallback(target_v, stop_mode, current_v)
+            source = "MPC_FALLBACK"
+
+        steer = self._enforce_lane_change_steer_floor(
+            steer=steer,
+            intent=tactical_intent,
+            current_lateral_error_m=current_lateral_error,
+        )
+        throttle, brake = self._cap_lane_change_longitudinal(
+            throttle=throttle,
+            brake=brake,
+            intent=tactical_intent,
+        )
 
         return ActuatorCommand(
             steer=_clamp(steer, -1.0, 1.0),
             throttle=_clamp(throttle, 0.0, 1.0),
             brake=_clamp(brake, 0.0, 1.0),
-            source="MPC",
+            source=source,
         )
 
     def preview_feasible(self, req) -> bool:
@@ -208,6 +221,19 @@ class RealMPCAdapter:
         if abs(steer) < floor_mag:
             steer = signed_floor
         return _clamp(steer, -1.0, 1.0)
+
+    def _cap_lane_change_longitudinal(
+        self,
+        *,
+        throttle: float,
+        brake: float,
+        intent: str,
+    ) -> tuple[float, float]:
+        if intent.startswith("prepare_lane_change_"):
+            return min(float(throttle), 0.22), min(float(brake), 0.05)
+        if intent.startswith("commit_lane_change_"):
+            return min(float(throttle), 0.32), min(float(brake), 0.05)
+        return float(throttle), float(brake)
 
 
 # ── 2. RealBaselineAdapter (WorldState → BaselinePlannerProto) ────────────────
