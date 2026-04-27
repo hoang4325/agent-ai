@@ -92,7 +92,14 @@ def _lidar_to_xyzi(measurement) -> np.ndarray:
 
 def _radar_to_array(measurement) -> np.ndarray:
     """Convert a CARLA RadarMeasurement to (M, 4) float32 [velocity,alt,azimuth,depth]."""
-    detections = measurement.get_detections()
+    if hasattr(measurement, "get_detections"):
+        detections = measurement.get_detections()
+    else:
+        try:
+            detections = list(measurement)
+        except TypeError:
+            raw = np.frombuffer(measurement.raw_data, dtype=np.float32)
+            return raw.reshape(-1, 4).copy()
     if not detections:
         return np.zeros((0, 4), dtype=np.float32)
     rows = [

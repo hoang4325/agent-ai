@@ -102,6 +102,12 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--agent-mode",   default="stub",
                    choices=["stub", "api", "compare"],
                    help="Agent mode: stub=no LLM, api=real LLM, compare=baseline+agent side-by-side logging")
+    p.add_argument("--agent-trigger-mode", choices=("every_frame", "risk_or_event"), default="risk_or_event",
+                   help="When compare mode calls the LLM agent")
+    p.add_argument("--agent-compare-stride", type=int, default=10,
+                   help="Minimum frame stride for periodic Agent compare calls in risk_or_event mode")
+    p.add_argument("--agent-risk-ttc-threshold", type=float, default=3.0,
+                   help="Always query Agent when estimated TTC is below this threshold")
     return p.parse_args()
 
 
@@ -283,6 +289,24 @@ def _write_json(path: Path, payload: Dict[str, Any]) -> None:
 
 def _location_to_xyz(location) -> np.ndarray:
     return np.array([float(location.x), float(location.y), float(location.z)], dtype=np.float64)
+
+
+def _ensure_carla_pythonapi_paths(carla_root: str | Path) -> None:
+    root = Path(carla_root)
+    candidates = [
+        root / "PythonAPI",
+        root / "PythonAPI" / "carla",
+        root / "PythonAPI" / "carla" / "agents",
+    ]
+    egg_dir = root / "PythonAPI" / "carla" / "dist"
+    if egg_dir.exists():
+        candidates.extend(sorted(egg_dir.glob("carla-*.egg")))
+
+    for candidate in candidates:
+        if candidate.exists():
+            candidate_str = str(candidate)
+            if candidate_str not in sys.path:
+                sys.path.insert(0, candidate_str)
 
 
 class CollisionMonitor:
@@ -543,6 +567,36 @@ def _build_driving_metrics(
     }
 
 
+def _should_query_agent(
+    *,
+    args: argparse.Namespace,
+    frame_idx: int,
+    baseline_intent: str,
+    min_ttc_s: float,
+    world_state: Any,
+) -> tuple[bool, str]:
+    if args.agent_trigger_mode == "every_frame":
+        return True, "every_frame"
+
+    if float(min_ttc_s) < float(args.agent_risk_ttc_threshold):
+        return True, "low_ttc"
+
+    if baseline_intent not in {"keep_lane"}:
+        return True, f"baseline_{baseline_intent}"
+
+    try:
+        if not bool(getattr(world_state, "corridor_clear", True)):
+            return True, "corridor_not_clear"
+    except Exception:
+        pass
+
+    stride = max(1, int(args.agent_compare_stride))
+    if frame_idx % stride == 0:
+        return True, f"periodic_stride_{stride}"
+
+    return False, "not_triggered"
+
+
 # ── Stage 9 Arbiter bootstrap ─────────────────────────────────────────────────
 # TODO [Stage 9 hook]: Replace stubs with real Stage 9 components.
 
@@ -637,6 +691,8 @@ def _build_stage9_arbiter(log_dir: Path, agent_mode: str = "stub"):
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def run(args: argparse.Namespace) -> int:
+    _ensure_carla_pythonapi_paths(args.carla_root)
+
     from carla_bevfusion_stage1.bevfusion_runtime import build_bevfusion_model
     from carla_bevfusion_stage1.bevfusion_live_adapter import BEVFusionLiveAdapter
     from carla_bevfusion_stage1.carla_sensor_sync import CarlaSensorSync
@@ -725,6 +781,7 @@ def run(args: argparse.Namespace) -> int:
     compare_agent = None
     compare_baseline = None
     compare_log: List[Dict[str, Any]] = []
+    compare_skipped_frames = 0
     if args.agent_mode == "compare":
         try:
             from carla_bevfusion_stage1.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
@@ -844,51 +901,62 @@ def run(args: argparse.Namespace) -> int:
                     bl_req = compare_baseline.plan(world_state)
                     baseline_intent = str(getattr(bl_req, "tactical_intent", "keep_lane"))
 
-                    contract = compare_agent.propose_contract(world_state)
-                    if contract is not None:
-                        agent_intent = str(getattr(contract, "tactical_intent", "keep_lane"))
-                        agent_confidence = float(getattr(contract, "agent_confidence", 0.0))
-                        agent_reasoning = str(getattr(contract, "agent_reasoning_summary", ""))
-                        disagreement_useful = True
-                    else:
-                        agent_intent = baseline_intent  # agent agrees (or fallback)
-                        agent_confidence = 0.0
-                        agent_reasoning = "agrees_with_baseline"
-                        disagreement_useful = False
-
-                    agrees = (baseline_intent == agent_intent)
-                    cmp_ms = (time.monotonic() - t_cmp) * 1000
-
                     ttc_val = float(
                         ws_builder._prev_detections and
                         _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
                     )
+                    should_query_agent, trigger_reason = _should_query_agent(
+                        args=args,
+                        frame_idx=frame_idx,
+                        baseline_intent=baseline_intent,
+                        min_ttc_s=ttc_val,
+                        world_state=world_state,
+                    )
+                    if not should_query_agent:
+                        compare_skipped_frames += 1
+                    else:
+                        contract = compare_agent.propose_contract(world_state)
+                        if contract is not None:
+                            agent_intent = str(getattr(contract, "tactical_intent", "keep_lane"))
+                            agent_confidence = float(getattr(contract, "agent_confidence", 0.0))
+                            agent_reasoning = str(getattr(contract, "agent_reasoning_summary", ""))
+                            disagreement_useful = True
+                        else:
+                            agent_intent = baseline_intent  # agent agrees (or fallback)
+                            agent_confidence = 0.0
+                            agent_reasoning = "agrees_with_baseline"
+                            disagreement_useful = False
 
-                    record = {
-                        "frame_id": live_frame.frame_id,
-                        "frame_idx": frame_idx,
-                        "timestamp_s": live_frame.timestamp_s,
-                        "ego_v_mps": ego_tel.ego_v_mps,
-                        "min_ttc_s": ttc_val,
-                        "route_completion_rate": route_info.get("route_completion_rate"),
-                        "route_progress_m": route_info.get("route_progress_m"),
-                        "num_detections": len(det_list.detections),
-                        "baseline_intent": baseline_intent,
-                        "agent_intent": agent_intent,
-                        "agent_confidence": agent_confidence,
-                        "agent_reasoning": agent_reasoning,
-                        "agrees": agrees,
-                        "disagreement_useful": disagreement_useful and not agrees,
-                        "compare_latency_ms": round(cmp_ms, 1),
-                    }
-                    compare_log.append(record)
+                        agrees = (baseline_intent == agent_intent)
+                        cmp_ms = (time.monotonic() - t_cmp) * 1000
 
-                    if not agrees:
-                        LOGGER.info(
-                            "[COMPARE] frame=%d  baseline=%s  agent=%s  conf=%.2f  ttc=%.1f  reason=%s",
-                            live_frame.frame_id, baseline_intent, agent_intent,
-                            agent_confidence, ttc_val, agent_reasoning,
-                        )
+                        record = {
+                            "frame_id": live_frame.frame_id,
+                            "frame_idx": frame_idx,
+                            "timestamp_s": live_frame.timestamp_s,
+                            "agent_queried": True,
+                            "agent_trigger_reason": trigger_reason,
+                            "ego_v_mps": ego_tel.ego_v_mps,
+                            "min_ttc_s": ttc_val,
+                            "route_completion_rate": route_info.get("route_completion_rate"),
+                            "route_progress_m": route_info.get("route_progress_m"),
+                            "num_detections": len(det_list.detections),
+                            "baseline_intent": baseline_intent,
+                            "agent_intent": agent_intent,
+                            "agent_confidence": agent_confidence,
+                            "agent_reasoning": agent_reasoning,
+                            "agrees": agrees,
+                            "disagreement_useful": disagreement_useful and not agrees,
+                            "compare_latency_ms": round(cmp_ms, 1),
+                        }
+                        compare_log.append(record)
+
+                        if not agrees:
+                            LOGGER.info(
+                                "[COMPARE] frame=%d  baseline=%s  agent=%s  conf=%.2f  ttc=%.1f  reason=%s",
+                                live_frame.frame_id, baseline_intent, agent_intent,
+                                agent_confidence, ttc_val, agent_reasoning,
+                            )
                 except Exception as exc:
                     LOGGER.debug("Compare-mode error frame=%d: %s", frame_idx, exc)
 
@@ -952,6 +1020,12 @@ def run(args: argparse.Namespace) -> int:
                 "mode": args.agent_mode,
                 "map": args.map,
                 "total_frames": total,
+                "sim_frames": int(stats.get("frames", 0)),
+                "agent_trigger_mode": args.agent_trigger_mode,
+                "agent_compare_stride": int(args.agent_compare_stride),
+                "agent_risk_ttc_threshold": float(args.agent_risk_ttc_threshold),
+                "agent_queried_frames": total,
+                "agent_skipped_frames": int(compare_skipped_frames),
                 "agreement_frames": agreements,
                 "disagreement_frames": disagreements,
                 "agreement_rate": round(agreements / max(total, 1), 4),
