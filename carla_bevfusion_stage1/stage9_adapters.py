@@ -79,10 +79,11 @@ class RealMPCAdapter:
         stop_mode = target_v < 0.5 or tactical_intent in {"safe_stop", "stop", "stop_before_obstacle"}
         lateral_bound = float(getattr(req, "lateral_bound_m", 1.5))
         current_v = float(getattr(req, "current_speed_mps", 0.0))
+        current_lateral_error = float(getattr(req, "current_lateral_error_m", 0.0))
 
         if self._lon_qp is not None:
             throttle, brake = self._run_real_lon_mpc(target_v, stop_mode, current_v)
-            steer = self._run_real_lat_mpc(lateral_bound, tactical_intent)
+            steer = self._run_real_lat_mpc(lateral_bound, tactical_intent, current_lateral_error)
         else:
             throttle, brake, steer = self._p_controller_fallback(target_v, stop_mode, current_v)
 
@@ -129,7 +130,12 @@ class RealMPCAdapter:
             LOGGER.debug("lon MPC failed: %s", exc)
             return self._p_controller_fallback(target_v_mps, stop_mode, current_v_mps)[:2]
 
-    def _run_real_lat_mpc(self, lateral_bound_m: float, intent: str) -> float:
+    def _run_real_lat_mpc(
+        self,
+        lateral_bound_m: float,
+        intent: str,
+        current_lateral_error_m: float = 0.0,
+    ) -> float:
         """Run the OSQP lateral MPC and return normalised steer for the first step."""
         try:
             # For keep_lane intents, target offset = 0 (track lane centre).
@@ -148,10 +154,19 @@ class RealMPCAdapter:
             u0 = float(controls[0]) if controls else 0.0
             # u0 is lateral jerk; normalise to [-1, 1] steer using wheelbase
             steer = _clamp(u0 / (self._wheelbase * 4.0), -1.0, 1.0)
+            steer = self._enforce_lane_change_steer_floor(
+                steer=steer,
+                intent=intent,
+                current_lateral_error_m=current_lateral_error_m,
+            )
             return steer
         except Exception as exc:
             LOGGER.debug("lat MPC failed: %s", exc)
-            return 0.0
+            return self._enforce_lane_change_steer_floor(
+                steer=0.0,
+                intent=intent,
+                current_lateral_error_m=current_lateral_error_m,
+            )
 
     def _p_controller_fallback(
         self,
@@ -168,6 +183,31 @@ class RealMPCAdapter:
             throttle = _clamp(err / max(target_v + 0.1, 4.0), 0.0, 0.6)
             brake = 0.0
         return throttle, brake, 0.0
+
+    def _enforce_lane_change_steer_floor(
+        self,
+        *,
+        steer: float,
+        intent: str,
+        current_lateral_error_m: float,
+    ) -> float:
+        if "right" in intent:
+            direction = -1.0
+        elif "left" in intent:
+            direction = 1.0
+        else:
+            return _clamp(steer, -1.0, 1.0)
+
+        error_mag = abs(float(current_lateral_error_m))
+        if intent.startswith("prepare_lane_change_"):
+            floor_mag = 0.18 if error_mag < 0.35 else 0.14 if error_mag < 0.9 else 0.10
+        else:
+            floor_mag = 0.30 if error_mag < 0.35 else 0.24 if error_mag < 1.1 else 0.16
+
+        signed_floor = direction * floor_mag
+        if abs(steer) < floor_mag:
+            steer = signed_floor
+        return _clamp(steer, -1.0, 1.0)
 
 
 # ── 2. RealBaselineAdapter (WorldState → BaselinePlannerProto) ────────────────

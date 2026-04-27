@@ -812,6 +812,7 @@ def _trajectory_request_from_agent_intent(
         cost_profile="AGENT_ASSIST",
     )
     setattr(request, "current_speed_mps", ego_v)
+    setattr(request, "current_lateral_error_m", float(getattr(world_state, "ego_lateral_error_m", 0.0)))
     return request
 
 
@@ -868,6 +869,7 @@ def _retune_active_assist_request(
         setattr(request, "target_v_desired_mps", target_v)
         setattr(request, "lateral_bound_m", lateral_bound_m)
     setattr(request, "current_speed_mps", ego_v)
+    setattr(request, "current_lateral_error_m", float(getattr(world_state, "ego_lateral_error_m", 0.0)))
     return intent
 
 
