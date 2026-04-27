@@ -459,6 +459,8 @@ class AgentShadowAdapter:
                 else:
                     model_name = "zai-org/GLM-5.1-FP8"
             
+            is_qwen_model = "qwen" in model_name.lower()
+            qwen_no_think_suffix = " /no_think" if is_qwen_model else ""
             payload_obj = {
                 "model": model_name,
                 "messages": [
@@ -467,15 +469,16 @@ class AgentShadowAdapter:
                         "content": (
                             "Return exactly one valid JSON object and nothing else. "
                             "Do not include markdown, prose, XML tags, or reasoning text."
+                            f"{qwen_no_think_suffix}"
                         ),
                     },
-                    {"role": "user", "content": prompt},
+                    {"role": "user", "content": prompt + qwen_no_think_suffix},
                 ],
                 "max_tokens": 150,
                 "temperature": 0.0,
                 "response_format": {"type": "json_object"},
             }
-            if "qwen" in model_name.lower():
+            if is_qwen_model:
                 payload_obj["reasoning_format"] = os.environ.get("AGENT_REASONING_FORMAT", "hidden")
             payload_candidates = [_json.dumps(payload_obj).encode("utf-8")]
             text_payload_obj = dict(payload_obj)
@@ -520,6 +523,12 @@ class AgentShadowAdapter:
                         text = str(content or "").strip()
                     if not text:
                         text = str(message.get("reasoning_content") or message.get("reasoning") or "").strip()
+                    if not text:
+                        logger.warning(
+                            "[AgentShadow] Empty API message. message_keys=%s finish_reason=%s",
+                            sorted(message.keys()),
+                            resp_body["choices"][0].get("finish_reason"),
+                        )
                 else:
                     text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
 
