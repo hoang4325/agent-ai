@@ -357,14 +357,14 @@ def _apply_actuator_command(ego_actor, cmd) -> None:
     Apply a Stage 9 ActuatorCommand to the CARLA ego vehicle.
 
     TODO [Stage 9 hook]: Uncomment and implement when wiring up Arbiter.
-    cmd fields: steer_norm ∈ [-1,1], throttle_norm ∈ [0,1], brake_norm ∈ [0,1]
+    cmd fields: steer ∈ [-1,1], throttle ∈ [0,1], brake ∈ [0,1]
     """
     try:
         import carla  # type: ignore
         control = carla.VehicleControl(
-            throttle=float(getattr(cmd, "throttle_norm", 0.0)),
-            steer=float(getattr(cmd, "steer_norm", 0.0)),
-            brake=float(getattr(cmd, "brake_norm", 0.0)),
+            throttle=float(getattr(cmd, "throttle", getattr(cmd, "throttle_norm", 0.0))),
+            steer=float(getattr(cmd, "steer", getattr(cmd, "steer_norm", 0.0))),
+            brake=float(getattr(cmd, "brake", getattr(cmd, "brake_norm", 0.0))),
         )
         ego_actor.apply_control(control)
     except Exception as exc:
@@ -1297,6 +1297,12 @@ def run(args: argparse.Namespace) -> int:
                             "tactical_intent": agent_intent,
                             "target_v_desired_mps": float(getattr(assist_req, "target_v_desired_mps", 0.0)),
                             "target_lane_id": getattr(assist_req, "target_lane_id", None),
+                        }
+                        assist_record["applied_command"] = {
+                            "throttle": float(getattr(cmd, "throttle", 0.0)),
+                            "steer": float(getattr(cmd, "steer", 0.0)),
+                            "brake": float(getattr(cmd, "brake", 0.0)),
+                            "source": str(getattr(cmd, "source", "unknown")),
                         }
                 assist_log.append(assist_record)
 
