@@ -144,11 +144,11 @@ def main() -> int:
             spawn_cmd = [
                 python_exe,
                 str(PROJECT_ROOT / "scripts" / "stage3_multilane_scenario.py"),
-                "spawn",
                 "--host", str(args.carla_host),
                 "--port", str(args.carla_port),
                 "--tm-port", str(args.tm_port),
                 "--town", f"Carla/Maps/{args.map}",
+                "spawn",
                 "--adjacent-side", spec["adjacent_side"],
                 "--blocker-distance-m", str(float(spec.get("blocker_distance_m", args.blocker_distance_m))),
                 "--adjacent-distance-m", str(float(spec.get("adjacent_distance_m", args.adjacent_distance_m))),
@@ -183,9 +183,9 @@ def main() -> int:
             destroy_cmd = [
                 python_exe,
                 str(PROJECT_ROOT / "scripts" / "stage3_multilane_scenario.py"),
-                "destroy",
                 "--host", str(args.carla_host),
                 "--port", str(args.carla_port),
+                "destroy",
                 "--manifest", str(manifest_path),
             ]
 
