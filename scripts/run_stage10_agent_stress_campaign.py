@@ -46,6 +46,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--radar-ablation", default="zero_bev", choices=["none", "zero_bev"])
     parser.add_argument("--output-root", default=str(PROJECT_ROOT / "outputs" / "stage10_stress_campaign"))
     parser.add_argument("--report-root", default=str(PROJECT_ROOT / "benchmark" / "reports" / "stage10_stress_campaign"))
+    parser.add_argument("--ego-autopilot", action="store_true",
+                        help="Enable CARLA Traffic Manager autopilot on the attached ego. Leave off for clean closed-loop A/B control.")
     parser.add_argument("--npc-handbrake", action="store_true", default=True)
     parser.add_argument("--blocker-distance-m", type=float, default=24.0)
     parser.add_argument("--adjacent-distance-m", type=float, default=42.0)
@@ -80,6 +82,7 @@ def _build_summary_payload(
         "max_frames": int(args.max_frames),
         "agent_mode": args.agent_mode,
         "agent_control_mode": args.agent_control_mode,
+        "ego_autopilot": bool(args.ego_autopilot),
         "runs": runs,
     }
 
@@ -344,7 +347,6 @@ def main() -> int:
                 "--output-root", str(stage10_output_root),
                 "--log-dir", str(stage10_log_dir),
                 "--scenario-manifest", str(manifest_path),
-                "--attach-autopilot",
                 "--map", str(args.map),
                 "--route-distance-m", str(float(spec.get("route_distance_m", args.route_distance_m))),
                 "--max-frames", str(args.max_frames),
@@ -356,6 +358,8 @@ def main() -> int:
                 "--agent-assist-min-confidence", str(args.agent_assist_min_confidence),
                 "--radar-ablation", str(args.radar_ablation),
             ]
+            if bool(args.ego_autopilot):
+                stage10_cmd.append("--attach-autopilot")
 
             destroy_cmd = [
                 python_exe,
