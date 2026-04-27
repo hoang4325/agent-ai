@@ -820,6 +820,65 @@ def _assist_hold_frames(args: argparse.Namespace) -> int:
     return max(4, min(12, int(round(1.0 / delta_t))))
 
 
+def _assist_commit_promotion_frames(args: argparse.Namespace) -> int:
+    return max(3, _assist_hold_frames(args) // 2)
+
+
+def _promote_lane_change_intent(agent_intent: str) -> str:
+    if agent_intent == "prepare_lane_change_left":
+        return "commit_lane_change_left"
+    if agent_intent == "prepare_lane_change_right":
+        return "commit_lane_change_right"
+    return agent_intent
+
+
+def _merge_active_and_new_agent_intent(active_intent: Optional[str], new_intent: str) -> str:
+    active = str(active_intent or "")
+    if active.startswith("commit_lane_change_") and new_intent.startswith("prepare_lane_change_"):
+        active_side = "left" if "left" in active else "right" if "right" in active else ""
+        new_side = "left" if "left" in new_intent else "right" if "right" in new_intent else ""
+        if active_side and active_side == new_side:
+            return active
+    return new_intent
+
+
+def _retune_active_assist_request(
+    *,
+    request: Any,
+    world_state: Any,
+    applied_frames: int,
+    args: argparse.Namespace,
+) -> str:
+    ego_v = float(getattr(world_state, "ego_v_mps", 0.0))
+    intent = str(getattr(request, "tactical_intent", "keep_lane"))
+    if (
+        intent.startswith("prepare_lane_change_")
+        and applied_frames >= _assist_commit_promotion_frames(args)
+    ):
+        intent = _promote_lane_change_intent(intent)
+        setattr(request, "tactical_intent", intent)
+
+    if intent in _ASSIST_LANE_CHANGE_INTENTS:
+        if intent.startswith("prepare_lane_change_"):
+            target_v = max(1.2, min(max(ego_v + 0.2, 1.5), 2.0))
+            lateral_bound_m = 4.0
+        else:
+            target_v = max(2.0, min(max(ego_v + 0.3, 2.6), 3.6))
+            lateral_bound_m = 4.5
+        setattr(request, "target_v_desired_mps", target_v)
+        setattr(request, "lateral_bound_m", lateral_bound_m)
+    setattr(request, "current_speed_mps", ego_v)
+    return intent
+
+
+def _same_lane_change_family(lhs: Optional[str], rhs: Optional[str]) -> bool:
+    left = str(lhs or "")
+    right = str(rhs or "")
+    if left not in _ASSIST_LANE_CHANGE_INTENTS or right not in _ASSIST_LANE_CHANGE_INTENTS:
+        return False
+    return _assist_target_lane(left) == _assist_target_lane(right)
+
+
 def _can_continue_active_assist(
     *,
     args: argparse.Namespace,
@@ -1108,6 +1167,7 @@ def run(args: argparse.Namespace) -> int:
     active_assist_request: Any = None
     active_assist_intent: Optional[str] = None
     active_assist_hold_remaining = 0
+    active_assist_applied_frames = 0
     active_assist_metadata: Dict[str, Any] = {}
     if args.agent_control_mode == "assist":
         try:
@@ -1246,6 +1306,7 @@ def run(args: argparse.Namespace) -> int:
                 if active_assist_hold_remaining <= 0:
                     active_assist_request = None
                     active_assist_intent = None
+                    active_assist_applied_frames = 0
                     active_assist_metadata = {}
                 setattr(
                     world_state,
@@ -1290,11 +1351,12 @@ def run(args: argparse.Namespace) -> int:
                 if assist_should_query:
                     last_assist_agent_query_wall_s = time.monotonic()
                     intent_record = assist_agent.observe_intent(world_state)
-                    agent_intent = (
+                    raw_agent_intent = (
                         str(getattr(intent_record, "tactical_intent", assist_baseline_intent))
                         if intent_record is not None
                         else assist_baseline_intent
                     )
+                    agent_intent = _merge_active_and_new_agent_intent(active_assist_intent, raw_agent_intent)
                     assist_allowed, assist_reason = _agent_assist_allowed(
                         args=args,
                         intent_record=intent_record,
@@ -1332,6 +1394,7 @@ def run(args: argparse.Namespace) -> int:
                         }
                     )
                     if assist_allowed:
+                        preserve_progress = _same_lane_change_family(active_assist_intent, agent_intent)
                         assist_req = _trajectory_request_from_agent_intent(
                             baseline_req=assist_baseline_req,
                             agent_intent=agent_intent,
@@ -1340,6 +1403,10 @@ def run(args: argparse.Namespace) -> int:
                         active_assist_request = assist_req
                         active_assist_intent = agent_intent
                         active_assist_hold_remaining = _assist_hold_frames(args)
+                        active_assist_applied_frames = (
+                            max(1, active_assist_applied_frames)
+                            if preserve_progress else 1
+                        )
                         active_assist_metadata = {
                             "agent_confidence": float(getattr(intent_record, "confidence", 0.0))
                             if intent_record is not None else 0.0,
@@ -1348,11 +1415,17 @@ def run(args: argparse.Namespace) -> int:
                             "agent_reason_tags": list(getattr(intent_record, "reason_tags", []) or [])
                             if intent_record is not None else [],
                         }
+                        active_assist_intent = _retune_active_assist_request(
+                            request=active_assist_request,
+                            world_state=world_state,
+                            applied_frames=active_assist_applied_frames,
+                            args=args,
+                        )
                         cmd = assist_mpc.execute(assist_req)
                         control_source = "agent_assist"
                         assist_record["assist_applied"] = True
                         assist_record["assist_request"] = {
-                            "tactical_intent": agent_intent,
+                            "tactical_intent": active_assist_intent,
                             "target_v_desired_mps": float(getattr(assist_req, "target_v_desired_mps", 0.0)),
                             "target_lane_id": getattr(assist_req, "target_lane_id", None),
                         }
@@ -1362,10 +1435,12 @@ def run(args: argparse.Namespace) -> int:
                             "brake": float(getattr(cmd, "brake", 0.0)),
                             "source": str(getattr(cmd, "source", "unknown")),
                         }
+                        assist_record["agent_intent"] = active_assist_intent
                     else:
                         active_assist_request = None
                         active_assist_intent = None
                         active_assist_hold_remaining = 0
+                        active_assist_applied_frames = 0
                         active_assist_metadata = {}
                 elif _can_continue_active_assist(
                     args=args,
@@ -1375,7 +1450,13 @@ def run(args: argparse.Namespace) -> int:
                     min_ttc_s=assist_ttc,
                 ):
                     active_assist_hold_remaining = max(0, active_assist_hold_remaining - 1)
-                    setattr(active_assist_request, "current_speed_mps", float(ego_tel.ego_v_mps))
+                    active_assist_applied_frames += 1
+                    active_assist_intent = _retune_active_assist_request(
+                        request=active_assist_request,
+                        world_state=world_state,
+                        applied_frames=active_assist_applied_frames,
+                        args=args,
+                    )
                     cmd = assist_mpc.execute(active_assist_request)
                     control_source = "agent_assist_hold"
                     assist_record.update(
@@ -1405,6 +1486,7 @@ def run(args: argparse.Namespace) -> int:
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
+                    active_assist_applied_frames = 0
                     active_assist_metadata = {}
                 assist_log.append(assist_record)
 
