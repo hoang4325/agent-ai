@@ -365,6 +365,7 @@ class AgentShadowAdapter:
         """
         import json as _json
         import os
+        import re
         import socket
         import urllib.error
         import urllib.request as _urlreq
@@ -457,13 +458,23 @@ class AgentShadowAdapter:
                     text = resp_body["choices"][0]["message"]["content"].strip()
                 else:
                     text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    
-                # Strip markdown fences if present
+
+                # Strip common wrappers from reasoning/chat models and extract
+                # the first JSON object, since some models prepend prose.
+                text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
                 if text.startswith("```"):
-                    text = text.split("```")[1]
-                    if text.startswith("json"):
-                        text = text[4:]
-                parsed: dict[str, Any] = _json.loads(text)
+                    parts = text.split("```")
+                    text = parts[1] if len(parts) > 1 else text
+                    if text.lstrip().startswith("json"):
+                        text = text.lstrip()[4:]
+                try:
+                    parsed: dict[str, Any] = _json.loads(text)
+                except _json.JSONDecodeError:
+                    start = text.find("{")
+                    end = text.rfind("}")
+                    if start < 0 or end <= start:
+                        raise
+                    parsed = _json.loads(text[start:end + 1])
                 # Strip forbidden control fields from LLM output
                 for f in FORBIDDEN_CONTROL_FIELDS:
                     parsed.pop(f, None)

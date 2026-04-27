@@ -266,13 +266,19 @@ class RealAgentAdapter:
                 sys.path.insert(0, _root)
             from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
             resolved_model_id = str(os.environ.get("AGENT_MODEL_ID", f"stage10_{mode}"))
+            api_timeout_s = float(os.environ.get("AGENT_API_TIMEOUT_S", "30.0"))
             self._adapter = AgentShadowAdapter(
-                config=AgentShadowAdapterConfig(mode=mode, model_id=resolved_model_id)
+                config=AgentShadowAdapterConfig(
+                    mode=mode,
+                    model_id=resolved_model_id,
+                    api_timeout_s=api_timeout_s,
+                )
             )
             LOGGER.info(
-                "RealAgentAdapter: AgentShadowAdapter loaded in mode=%s model_id=%s",
+                "RealAgentAdapter: AgentShadowAdapter loaded in mode=%s model_id=%s timeout_s=%.1f",
                 mode,
                 resolved_model_id,
+                api_timeout_s,
             )
         except ImportError as exc:
             LOGGER.warning("RealAgentAdapter: AgentShadowAdapter unavailable (%s). Using fallback.", exc)

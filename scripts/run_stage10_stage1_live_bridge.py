@@ -790,6 +790,8 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
     rejected = [r for r in assist_log if r.get("agent_queried") and not r.get("assist_applied")]
     rejection_counts: Dict[str, int] = {}
     intent_counts: Dict[str, int] = {}
+    fallback_reason_counts: Dict[str, int] = {}
+    validation_status_counts: Dict[str, int] = {}
     for row in assist_log:
         if row.get("agent_intent"):
             intent = str(row["agent_intent"])
@@ -797,6 +799,12 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
         if row.get("assist_reject_reason"):
             reason = str(row["assist_reject_reason"])
             rejection_counts[reason] = rejection_counts.get(reason, 0) + 1
+        if row.get("agent_validation_status"):
+            status = str(row["agent_validation_status"])
+            validation_status_counts[status] = validation_status_counts.get(status, 0) + 1
+        if row.get("agent_fallback_reason"):
+            reason = str(row["agent_fallback_reason"])
+            fallback_reason_counts[reason] = fallback_reason_counts.get(reason, 0) + 1
 
     sim_frames = int(stats.get("frames", 0))
     return {
@@ -810,6 +818,8 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
         "agent_query_rate": round(len(attempted) / max(sim_frames, 1), 4),
         "agent_intent_distribution": intent_counts,
         "assist_reject_reason_counts": rejection_counts,
+        "agent_validation_status_counts": validation_status_counts,
+        "agent_fallback_reason_counts": fallback_reason_counts,
         "frame_log": assist_log,
     }
 
@@ -1208,6 +1218,7 @@ def run(args: argparse.Namespace) -> int:
                         baseline_intent=assist_baseline_intent,
                         world_state=world_state,
                     )
+                    provenance = getattr(intent_record, "provenance", {}) or {}
                     assist_record.update(
                         {
                             "agent_intent": agent_intent,
@@ -1223,6 +1234,17 @@ def run(args: argparse.Namespace) -> int:
                                 bool(getattr(intent_record, "fallback_to_baseline", True))
                                 if intent_record is not None else True
                             ),
+                            "agent_model_id": (
+                                str(getattr(intent_record, "model_id", "unknown"))
+                                if intent_record is not None else "unknown"
+                            ),
+                            "agent_reason_tags": (
+                                list(getattr(intent_record, "reason_tags", []) or [])
+                                if intent_record is not None else []
+                            ),
+                            "agent_raw_intent": provenance.get("raw_intent_received"),
+                            "agent_fallback_reason": provenance.get("fallback_reason"),
+                            "agent_call_latency_ms": provenance.get("call_latency_ms"),
                             "assist_reject_reason": None if assist_allowed else assist_reason,
                         }
                     )
