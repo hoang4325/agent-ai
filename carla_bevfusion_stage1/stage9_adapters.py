@@ -382,6 +382,7 @@ class RealAgentAdapter:
         return {
             "requested_behavior": baseline,
             "target_lane": preferred_lane if preferred_lane in {"left", "right"} else "current",
+            "active_maneuver": str(getattr(world, "agent_active_maneuver", "") or ""),
             "lane_change_permission": {
                 "left": bool(getattr(world, "lane_change_permission", False)),
                 "right": bool(getattr(world, "lane_change_permission", False)),

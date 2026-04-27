@@ -815,6 +815,33 @@ def _trajectory_request_from_agent_intent(
     return request
 
 
+def _assist_hold_frames(args: argparse.Namespace) -> int:
+    delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
+    return max(4, min(12, int(round(1.0 / delta_t))))
+
+
+def _can_continue_active_assist(
+    *,
+    args: argparse.Namespace,
+    active_request: Any,
+    baseline_intent: str,
+    world_state: Any,
+    min_ttc_s: float,
+) -> bool:
+    if active_request is None or world_state is None:
+        return False
+    active_intent = str(getattr(active_request, "tactical_intent", ""))
+    if active_intent not in _ASSIST_LANE_CHANGE_INTENTS:
+        return False
+    if baseline_intent != "stop_before_obstacle":
+        return False
+    if float(min_ttc_s) < max(1.5, float(args.agent_risk_ttc_threshold) - 0.25):
+        return False
+    if not bool(getattr(world_state, "lane_change_permission", False)):
+        return False
+    return True
+
+
 def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any]) -> Dict[str, Any]:
     attempted = [r for r in assist_log if r.get("agent_queried")]
     accepted = [r for r in assist_log if r.get("assist_applied")]
@@ -1078,6 +1105,10 @@ def run(args: argparse.Namespace) -> int:
     assist_mpc = None
     assist_log: List[Dict[str, Any]] = []
     last_assist_agent_query_wall_s: Optional[float] = None
+    active_assist_request: Any = None
+    active_assist_intent: Optional[str] = None
+    active_assist_hold_remaining = 0
+    active_assist_metadata: Dict[str, Any] = {}
     if args.agent_control_mode == "assist":
         try:
             from carla_bevfusion_stage1.stage9_adapters import (
@@ -1212,6 +1243,15 @@ def run(args: argparse.Namespace) -> int:
                 and assist_baseline is not None
                 and assist_mpc is not None
             ):
+                if active_assist_hold_remaining <= 0:
+                    active_assist_request = None
+                    active_assist_intent = None
+                    active_assist_metadata = {}
+                setattr(
+                    world_state,
+                    "agent_active_maneuver",
+                    active_assist_intent if active_assist_hold_remaining > 0 else None,
+                )
                 assist_baseline_req = assist_baseline.plan(world_state)
                 assist_baseline_intent = str(getattr(assist_baseline_req, "tactical_intent", "keep_lane"))
                 assist_ttc = float(
@@ -1245,6 +1285,7 @@ def run(args: argparse.Namespace) -> int:
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
+                    "active_assist_maneuver": active_assist_intent,
                 }
                 if assist_should_query:
                     last_assist_agent_query_wall_s = time.monotonic()
@@ -1296,6 +1337,17 @@ def run(args: argparse.Namespace) -> int:
                             agent_intent=agent_intent,
                             world_state=world_state,
                         )
+                        active_assist_request = assist_req
+                        active_assist_intent = agent_intent
+                        active_assist_hold_remaining = _assist_hold_frames(args)
+                        active_assist_metadata = {
+                            "agent_confidence": float(getattr(intent_record, "confidence", 0.0))
+                            if intent_record is not None else 0.0,
+                            "agent_model_id": str(getattr(intent_record, "model_id", "unknown"))
+                            if intent_record is not None else "unknown",
+                            "agent_reason_tags": list(getattr(intent_record, "reason_tags", []) or [])
+                            if intent_record is not None else [],
+                        }
                         cmd = assist_mpc.execute(assist_req)
                         control_source = "agent_assist"
                         assist_record["assist_applied"] = True
@@ -1310,6 +1362,50 @@ def run(args: argparse.Namespace) -> int:
                             "brake": float(getattr(cmd, "brake", 0.0)),
                             "source": str(getattr(cmd, "source", "unknown")),
                         }
+                    else:
+                        active_assist_request = None
+                        active_assist_intent = None
+                        active_assist_hold_remaining = 0
+                        active_assist_metadata = {}
+                elif _can_continue_active_assist(
+                    args=args,
+                    active_request=active_assist_request,
+                    baseline_intent=assist_baseline_intent,
+                    world_state=world_state,
+                    min_ttc_s=assist_ttc,
+                ):
+                    active_assist_hold_remaining = max(0, active_assist_hold_remaining - 1)
+                    setattr(active_assist_request, "current_speed_mps", float(ego_tel.ego_v_mps))
+                    cmd = assist_mpc.execute(active_assist_request)
+                    control_source = "agent_assist_hold"
+                    assist_record.update(
+                        {
+                            "assist_applied": True,
+                            "assist_continued": True,
+                            "assist_reject_reason": None,
+                            "agent_intent": active_assist_intent,
+                            "agent_confidence": float(active_assist_metadata.get("agent_confidence", 0.0)),
+                            "agent_model_id": str(active_assist_metadata.get("agent_model_id", "unknown")),
+                            "agent_reason_tags": list(active_assist_metadata.get("agent_reason_tags", []) or []),
+                            "agent_validation_status": "continued_valid",
+                            "assist_request": {
+                                "tactical_intent": str(getattr(active_assist_request, "tactical_intent", "")),
+                                "target_v_desired_mps": float(getattr(active_assist_request, "target_v_desired_mps", 0.0)),
+                                "target_lane_id": getattr(active_assist_request, "target_lane_id", None),
+                            },
+                            "applied_command": {
+                                "throttle": float(getattr(cmd, "throttle", 0.0)),
+                                "steer": float(getattr(cmd, "steer", 0.0)),
+                                "brake": float(getattr(cmd, "brake", 0.0)),
+                                "source": str(getattr(cmd, "source", "unknown")),
+                            },
+                        }
+                    )
+                else:
+                    active_assist_request = None
+                    active_assist_intent = None
+                    active_assist_hold_remaining = 0
+                    active_assist_metadata = {}
                 assist_log.append(assist_record)
 
             if cmd is not None and not args.samples_root and ego is not None:
