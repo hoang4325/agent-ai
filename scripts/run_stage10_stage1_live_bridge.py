@@ -119,6 +119,8 @@ def _parse_args() -> argparse.Namespace:
                    help="Always query Agent when estimated TTC is below this threshold")
     p.add_argument("--agent-assist-min-confidence", type=float, default=0.50,
                    help="Minimum Agent confidence required before bounded assist can override the baseline request")
+    p.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
+                   help="Wall-clock rate limit for real Agent API calls; set <=0 to disable")
     return p.parse_args()
 
 
@@ -695,6 +697,29 @@ def _should_query_agent(
     return False, "not_triggered"
 
 
+def _apply_agent_rate_limit(
+    *,
+    args: argparse.Namespace,
+    requested: bool,
+    trigger_reason: str,
+    now_s: float,
+    last_query_s: Optional[float],
+) -> tuple[bool, str]:
+    if not requested:
+        return False, trigger_reason
+
+    rpm = float(getattr(args, "agent_max_requests_per_minute", 30.0))
+    if rpm <= 0.0:
+        return True, trigger_reason
+
+    min_interval_s = 60.0 / max(rpm, 1e-6)
+    if last_query_s is None or (now_s - last_query_s) >= min_interval_s:
+        return True, trigger_reason
+
+    remaining_s = max(0.0, min_interval_s - (now_s - last_query_s))
+    return False, f"rate_limited_{rpm:.1f}_rpm_wait_{remaining_s:.2f}s_after_{trigger_reason}"
+
+
 _ASSIST_LANE_CHANGE_INTENTS = {
     "prepare_lane_change_left",
     "prepare_lane_change_right",
@@ -1031,6 +1056,7 @@ def run(args: argparse.Namespace) -> int:
     compare_baseline = None
     compare_log: List[Dict[str, Any]] = []
     compare_skipped_frames = 0
+    last_compare_agent_query_wall_s: Optional[float] = None
     if args.agent_mode == "compare":
         try:
             from carla_bevfusion_stage1.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
@@ -1045,6 +1071,7 @@ def run(args: argparse.Namespace) -> int:
     assist_baseline = None
     assist_mpc = None
     assist_log: List[Dict[str, Any]] = []
+    last_assist_agent_query_wall_s: Optional[float] = None
     if args.agent_control_mode == "assist":
         try:
             from carla_bevfusion_stage1.stage9_adapters import (
@@ -1192,6 +1219,13 @@ def run(args: argparse.Namespace) -> int:
                     min_ttc_s=assist_ttc,
                     world_state=world_state,
                 )
+                assist_should_query, assist_trigger_reason = _apply_agent_rate_limit(
+                    args=args,
+                    requested=assist_should_query,
+                    trigger_reason=assist_trigger_reason,
+                    now_s=time.monotonic(),
+                    last_query_s=last_assist_agent_query_wall_s,
+                )
                 assist_record: Dict[str, Any] = {
                     "frame_id": live_frame.frame_id,
                     "frame_idx": frame_idx,
@@ -1200,12 +1234,14 @@ def run(args: argparse.Namespace) -> int:
                     "agent_trigger_reason": assist_trigger_reason,
                     "baseline_intent": assist_baseline_intent,
                     "assist_applied": False,
-                    "assist_reject_reason": None if assist_should_query else "not_triggered",
+                    "assist_reject_reason": None if assist_should_query else assist_trigger_reason,
+                    "agent_max_requests_per_minute": float(args.agent_max_requests_per_minute),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
                 }
                 if assist_should_query:
+                    last_assist_agent_query_wall_s = time.monotonic()
                     intent_record = assist_agent.observe_intent(world_state)
                     agent_intent = (
                         str(getattr(intent_record, "tactical_intent", assist_baseline_intent))
@@ -1285,9 +1321,17 @@ def run(args: argparse.Namespace) -> int:
                         min_ttc_s=ttc_val,
                         world_state=world_state,
                     )
+                    should_query_agent, trigger_reason = _apply_agent_rate_limit(
+                        args=args,
+                        requested=should_query_agent,
+                        trigger_reason=trigger_reason,
+                        now_s=time.monotonic(),
+                        last_query_s=last_compare_agent_query_wall_s,
+                    )
                     if not should_query_agent:
                         compare_skipped_frames += 1
                     else:
+                        last_compare_agent_query_wall_s = time.monotonic()
                         intent_record = (
                             compare_agent.observe_intent(world_state)
                             if hasattr(compare_agent, "observe_intent")

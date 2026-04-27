@@ -43,6 +43,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-compare-stride", type=int, default=50)
     parser.add_argument("--agent-risk-ttc-threshold", type=float, default=2.0)
     parser.add_argument("--agent-assist-min-confidence", type=float, default=0.50)
+    parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
+                        help="Wall-clock rate limit for real Agent API calls")
     parser.add_argument("--radar-ablation", default="zero_bev", choices=["none", "zero_bev"])
     parser.add_argument("--output-root", default=str(PROJECT_ROOT / "outputs" / "stage10_stress_campaign"))
     parser.add_argument("--report-root", default=str(PROJECT_ROOT / "benchmark" / "reports" / "stage10_stress_campaign"))
@@ -356,6 +358,7 @@ def main() -> int:
                 "--agent-compare-stride", str(args.agent_compare_stride),
                 "--agent-risk-ttc-threshold", str(args.agent_risk_ttc_threshold),
                 "--agent-assist-min-confidence", str(args.agent_assist_min_confidence),
+                "--agent-max-requests-per-minute", str(args.agent_max_requests_per_minute),
                 "--radar-ablation", str(args.radar_ablation),
             ]
             if bool(args.ego_autopilot):
