@@ -29,6 +29,11 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
+class AgentAPIParseError(Exception):
+    """Raised when the API responds but the response cannot be parsed as JSON."""
+
+
 ALLOWED_AGENT_INTENTS = frozenset({
     "keep_lane",
     "follow",
@@ -136,6 +141,7 @@ class AgentShadowAdapter:
         t0 = time.monotonic()
         baseline_intent = str(baseline_context.get("requested_behavior", "keep_lane"))
         lane_change_permission = dict(baseline_context.get("lane_change_permission") or {})
+        fallback_reason_override: str | None = None
 
         try:
             if self.config.mode == "stub":
@@ -179,11 +185,24 @@ class AgentShadowAdapter:
             timeout_flag = True
             raw = {}
             call_latency_ms = (time.monotonic() - t0) * 1000.0
+            fallback_reason_override = "timeout"
             logger.warning("[AgentShadow] Timeout — fallback to baseline; frame=%d case=%s", frame_id, case_id)
+        except AgentAPIParseError as exc:
+            timeout_flag = False
+            raw = {}
+            call_latency_ms = (time.monotonic() - t0) * 1000.0
+            fallback_reason_override = "parse_error"
+            logger.warning(
+                "[AgentShadow] Parse error — fallback to baseline; frame=%d case=%s error=%s",
+                frame_id,
+                case_id,
+                exc,
+            )
         except Exception as exc:  # noqa: BLE001
             timeout_flag = False
             raw = {}
             call_latency_ms = (time.monotonic() - t0) * 1000.0
+            fallback_reason_override = "exception"
             logger.exception("[AgentShadow] Unexpected error: %s", exc)
 
         # ── Contract validation ───────────────────────────────────────────────
@@ -222,7 +241,10 @@ class AgentShadowAdapter:
             "model_id": self.config.model_id,
             "provider": self.config.mode,
             "call_latency_ms": round(call_latency_ms, 2),
-            "fallback_reason": ("timeout" if timeout_flag else ("validation_failed" if fallback_to_baseline else None)),
+            "fallback_reason": (
+                fallback_reason_override
+                or ("timeout" if timeout_flag else ("validation_failed" if fallback_to_baseline else None))
+            ),
             "raw_intent_received": raw.get("tactical_intent"),
         }
 
@@ -422,12 +444,25 @@ class AgentShadowAdapter:
                 else:
                     model_name = "zai-org/GLM-5.1-FP8"
             
-            payload = _json.dumps({
+            payload_obj = {
                 "model": model_name,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Return exactly one valid JSON object and nothing else. "
+                            "Do not include markdown, prose, XML tags, or reasoning text."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
                 "max_tokens": 150,
-                "temperature": 0.2,
-            }).encode("utf-8")
+                "temperature": 0.0,
+                "response_format": {"type": "json_object"},
+            }
+            if "qwen" in model_name.lower():
+                payload_obj["reasoning_format"] = os.environ.get("AGENT_REASONING_FORMAT", "hidden")
+            payload = _json.dumps(payload_obj).encode("utf-8")
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
@@ -455,7 +490,17 @@ class AgentShadowAdapter:
                     resp_body = _json.loads(resp.read().decode("utf-8"))
                 
                 if is_openai_compat:
-                    text = resp_body["choices"][0]["message"]["content"].strip()
+                    message = resp_body["choices"][0]["message"]
+                    content = message.get("content")
+                    if isinstance(content, list):
+                        text = "".join(
+                            str(part.get("text", "")) if isinstance(part, dict) else str(part)
+                            for part in content
+                        ).strip()
+                    else:
+                        text = str(content or "").strip()
+                    if not text:
+                        text = str(message.get("reasoning_content") or message.get("reasoning") or "").strip()
                 else:
                     text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
 
@@ -473,6 +518,7 @@ class AgentShadowAdapter:
                     start = text.find("{")
                     end = text.rfind("}")
                     if start < 0 or end <= start:
+                        logger.warning("[AgentShadow] API response had no JSON object. text_snippet=%r", text[:240])
                         raise
                     parsed = _json.loads(text[start:end + 1])
                 # Strip forbidden control fields from LLM output
@@ -496,7 +542,7 @@ class AgentShadowAdapter:
                 raise TimeoutError(f"API network error: {net_err}") from net_err
             except (_json.JSONDecodeError, KeyError, IndexError) as parse_err:
                 logger.warning("[AgentShadow] API response parse failed: %s", parse_err)
-                raise TimeoutError(f"API parse error: {parse_err}") from parse_err
+                raise AgentAPIParseError(f"API parse error: {parse_err}") from parse_err
 
     # ── API simulated mode (full-pipeline smoke without production key) ─────────
 
