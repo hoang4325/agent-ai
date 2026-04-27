@@ -265,10 +265,15 @@ class RealAgentAdapter:
             if _root not in sys.path:
                 sys.path.insert(0, _root)
             from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
+            resolved_model_id = str(os.environ.get("AGENT_MODEL_ID", f"stage10_{mode}"))
             self._adapter = AgentShadowAdapter(
-                config=AgentShadowAdapterConfig(mode=mode, model_id=f"stage10_{mode}")
+                config=AgentShadowAdapterConfig(mode=mode, model_id=resolved_model_id)
             )
-            LOGGER.info("RealAgentAdapter: AgentShadowAdapter loaded in mode=%s", mode)
+            LOGGER.info(
+                "RealAgentAdapter: AgentShadowAdapter loaded in mode=%s model_id=%s",
+                mode,
+                resolved_model_id,
+            )
         except ImportError as exc:
             LOGGER.warning("RealAgentAdapter: AgentShadowAdapter unavailable (%s). Using fallback.", exc)
             self._adapter = None
