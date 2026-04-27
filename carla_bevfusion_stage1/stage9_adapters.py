@@ -292,7 +292,7 @@ class RealAgentAdapter:
                 ego_state=self._world_to_ego_state(world),
                 tracked_objects=[],
                 lane_context=self._world_to_lane_context(world),
-                route_context={"route_option": "straight", "preferred_lane": "current"},
+                route_context=self._world_to_route_context(world),
                 stop_context={},
                 baseline_context=self._world_to_baseline_context(world),
             )
@@ -347,17 +347,28 @@ class RealAgentAdapter:
             },
         }
 
+    def _world_to_route_context(self, world) -> dict:
+        preferred_lane = str(getattr(world, "agent_preferred_lane", "current") or "current")
+        return {
+            "route_option": "straight",
+            "preferred_lane": preferred_lane,
+            "route_mode": "stage10_live",
+            "route_conflict_flags": list(getattr(world, "route_conflict_flags", []) or []),
+        }
+
     def _world_to_baseline_context(self, world) -> dict:
         min_ttc = float(getattr(world, "min_ttc_s", 10.0))
-        if min_ttc < 1.5:
+        corridor_clear = bool(getattr(world, "corridor_clear", True))
+        if min_ttc < 1.5 or not corridor_clear:
             baseline = "stop_before_obstacle"
         elif min_ttc < 4.0:
             baseline = "follow"
         else:
             baseline = "keep_lane"
+        preferred_lane = str(getattr(world, "agent_preferred_lane", "current") or "current")
         return {
             "requested_behavior": baseline,
-            "target_lane": "current",
+            "target_lane": preferred_lane if preferred_lane in {"left", "right"} else "current",
             "lane_change_permission": {
                 "left": bool(getattr(world, "lane_change_permission", False)),
                 "right": bool(getattr(world, "lane_change_permission", False)),

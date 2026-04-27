@@ -265,6 +265,26 @@ def _resolve_target_map(args: argparse.Namespace, scenario_manifest: Optional[Di
     return _normalize_map_name(str(args.map))
 
 
+def _agent_preferred_lane_from_manifest(scenario_manifest: Optional[Dict[str, Any]]) -> str:
+    if not scenario_manifest:
+        return "current"
+
+    side = str(scenario_manifest.get("adjacent_side") or "").lower()
+    if side not in {"left", "right"}:
+        return "current"
+
+    placements = scenario_manifest.get("placements") or {}
+    try:
+        blocker_distance_m = float(placements.get("blocker_distance_m", 999.0))
+        adjacent_distance_m = float(placements.get("adjacent_distance_m", 0.0))
+    except (TypeError, ValueError):
+        return "current"
+
+    if blocker_distance_m <= 12.5 and adjacent_distance_m >= 30.0:
+        return side
+    return "current"
+
+
 def _resolve_attach_actor_id(
     args: argparse.Namespace,
     scenario_manifest: Optional[Dict[str, Any]],
@@ -743,15 +763,19 @@ def _trajectory_request_from_agent_intent(
         target_v = max(2.0, min(max(baseline_target_v, 3.0), 6.0))
     else:
         target_v = baseline_target_v
+    lateral_bound_m = (
+        3.5 if agent_intent in _ASSIST_LANE_CHANGE_INTENTS
+        else min(max(float(getattr(baseline_req, "lateral_bound_m", 0.75)), 0.75), 1.0)
+    )
 
     return TrajectoryRequest(
         source="AGENT_ASSIST",
         tactical_intent=agent_intent,
         v_max_mps=min(float(getattr(baseline_req, "v_max_mps", 8.0)), 8.0),
         a_long_max_mps2=min(float(getattr(baseline_req, "a_long_max_mps2", 2.5)), 2.0),
-        a_lat_max_mps2=min(float(getattr(baseline_req, "a_lat_max_mps2", 1.5)), 1.2),
+        a_lat_max_mps2=min(float(getattr(baseline_req, "a_lat_max_mps2", 1.5)), 1.5),
         jerk_max_mps3=min(float(getattr(baseline_req, "jerk_max_mps3", 3.0)), 3.0),
-        lateral_bound_m=min(max(float(getattr(baseline_req, "lateral_bound_m", 0.75)), 0.75), 1.0),
+        lateral_bound_m=lateral_bound_m,
         drivable_envelope=getattr(baseline_req, "drivable_envelope", None),
         target_lane_id=_assist_target_lane(agent_intent),
         target_v_desired_mps=target_v,
@@ -934,6 +958,7 @@ def run(args: argparse.Namespace) -> int:
     route_tracker: Optional[RouteProgressTracker] = None
     collision_monitor: Optional[CollisionMonitor] = None
     world = None
+    agent_preferred_lane = "current"
     ego_spawned_by_stage10 = False
     if args.samples_root:
         sensor_source = FolderWatcherSync(args.samples_root, args.max_frames)
@@ -942,6 +967,7 @@ def run(args: argparse.Namespace) -> int:
     else:
         scenario_manifest = _load_scenario_manifest(args.scenario_manifest)
         args.map = _resolve_target_map(args, scenario_manifest)
+        agent_preferred_lane = _agent_preferred_lane_from_manifest(scenario_manifest)
         client, world = _connect_carla(args.carla_host, args.carla_port)
         world = _load_map_if_needed(client, world, args.map)
         carla_map = world.get_map()
@@ -960,6 +986,7 @@ def run(args: argparse.Namespace) -> int:
             float(args.success_rc_threshold) * 100.0,
         )
         LOGGER.info("Stage10 ego source=%s actor_id=%s", ego_source, getattr(ego, "id", "unknown"))
+        LOGGER.info("Stage10 Agent route hint: preferred_lane=%s", agent_preferred_lane)
         collision_monitor = CollisionMonitor(
             world,
             ego,
@@ -1093,6 +1120,13 @@ def run(args: argparse.Namespace) -> int:
 
             # ── D. WorldState ──────────────────────────────────────────────
             world_state = ws_builder.build(det_list, ego_tel)
+            if world_state is not None:
+                setattr(world_state, "agent_preferred_lane", agent_preferred_lane)
+                setattr(
+                    world_state,
+                    "route_conflict_flags",
+                    ["blocked_clear_adjacent_lane"] if agent_preferred_lane in {"left", "right"} else [],
+                )
             route_info = (
                 route_tracker.update(ego_tel.ego_location_xyz)
                 if route_tracker is not None

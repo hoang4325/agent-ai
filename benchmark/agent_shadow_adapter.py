@@ -379,8 +379,10 @@ class AgentShadowAdapter:
         baseline_intent = str(baseline_context.get("requested_behavior", "keep_lane"))
         preferred_lane   = str(route_context.get("preferred_lane") or "current")
         route_option     = str(route_context.get("route_option") or "straight")
+        route_conflicts  = list(route_context.get("route_conflict_flags") or [])
         lc_perm          = baseline_context.get("lane_change_permission") or {}
         risk_level       = str((ego_state.get("risk_summary") or {}).get("highest_risk_level", "none"))
+        front_free_m     = (ego_state.get("scene") or {}).get("front_free_space_m")
 
         active_maneuver = baseline_context.get("active_maneuver")
         maneuver_ctx = f"CRITICAL: You are mid-maneuver '{active_maneuver}'. Continue it unless unsafe! " if active_maneuver else ""
@@ -389,9 +391,12 @@ class AgentShadowAdapter:
             f"You are a tactical driving agent in shadow-only mode. "
             f"{maneuver_ctx}"
             f"Baseline tactical system intends: '{baseline_intent}'. "
-            f"Route: option={route_option}, preferred_lane={preferred_lane}. "
-            f"Risk level: {risk_level}. "
+            f"Route: option={route_option}, preferred_lane={preferred_lane}, conflicts={route_conflicts}. "
+            f"Risk level: {risk_level}. Front free space is {front_free_m} meters. "
             f"Lane change permission left={lc_perm.get('left', True)} right={lc_perm.get('right', True)}. "
+            f"If baseline is stop_before_obstacle and preferred_lane is left or right with permission=true, "
+            f"prefer a bounded prepare_lane_change_<side> or commit_lane_change_<side> to bypass the blocker; "
+            f"otherwise keep the conservative baseline. "
             f"Return JSON only: {{\"tactical_intent\": \"<intent>\", \"target_lane\": \"<lane>\", "
             f"\"confidence\": <0.0-1.0>, \"reason_tags\": [\"<tag1>\"]}} "
             f"where tactical_intent is one of: keep_lane, follow, slow_down, stop, yield, "

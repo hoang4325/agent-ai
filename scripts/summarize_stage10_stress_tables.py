@@ -119,11 +119,23 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                     if assist.get("assist_applied_frames") is not None
                     else None
                 ),
+                "assist_agent_query_frames": (
+                    int(assist["agent_query_frames"])
+                    if assist.get("agent_query_frames") is not None
+                    else None
+                ),
+                "assist_agent_query_rate": (
+                    float(assist["agent_query_rate"])
+                    if assist.get("agent_query_rate") is not None
+                    else None
+                ),
                 "assist_intervention_rate": (
                     float(assist["assist_intervention_rate"])
                     if assist.get("assist_intervention_rate") is not None
                     else None
                 ),
+                "assist_reject_reason_counts": assist.get("assist_reject_reason_counts"),
+                "assist_agent_intent_distribution": assist.get("agent_intent_distribution"),
             }
         )
     return rows
@@ -178,6 +190,11 @@ def main() -> int:
             for row in rows
             if row["assist_applied_frames"] is not None
         ),
+        "total_assist_agent_query_frames": sum(
+            row["assist_agent_query_frames"]
+            for row in rows
+            if row["assist_agent_query_frames"] is not None
+        ),
     }
     summary = {
         "schema_version": "stage10_stress_tables_summary_v1",
@@ -208,7 +225,11 @@ def main() -> int:
                 "low_ttc_agent_cautious_rate": row["low_ttc_agent_cautious_rate"],
                 "low_ttc_baseline_cautious_rate": row["low_ttc_baseline_cautious_rate"],
                 "assist_applied_frames": row["assist_applied_frames"],
+                "assist_agent_query_frames": row["assist_agent_query_frames"],
+                "assist_agent_query_rate": row["assist_agent_query_rate"],
                 "assist_intervention_rate": row["assist_intervention_rate"],
+                "assist_reject_reason_counts": row["assist_reject_reason_counts"],
+                "assist_agent_intent_distribution": row["assist_agent_intent_distribution"],
             }
             for row in rows
         ],
@@ -232,20 +253,25 @@ def main() -> int:
         "case,agreement_rate,disagreement_rate,useful_disagreement_count,"
         "agent_queried_frames,sim_frames,query_ratio,agent_fallback_rate,"
         "low_ttc_agent_cautious_rate,low_ttc_baseline_cautious_rate,"
-        "assist_applied_frames,assist_intervention_rate"
+        "assist_agent_query_frames,assist_agent_query_rate,"
+        "assist_applied_frames,assist_intervention_rate,assist_reject_reason_counts"
     )
     for row in summary["table3_rows"]:
         useful_count = _fmt_int(row["useful_disagreement_count"])
         fallback_rate = _fmt_float(row["agent_fallback_rate"])
         agent_cautious = _fmt_float(row["low_ttc_agent_cautious_rate"])
         baseline_cautious = _fmt_float(row["low_ttc_baseline_cautious_rate"])
+        assist_queries = _fmt_int(row["assist_agent_query_frames"])
+        assist_query_rate = _fmt_float(row["assist_agent_query_rate"])
         assist_applied = _fmt_int(row["assist_applied_frames"])
         assist_rate = _fmt_float(row["assist_intervention_rate"])
+        reject_reasons = json.dumps(row["assist_reject_reason_counts"] or {}, sort_keys=True)
         print(
             f"{row['case']},{_fmt_float(row['agreement_rate'])},{_fmt_float(row['disagreement_rate'])},"
             f"{useful_count},{row['agent_queried_frames']},"
             f"{row['sim_frames']},{row['query_ratio']:.4f},{fallback_rate},"
-            f"{agent_cautious},{baseline_cautious},{assist_applied},{assist_rate}"
+            f"{agent_cautious},{baseline_cautious},{assist_queries},{assist_query_rate},"
+            f"{assist_applied},{assist_rate},{reject_reasons}"
         )
 
     print("\n=== OVERALL ===")
