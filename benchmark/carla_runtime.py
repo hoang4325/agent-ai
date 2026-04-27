@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import subprocess
 import time
@@ -14,6 +15,20 @@ CARLA_PROCESS_NAMES: tuple[str, ...] = (
     "CarlaUE4",
     "CrashReportClient",
 )
+
+
+def _is_windows() -> bool:
+    return os.name == "nt"
+
+
+def _carla_launch_path(carla_root: Path) -> Path:
+    windows_exe = carla_root / "CarlaUE4.exe"
+    linux_sh = carla_root / "CarlaUE4.sh"
+    if windows_exe.exists():
+        return windows_exe
+    if linux_sh.exists():
+        return linux_sh
+    raise FileNotFoundError(f"CARLA executable not found under {carla_root}")
 
 
 def port_ready(host: str, port: int, *, timeout_seconds: float = 1.0) -> bool:
@@ -114,9 +129,7 @@ def ensure_carla_ready(
             "runtime_stability": stability,
         }
 
-    exe_path = carla_root / "CarlaUE4.exe"
-    if not exe_path.exists():
-        raise FileNotFoundError(f"CARLA executable not found at {exe_path}")
+    exe_path = _carla_launch_path(carla_root)
 
     command = [str(exe_path)]
     if offscreen:
@@ -146,6 +159,29 @@ def ensure_carla_ready(
 
 
 def carla_process_snapshot() -> list[dict[str, Any]]:
+    if not _is_windows():
+        result = subprocess.run(
+            ["pgrep", "-a", "-f", "CarlaUE4|CrashReportClient"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        lines = [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+        snapshot: list[dict[str, Any]] = []
+        for line in lines:
+            try:
+                pid_text, command = line.split(" ", 1)
+                snapshot.append(
+                    {
+                        "name": command.split("/")[-1],
+                        "pid": int(pid_text),
+                        "working_set_bytes": 0,
+                    }
+                )
+            except ValueError:
+                continue
+        return snapshot
+
     process_names = ",".join(f"'{name}'" for name in CARLA_PROCESS_NAMES)
     command = (
         f"Get-Process -Name {process_names} -ErrorAction SilentlyContinue "
@@ -206,6 +242,16 @@ def wait_for_carla_process_exit(
 
 
 def kill_carla_processes(*, sleep_seconds: float = 3.0) -> None:
+    if not _is_windows():
+        subprocess.run(
+            ["pkill", "-f", "CarlaUE4|CrashReportClient"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        time.sleep(float(sleep_seconds))
+        return
+
     for process_name in tuple(f"{name}.exe" for name in CARLA_PROCESS_NAMES):
         subprocess.run(
             ["taskkill", "/IM", process_name, "/F", "/T"],
