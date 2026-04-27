@@ -41,7 +41,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING, Tuple
 
 import numpy as np
 
@@ -84,6 +84,12 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--score-thresh", type=float, default=0.35)
     p.add_argument("--map",          default="Town01",  help="CARLA map name")
     p.add_argument("--spawn-point",  type=int, default=0, help="Ego spawn-point index")
+    p.add_argument("--attach-to-actor-id", type=int, default=None,
+                   help="Attach to an existing ego actor instead of spawning a new one")
+    p.add_argument("--scenario-manifest", default=None,
+                   help="Optional scenario manifest path. If --attach-to-actor-id is omitted, use ego_actor_id and town from this file")
+    p.add_argument("--attach-autopilot", action="store_true",
+                   help="When attaching to an existing ego actor, enable CARLA autopilot on that actor")
     p.add_argument("--route-target-spawn-point", type=int, default=None,
                    help="Optional destination spawn-point index for true route-completion tracking")
     p.add_argument("--route-distance-m", type=float, default=500.0,
@@ -230,6 +236,47 @@ def _connect_carla(host: str, port: int, timeout_s: float = 30.0):
     return client, world
 
 
+def _normalize_map_name(name: str) -> str:
+    normalized = str(name).replace("\\", "/")
+    return normalized.split("/")[-1]
+
+
+def _load_scenario_manifest(manifest_path: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not manifest_path:
+        return None
+    path = Path(manifest_path)
+    with path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    if not isinstance(manifest, dict):
+        raise ValueError(f"Scenario manifest must contain a JSON object: {path}")
+    return manifest
+
+
+def _resolve_target_map(args: argparse.Namespace, scenario_manifest: Optional[Dict[str, Any]]) -> str:
+    if scenario_manifest and str(args.map) == "Town01":
+        manifest_town = scenario_manifest.get("town")
+        if manifest_town:
+            return _normalize_map_name(str(manifest_town))
+    return _normalize_map_name(str(args.map))
+
+
+def _resolve_attach_actor_id(
+    args: argparse.Namespace,
+    scenario_manifest: Optional[Dict[str, Any]],
+) -> Tuple[Optional[int], Optional[Path]]:
+    if args.attach_to_actor_id is not None:
+        return int(args.attach_to_actor_id), None
+    if not scenario_manifest or not args.scenario_manifest:
+        return None, None
+
+    actor_id = scenario_manifest.get("ego_actor_id")
+    manifest_path = Path(args.scenario_manifest)
+    if not isinstance(actor_id, int) or actor_id <= 0:
+        raise ValueError(f"Scenario manifest {manifest_path} does not contain a valid ego_actor_id.")
+    LOGGER.info("Resolved ego actor id=%s from scenario manifest %s", actor_id, manifest_path)
+    return int(actor_id), manifest_path
+
+
 def _load_map_if_needed(client, world, target_map: str):
     import carla  # type: ignore
     current = world.get_map().name.split("/")[-1]
@@ -252,6 +299,30 @@ def _spawn_ego(world, spawn_idx: int = 0):
     ego.set_autopilot(True)      # Simple traffic-manager autopilot as baseline
     LOGGER.info("Ego spawned at spawn_point=%d actor_id=%d", spawn_idx, ego.id)
     return ego
+
+
+def _spawn_or_get_ego(
+    world,
+    args: argparse.Namespace,
+    scenario_manifest: Optional[Dict[str, Any]],
+) -> Tuple[object, bool, str]:
+    attach_actor_id, manifest_path = _resolve_attach_actor_id(args, scenario_manifest)
+    if attach_actor_id is not None:
+        actor = world.get_actor(int(attach_actor_id))
+        if actor is None:
+            if manifest_path is not None:
+                raise ValueError(
+                    f"Actor id {attach_actor_id} from scenario manifest {manifest_path} does not exist in the current world."
+                )
+            raise ValueError(f"Actor id {attach_actor_id} does not exist in the current world.")
+        if bool(args.attach_autopilot):
+            actor.set_autopilot(True)
+            LOGGER.info("Attached ego actor_id=%d with autopilot enabled", actor.id)
+        else:
+            LOGGER.info("Attached ego actor_id=%d", actor.id)
+        return actor, False, "attached_actor"
+
+    return _spawn_ego(world, args.spawn_point), True, "spawned_actor"
 
 
 def _apply_actuator_command(ego_actor, cmd) -> None:
@@ -408,6 +479,7 @@ class RouteProgressTracker:
         spawn_point_index: int,
         target_spawn_point_index: Optional[int],
         fallback_distance_m: float,
+        start_location=None,
     ) -> "RouteProgressTracker":
         if target_spawn_point_index is None:
             return cls(mode="distance_proxy", target_distance_m=fallback_distance_m)
@@ -416,7 +488,7 @@ class RouteProgressTracker:
         if not spawn_points:
             return cls(mode="distance_proxy_no_spawn_points", target_distance_m=fallback_distance_m)
 
-        start = spawn_points[int(spawn_point_index) % len(spawn_points)].location
+        start = start_location or spawn_points[int(spawn_point_index) % len(spawn_points)].location
         dest = spawn_points[int(target_spawn_point_index) % len(spawn_points)].location
         route_points = cls._trace_route_points(carla_map, start, dest)
         if len(route_points) >= 2:
@@ -731,20 +803,24 @@ def run(args: argparse.Namespace) -> int:
     route_tracker: Optional[RouteProgressTracker] = None
     collision_monitor: Optional[CollisionMonitor] = None
     world = None
+    ego_spawned_by_stage10 = False
     if args.samples_root:
         sensor_source = FolderWatcherSync(args.samples_root, args.max_frames)
         ego = None
         carla_map = None
     else:
+        scenario_manifest = _load_scenario_manifest(args.scenario_manifest)
+        args.map = _resolve_target_map(args, scenario_manifest)
         client, world = _connect_carla(args.carla_host, args.carla_port)
         world = _load_map_if_needed(client, world, args.map)
         carla_map = world.get_map()
-        ego = _spawn_ego(world, args.spawn_point)
+        ego, ego_spawned_by_stage10, ego_source = _spawn_or_get_ego(world, args, scenario_manifest)
         route_tracker = RouteProgressTracker.build(
             carla_map=carla_map,
             spawn_point_index=args.spawn_point,
             target_spawn_point_index=args.route_target_spawn_point,
             fallback_distance_m=args.route_distance_m,
+            start_location=None if ego_spawned_by_stage10 else ego.get_location(),
         )
         LOGGER.info(
             "Driving metrics enabled: route_mode=%s route_length=%.1fm success_rc>=%.0f%%",
@@ -752,6 +828,7 @@ def run(args: argparse.Namespace) -> int:
             route_tracker.route_length_m if route_tracker is not None else 0.0,
             float(args.success_rc_threshold) * 100.0,
         )
+        LOGGER.info("Stage10 ego source=%s actor_id=%s", ego_source, getattr(ego, "id", "unknown"))
         collision_monitor = CollisionMonitor(
             world,
             ego,
@@ -995,7 +1072,7 @@ def run(args: argparse.Namespace) -> int:
             collision_monitor=collision_monitor,
         )
         _write_json(log_dir / "stage10_driving_metrics.json", driving_metrics)
-        if not args.samples_root and ego is not None:
+        if not args.samples_root and ego is not None and ego_spawned_by_stage10:
             try:
                 ego.destroy()
             except Exception:
