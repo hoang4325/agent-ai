@@ -280,16 +280,13 @@ class RealAgentAdapter:
 
     # ── Stage9AgentAdapterProto ───────────────────────────────────────────────
 
-    def propose_contract(self, world) -> Optional[Any]:
-        """
-        Observe world state, ask Agent for an intent, and pack it into
-        a ManeuverContract if the Agent proposes something different from baseline.
-        """
+    def observe_intent(self, world) -> Optional[Any]:
+        """Return the full shadow intent record for evaluation/logging."""
         if self._adapter is None:
             return None
 
         try:
-            intent_record = self._adapter.call(
+            return self._adapter.call(
                 case_id="stage10_live",
                 frame_id=int(getattr(world, "frame_id", 0)),
                 ego_state=self._world_to_ego_state(world),
@@ -299,16 +296,24 @@ class RealAgentAdapter:
                 stop_context={},
                 baseline_context=self._world_to_baseline_context(world),
             )
-
-            # Only emit a contract if Agent disagrees with baseline in a useful way
-            if intent_record.fallback_to_baseline or not intent_record.disagreement_useful:
-                return None
-
-            return self._pack_contract(intent_record, world)
-
         except Exception as exc:
-            LOGGER.debug("propose_contract error: %s", exc)
+            LOGGER.debug("observe_intent error: %s", exc)
             return None
+
+    def propose_contract(self, world) -> Optional[Any]:
+        """
+        Observe world state, ask Agent for an intent, and pack it into
+        a ManeuverContract if the Agent proposes something different from baseline.
+        """
+        intent_record = self.observe_intent(world)
+        if intent_record is None:
+            return None
+
+        # Only emit a contract if Agent disagrees with baseline in a useful way.
+        if intent_record.fallback_to_baseline or not intent_record.disagreement_useful:
+            return None
+
+        return self._pack_contract(intent_record, world)
 
     def get_intent(self, world, contract) -> str:
         """Return the tactical intent string from the active contract."""

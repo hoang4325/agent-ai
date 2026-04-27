@@ -92,6 +92,47 @@ def _persist_progress(
     return latest_path
 
 
+def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
+    driving_path = stage10_log_dir / "stage10_driving_metrics.json"
+    evaluation_path = stage10_log_dir / "stage10_agent_live_evaluation.json"
+    if not driving_path.exists():
+        return {}
+
+    driving = json.loads(driving_path.read_text(encoding="utf-8"))
+    evaluation = (
+        json.loads(evaluation_path.read_text(encoding="utf-8"))
+        if evaluation_path.exists()
+        else {}
+    )
+
+    low_ttc_analysis = evaluation.get("low_ttc_analysis") or {}
+    queried_frames = int(evaluation.get("agent_queried_frames") or 0)
+    sim_frames = int(evaluation.get("sim_frames") or 0)
+    collision_count = int(driving.get("collision_count") or 0)
+    query_ratio = round(queried_frames / max(sim_frames, 1), 4) if sim_frames else None
+    safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
+
+    return {
+        "table2": {
+            "frames": sim_frames or int(driving.get("frames") or 0),
+            "collision_count": collision_count,
+            "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
+            "safety_outcome": safety_outcome,
+        },
+        "table3": {
+            "agreement_rate": evaluation.get("agreement_rate"),
+            "disagreement_rate": evaluation.get("disagreement_rate"),
+            "useful_disagreement_count": int(evaluation.get("useful_disagreement_count") or 0),
+            "agent_queried_frames": queried_frames,
+            "sim_frames": sim_frames,
+            "query_ratio": query_ratio,
+            "agent_fallback_rate": evaluation.get("agent_fallback_rate"),
+            "low_ttc_agent_cautious_rate": low_ttc_analysis.get("agent_cautious_rate"),
+            "low_ttc_baseline_cautious_rate": low_ttc_analysis.get("baseline_cautious_rate"),
+        },
+    }
+
+
 def _spawn_with_probe_retry(
     *,
     python_exe: str,
@@ -329,6 +370,7 @@ def main() -> int:
                 )
                 run_record["spawn_probe"] = spawn_meta
                 _run_command(stage10_cmd, label=f"stage10 {run_id}")
+                run_record["report_summary"] = _load_case_report_summary(stage10_log_dir)
                 run_record["status"] = "completed"
             except Exception as exc:
                 run_record["status"] = "failed"

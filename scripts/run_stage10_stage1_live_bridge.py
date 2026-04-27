@@ -992,17 +992,31 @@ def run(args: argparse.Namespace) -> int:
                     if not should_query_agent:
                         compare_skipped_frames += 1
                     else:
-                        contract = compare_agent.propose_contract(world_state)
-                        if contract is not None:
-                            agent_intent = str(getattr(contract, "tactical_intent", "keep_lane"))
-                            agent_confidence = float(getattr(contract, "agent_confidence", 0.0))
-                            agent_reasoning = str(getattr(contract, "agent_reasoning_summary", ""))
-                            disagreement_useful = True
+                        intent_record = (
+                            compare_agent.observe_intent(world_state)
+                            if hasattr(compare_agent, "observe_intent")
+                            else None
+                        )
+                        if intent_record is not None:
+                            agent_intent = str(getattr(intent_record, "tactical_intent", baseline_intent))
+                            agent_confidence = float(getattr(intent_record, "confidence", 0.0))
+                            reason_tags = list(getattr(intent_record, "reason_tags", []) or [])
+                            agent_reasoning = ",".join(str(tag) for tag in reason_tags)
+                            disagreement_useful = bool(getattr(intent_record, "disagreement_useful", False))
+                            agent_validation_status = str(getattr(intent_record, "validation_status", "unknown"))
+                            agent_fallback_to_baseline = bool(getattr(intent_record, "fallback_to_baseline", False))
+                            agent_model_id = str(getattr(intent_record, "model_id", "unknown"))
+                            provenance = getattr(intent_record, "provenance", {}) or {}
+                            agent_raw_intent = provenance.get("raw_intent_received")
                         else:
-                            agent_intent = baseline_intent  # agent agrees (or fallback)
+                            agent_intent = baseline_intent
                             agent_confidence = 0.0
-                            agent_reasoning = "agrees_with_baseline"
+                            agent_reasoning = "agent_call_failed"
                             disagreement_useful = False
+                            agent_validation_status = "unavailable"
+                            agent_fallback_to_baseline = True
+                            agent_model_id = "unknown"
+                            agent_raw_intent = None
 
                         agrees = (baseline_intent == agent_intent)
                         cmp_ms = (time.monotonic() - t_cmp) * 1000
@@ -1022,6 +1036,10 @@ def run(args: argparse.Namespace) -> int:
                             "agent_intent": agent_intent,
                             "agent_confidence": agent_confidence,
                             "agent_reasoning": agent_reasoning,
+                            "agent_validation_status": agent_validation_status,
+                            "agent_fallback_to_baseline": agent_fallback_to_baseline,
+                            "agent_model_id": agent_model_id,
+                            "agent_raw_intent": agent_raw_intent,
                             "agrees": agrees,
                             "disagreement_useful": disagreement_useful and not agrees,
                             "compare_latency_ms": round(cmp_ms, 1),
@@ -1089,6 +1107,18 @@ def run(args: argparse.Namespace) -> int:
             # TTC-based analysis: how does agent behave in danger zones?
             low_ttc_frames = [r for r in compare_log if r["min_ttc_s"] < 3.0]
             low_ttc_disagree = [r for r in low_ttc_frames if not r["agrees"]]
+            cautious_intents = {"follow", "slow_down", "stop", "yield", "stop_before_obstacle"}
+            low_ttc_agent_cautious = [
+                r for r in low_ttc_frames if str(r.get("agent_intent")) in cautious_intents
+            ]
+            low_ttc_baseline_cautious = [
+                r for r in low_ttc_frames if str(r.get("baseline_intent")) in cautious_intents
+            ]
+            fallback_frames = [r for r in compare_log if bool(r.get("agent_fallback_to_baseline"))]
+            validation_counts: Dict[str, int] = {}
+            for r in compare_log:
+                status = str(r.get("agent_validation_status", "unknown"))
+                validation_counts[status] = validation_counts.get(status, 0) + 1
 
             evaluation = {
                 "schema_version": "stage10_agent_live_evaluation_v1",
@@ -1103,6 +1133,8 @@ def run(args: argparse.Namespace) -> int:
                 "agent_risk_ttc_threshold": float(args.agent_risk_ttc_threshold),
                 "agent_queried_frames": total,
                 "agent_skipped_frames": int(compare_skipped_frames),
+                "query_ratio": round(total / max(int(stats.get("frames", 0)), 1), 4)
+                if int(stats.get("frames", 0)) > 0 else None,
                 "agreement_frames": agreements,
                 "disagreement_frames": disagreements,
                 "agreement_rate": round(agreements / max(total, 1), 4),
@@ -1111,11 +1143,22 @@ def run(args: argparse.Namespace) -> int:
                 "useful_disagreement_rate": round(
                     useful_disagreements / max(disagreements, 1), 4
                 ) if disagreements > 0 else None,
+                "agent_fallback_frames": len(fallback_frames),
+                "agent_fallback_rate": round(len(fallback_frames) / max(total, 1), 4),
+                "agent_validation_status_counts": validation_counts,
                 "low_ttc_analysis": {
                     "total_low_ttc_frames": len(low_ttc_frames),
                     "disagreements_in_low_ttc": len(low_ttc_disagree),
-                    "agent_cautious_rate": round(
+                    "disagreement_rate_in_low_ttc": round(
                         len(low_ttc_disagree) / max(len(low_ttc_frames), 1), 4
+                    ) if low_ttc_frames else None,
+                    "agent_cautious_frames": len(low_ttc_agent_cautious),
+                    "agent_cautious_rate": round(
+                        len(low_ttc_agent_cautious) / max(len(low_ttc_frames), 1), 4
+                    ) if low_ttc_frames else None,
+                    "baseline_cautious_frames": len(low_ttc_baseline_cautious),
+                    "baseline_cautious_rate": round(
+                        len(low_ttc_baseline_cautious) / max(len(low_ttc_frames), 1), 4
                     ) if low_ttc_frames else None,
                 },
                 "latency": {
