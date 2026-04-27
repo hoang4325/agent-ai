@@ -442,6 +442,18 @@ class AgentShadowAdapter:
             f"commit_lane_change_left, commit_lane_change_right, keep_route_through_junction. "
             f"Do NOT include target_speed_mps, steering, throttle, brake, or trajectory fields."
         )
+        compact_prompt = (
+            f"Return one JSON object only. "
+            f"baseline={baseline_intent}; preferred_lane={preferred_lane}; route_option={route_option}; "
+            f"route_conflicts={route_conflicts}; risk={risk_level}; front_free_m={front_free_m}; "
+            f"left_ok={bool(lc_perm.get('left', True))}; right_ok={bool(lc_perm.get('right', True))}; "
+            f"active_maneuver={active_maneuver or 'none'}. "
+            f"If baseline=stop_before_obstacle and preferred_lane is left or right with permission=true and "
+            f"route_conflicts contains blocked_clear_adjacent_lane, choose bounded prepare_lane_change_<side> "
+            f"or commit_lane_change_<side>; otherwise keep the conservative baseline. "
+            f"JSON schema: "
+            f"{{\"tactical_intent\":\"...\",\"target_lane\":\"...\",\"confidence\":0.0,\"reason_tags\":[\"...\"]}}"
+        )
 
         endpoint = (
             self.config.api_endpoint
@@ -461,39 +473,59 @@ class AgentShadowAdapter:
             
             is_qwen_model = "qwen" in model_name.lower()
             qwen_no_think_suffix = " /no_think" if is_qwen_model else ""
-            payload_obj = {
-                "model": model_name,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "Return exactly one valid JSON object and nothing else. "
-                            "Do not include markdown, prose, XML tags, or reasoning text."
-                            f"{qwen_no_think_suffix}"
-                        ),
-                    },
-                    {"role": "user", "content": prompt + qwen_no_think_suffix},
-                ],
-                "max_tokens": 150,
-                "temperature": 0.0,
-                "response_format": {"type": "json_object"},
-            }
-            if is_qwen_model:
-                payload_obj["reasoning_format"] = os.environ.get("AGENT_REASONING_FORMAT", "hidden")
-            payload_candidates = [_json.dumps(payload_obj).encode("utf-8")]
-            text_payload_obj = dict(payload_obj)
-            text_payload_obj.pop("response_format", None)
-            payload_candidates.append(_json.dumps(text_payload_obj).encode("utf-8"))
+            def _openai_payload_variants(user_prompt: str, *, max_tokens: int, label_prefix: str) -> list[tuple[bytes, str]]:
+                payload_obj = {
+                    "model": model_name,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "Return exactly one valid JSON object and nothing else. "
+                                "Do not include markdown, prose, XML tags, or reasoning text."
+                                f"{qwen_no_think_suffix}"
+                            ),
+                        },
+                        {"role": "user", "content": user_prompt + qwen_no_think_suffix},
+                    ],
+                    "max_tokens": max_tokens,
+                    "temperature": 0.0,
+                    "response_format": {"type": "json_object"},
+                }
+                if is_qwen_model:
+                    payload_obj["reasoning_format"] = os.environ.get("AGENT_REASONING_FORMAT", "hidden")
+                text_payload_obj = dict(payload_obj)
+                text_payload_obj.pop("response_format", None)
+                return [
+                    (_json.dumps(payload_obj).encode("utf-8"), f"{label_prefix}_json"),
+                    (_json.dumps(text_payload_obj).encode("utf-8"), f"{label_prefix}_text"),
+                ]
+
+            payload_candidates = (
+                _openai_payload_variants(prompt, max_tokens=150, label_prefix="rich")
+                + _openai_payload_variants(compact_prompt, max_tokens=96, label_prefix="compact")
+            )
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
                 "User-Agent": "AgentShadow/1.0"
             }
         else:
-            payload_candidates = [_json.dumps({
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 150, "temperature": 0.2},
-            }).encode("utf-8")]
+            payload_candidates = [
+                (
+                    _json.dumps({
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {"maxOutputTokens": 150, "temperature": 0.2},
+                    }).encode("utf-8"),
+                    "rich",
+                ),
+                (
+                    _json.dumps({
+                        "contents": [{"parts": [{"text": compact_prompt}]}],
+                        "generationConfig": {"maxOutputTokens": 96, "temperature": 0.0},
+                    }).encode("utf-8"),
+                    "compact",
+                ),
+            ]
             headers = {
                 "Content-Type": "application/json",
                 "User-Agent": "AgentShadow/1.0"
@@ -505,9 +537,11 @@ class AgentShadowAdapter:
 
         import time as _time
         payload_idx = 0
-        for attempt in range(3):
+        max_attempts = max(3, len(payload_candidates))
+        for attempt in range(max_attempts):
             try:
-                req = _urlreq.Request(endpoint, data=payload_candidates[payload_idx], headers=headers)
+                payload_data, payload_label = payload_candidates[payload_idx]
+                req = _urlreq.Request(endpoint, data=payload_data, headers=headers)
                 with _urlreq.urlopen(req, timeout=timeout_s) as resp:
                     resp_body = _json.loads(resp.read().decode("utf-8"))
                 
@@ -561,7 +595,10 @@ class AgentShadowAdapter:
                     and payload_idx + 1 < len(payload_candidates)
                 ):
                     payload_idx += 1
-                    logger.warning("[AgentShadow] JSON mode rejected by API; retrying text mode once.")
+                    logger.warning(
+                        "[AgentShadow] JSON mode rejected by API; retrying payload variant=%s.",
+                        payload_candidates[payload_idx][1],
+                    )
                     continue
                 if http_err.code == 429 and attempt < 2:
                     logger.warning("[AgentShadow] 429 Too Many Requests -> sleeping 5s before retry %d", attempt + 1)
@@ -570,7 +607,16 @@ class AgentShadowAdapter:
                 logger.error("[AgentShadow] HTTPError %d: %s \nBody: %s", http_err.code, http_err.reason, err_body)
                 raise AgentAPIHTTPError(f"API HTTP Error {http_err.code}") from http_err
             except (urllib.error.URLError, socket.timeout, OSError) as net_err:
-                if attempt < 2:
+                if payload_idx + 1 < len(payload_candidates):
+                    payload_idx += 1
+                    logger.warning(
+                        "[AgentShadow] Timeout/Network Error %s -> retrying payload variant=%s",
+                        net_err,
+                        payload_candidates[payload_idx][1],
+                    )
+                    _time.sleep(1.0)
+                    continue
+                if attempt < max_attempts - 1:
                     logger.warning("[AgentShadow] Timeout/Network Error %s -> sleeping 2s before retry %d", net_err, attempt + 1)
                     _time.sleep(2.0)
                     continue
