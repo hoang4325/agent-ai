@@ -45,7 +45,7 @@ def _load_stage_profiles(stage_profiles_dir: Path) -> dict[str, dict[str, Any]]:
 def _to_cli_args(args_map: dict[str, Any], context: dict[str, Any]) -> list[str]:
     cli: list[str] = []
     for key, value in (args_map or {}).items():
-        rendered = str(value).format(**context)
+        rendered = _normalize_rendered_value(str(key), str(value).format(**context), context)
         rendered_lower = rendered.lower()
         if rendered_lower in {"true", "false"}:
             if rendered_lower == "true":
@@ -60,10 +60,39 @@ def _to_cli_args(args_map: dict[str, Any], context: dict[str, Any]) -> list[str]
 def _render_args(args_map: dict[str, Any], context: dict[str, Any]) -> dict[str, str]:
     rendered: dict[str, str] = {}
     for key, value in (args_map or {}).items():
-        candidate = str(value).format(**context)
+        candidate = _normalize_rendered_value(str(key), str(value).format(**context), context)
         if candidate in {"", "None", "null"}:
             continue
         rendered[str(key)] = candidate
+    return rendered
+
+
+def _looks_like_windows_path(value: str) -> bool:
+    normalized = str(value).replace("\\", "/")
+    return len(normalized) >= 3 and normalized[1:3] == ":/"
+
+
+def _normalize_rendered_value(key: str, value: str, context: dict[str, Any]) -> str:
+    if key == "--carla-pythonapi-root":
+        override = os.environ.get("CARLA_PYTHONAPI_ROOT") or context.get("carla_pythonapi_root")
+        if override:
+            return str(override)
+    return value
+
+
+def _resolve_stage_python_executable(candidate: str, fallback: str) -> str:
+    rendered = str(candidate or "").strip()
+    if not rendered:
+        return fallback
+    if _looks_like_windows_path(rendered) and os.name != "nt":
+        override = os.environ.get("AGENTAI_STAGE4_PYTHON_EXECUTABLE")
+        return str(override or fallback)
+    if Path(rendered).exists():
+        return rendered
+    if os.name != "nt":
+        override = os.environ.get("AGENTAI_STAGE4_PYTHON_EXECUTABLE")
+        if override:
+            return str(override)
     return rendered
 
 
@@ -174,6 +203,7 @@ def execute_case(
         "stage4_output_dir": str(case_run_dir / "stage4"),
         "stage1_capture_output_root": str(case_run_dir / "stage1_capture"),
         "stage4_python_executable": case_spec.get("stage4_python_executable") or pyexe,
+        "carla_pythonapi_root": os.environ.get("CARLA_PYTHONAPI_ROOT", ""),
         "stage1_container_agent_root": os.environ.get("AGENTAI_STAGE1_CONTAINER_AGENT_ROOT", "/workspace/Agent-AI"),
         "stage1_device": os.environ.get("AGENTAI_STAGE1_DEVICE", "cuda"),
     }
@@ -344,7 +374,10 @@ def execute_case(
             continue
 
         cli_args = _to_cli_args(profile.get("args") or {}, context)
-        stage_python_executable = str(profile.get("python_executable") or pyexe).format(**context)
+        stage_python_executable = _resolve_stage_python_executable(
+            str(profile.get("python_executable") or pyexe).format(**context),
+            pyexe,
+        )
         exit_code, output = _run_stage_command(
             repo_root=repo_root,
             python_executable=stage_python_executable,

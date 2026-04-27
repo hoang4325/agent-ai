@@ -31,7 +31,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--carla-timeout-s", type=float, default=10.0)
     parser.add_argument("--carla-ready-attempts", type=int, default=6)
     parser.add_argument("--carla-ready-retry-seconds", type=float, default=2.0)
-    parser.add_argument("--carla-pythonapi-root", default=r"D:\carla\PythonAPI")
+    parser.add_argument(
+        "--carla-pythonapi-root",
+        default=os.environ.get("CARLA_PYTHONAPI_ROOT", r"D:\carla\PythonAPI"),
+    )
     parser.add_argument("--tm-port", type=int, default=8000)
     parser.add_argument("--town", default=None)
     parser.add_argument("--load-town-if-needed", action="store_true")
