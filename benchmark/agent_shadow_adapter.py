@@ -500,10 +500,25 @@ class AgentShadowAdapter:
                     (_json.dumps(text_payload_obj).encode("utf-8"), f"{label_prefix}_text"),
                 ]
 
-            payload_candidates = (
-                _openai_payload_variants(prompt, max_tokens=150, label_prefix="rich")
-                + _openai_payload_variants(compact_prompt, max_tokens=96, label_prefix="compact")
+            rich_variants = _openai_payload_variants(prompt, max_tokens=150, label_prefix="rich")
+            compact_variants = _openai_payload_variants(compact_prompt, max_tokens=96, label_prefix="compact")
+            latency_critical_lane_change = (
+                baseline_intent == "stop_before_obstacle"
+                and preferred_lane in {"left", "right"}
+                and "blocked_clear_adjacent_lane" in route_conflicts
             )
+            if latency_critical_lane_change:
+                # For blocked-clear lane-change cases, prefer the shortest prompt first.
+                # This keeps real API assist intact while reducing the chance that the
+                # first attempt burns the whole timeout budget before compact fallback.
+                payload_candidates = [
+                    next(variant for variant in compact_variants if variant[1].endswith("_text")),
+                    next(variant for variant in compact_variants if variant[1].endswith("_json")),
+                    next(variant for variant in rich_variants if variant[1].endswith("_text")),
+                    next(variant for variant in rich_variants if variant[1].endswith("_json")),
+                ]
+            else:
+                payload_candidates = rich_variants + compact_variants
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
@@ -534,6 +549,14 @@ class AgentShadowAdapter:
         timeout_s = self.config.api_timeout_s
         if is_openai_compat and timeout_s < 30.0:
             timeout_s = 30.0
+
+        logger.info(
+            "[AgentShadow] API payload order preferred_lane=%s baseline=%s conflicts=%s variants=%s",
+            preferred_lane,
+            baseline_intent,
+            route_conflicts,
+            [label for _, label in payload_candidates],
+        )
 
         import time as _time
         payload_idx = 0
