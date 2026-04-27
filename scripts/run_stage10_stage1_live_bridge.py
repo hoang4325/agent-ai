@@ -108,12 +108,17 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--agent-mode",   default="stub",
                    choices=["stub", "api", "compare"],
                    help="Agent mode: stub=no LLM, api=real LLM, compare=baseline+agent side-by-side logging")
+    p.add_argument("--agent-control-mode", default="shadow",
+                   choices=["baseline", "shadow", "assist"],
+                   help="baseline=no Agent control, shadow=Agent logs only, assist=bounded tactical Agent intent through MPC")
     p.add_argument("--agent-trigger-mode", choices=("every_frame", "risk_or_event"), default="risk_or_event",
                    help="When compare mode calls the LLM agent")
     p.add_argument("--agent-compare-stride", type=int, default=10,
                    help="Minimum frame stride for periodic Agent compare calls in risk_or_event mode")
     p.add_argument("--agent-risk-ttc-threshold", type=float, default=3.0,
                    help="Always query Agent when estimated TTC is below this threshold")
+    p.add_argument("--agent-assist-min-confidence", type=float, default=0.50,
+                   help="Minimum Agent confidence required before bounded assist can override the baseline request")
     return p.parse_args()
 
 
@@ -605,6 +610,7 @@ def _build_driving_metrics(
         "stage": "10_live_bridge",
         "map": args.map,
         "agent_mode": args.agent_mode,
+        "agent_control_mode": args.agent_control_mode,
         "frames": int(stats.get("frames", 0)),
         "route_completion_rate": rc,
         "route_completion_pct": route_summary.get("route_completion_pct"),
@@ -669,10 +675,129 @@ def _should_query_agent(
     return False, "not_triggered"
 
 
+_ASSIST_LANE_CHANGE_INTENTS = {
+    "prepare_lane_change_left",
+    "prepare_lane_change_right",
+    "commit_lane_change_left",
+    "commit_lane_change_right",
+}
+_ASSIST_CONSERVATIVE_INTENTS = {"slow_down", "stop", "yield", "follow"}
+
+
+def _assist_target_lane(agent_intent: str) -> str:
+    if "left" in agent_intent:
+        return "left"
+    if "right" in agent_intent:
+        return "right"
+    return "current"
+
+
+def _agent_assist_allowed(
+    *,
+    args: argparse.Namespace,
+    intent_record: Any,
+    baseline_intent: str,
+    world_state: Any,
+) -> Tuple[bool, str]:
+    if intent_record is None:
+        return False, "no_agent_intent"
+    if bool(getattr(intent_record, "fallback_to_baseline", False)):
+        return False, "agent_fallback"
+    if str(getattr(intent_record, "validation_status", "")) != "valid":
+        return False, "agent_invalid"
+
+    agent_intent = str(getattr(intent_record, "tactical_intent", baseline_intent))
+    if agent_intent == baseline_intent:
+        return False, "same_as_baseline"
+
+    confidence = float(getattr(intent_record, "confidence", 0.0))
+    if confidence < float(args.agent_assist_min_confidence):
+        return False, "low_confidence"
+
+    if agent_intent in _ASSIST_LANE_CHANGE_INTENTS:
+        if not bool(getattr(world_state, "lane_change_permission", False)):
+            return False, "lane_change_not_permitted"
+        return True, "lane_change_assist"
+
+    if agent_intent in _ASSIST_CONSERVATIVE_INTENTS:
+        return True, "conservative_assist"
+
+    return False, "unsupported_intent"
+
+
+def _trajectory_request_from_agent_intent(
+    *,
+    baseline_req: Any,
+    agent_intent: str,
+    world_state: Any,
+) -> Any:
+    from stage9.schemas import TrajectoryRequest
+
+    ego_v = float(getattr(world_state, "ego_v_mps", 0.0))
+    baseline_target_v = float(getattr(baseline_req, "target_v_desired_mps", 0.0))
+    if agent_intent in {"stop", "yield"}:
+        target_v = 0.0
+    elif agent_intent == "slow_down":
+        target_v = max(0.5, min(3.0, ego_v * 0.5))
+    elif agent_intent in _ASSIST_LANE_CHANGE_INTENTS:
+        target_v = max(2.0, min(max(baseline_target_v, 3.0), 6.0))
+    else:
+        target_v = baseline_target_v
+
+    return TrajectoryRequest(
+        source="AGENT_ASSIST",
+        tactical_intent=agent_intent,
+        v_max_mps=min(float(getattr(baseline_req, "v_max_mps", 8.0)), 8.0),
+        a_long_max_mps2=min(float(getattr(baseline_req, "a_long_max_mps2", 2.5)), 2.0),
+        a_lat_max_mps2=min(float(getattr(baseline_req, "a_lat_max_mps2", 1.5)), 1.2),
+        jerk_max_mps3=min(float(getattr(baseline_req, "jerk_max_mps3", 3.0)), 3.0),
+        lateral_bound_m=min(max(float(getattr(baseline_req, "lateral_bound_m", 0.75)), 0.75), 1.0),
+        drivable_envelope=getattr(baseline_req, "drivable_envelope", None),
+        target_lane_id=_assist_target_lane(agent_intent),
+        target_v_desired_mps=target_v,
+        horizon_s=min(float(getattr(baseline_req, "horizon_s", 3.0)), 3.0),
+        cost_profile="AGENT_ASSIST",
+    )
+
+
+def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any]) -> Dict[str, Any]:
+    attempted = [r for r in assist_log if r.get("agent_queried")]
+    accepted = [r for r in assist_log if r.get("assist_applied")]
+    rejected = [r for r in assist_log if r.get("agent_queried") and not r.get("assist_applied")]
+    rejection_counts: Dict[str, int] = {}
+    intent_counts: Dict[str, int] = {}
+    for row in assist_log:
+        if row.get("agent_intent"):
+            intent = str(row["agent_intent"])
+            intent_counts[intent] = intent_counts.get(intent, 0) + 1
+        if row.get("assist_reject_reason"):
+            reason = str(row["assist_reject_reason"])
+            rejection_counts[reason] = rejection_counts.get(reason, 0) + 1
+
+    sim_frames = int(stats.get("frames", 0))
+    return {
+        "schema_version": "stage10_agent_assist_evaluation_v1",
+        "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+        "sim_frames": sim_frames,
+        "agent_query_frames": len(attempted),
+        "assist_applied_frames": len(accepted),
+        "assist_rejected_frames": len(rejected),
+        "assist_intervention_rate": round(len(accepted) / max(sim_frames, 1), 4),
+        "agent_query_rate": round(len(attempted) / max(sim_frames, 1), 4),
+        "agent_intent_distribution": intent_counts,
+        "assist_reject_reason_counts": rejection_counts,
+        "frame_log": assist_log,
+    }
+
+
 # ── Stage 9 Arbiter bootstrap ─────────────────────────────────────────────────
 # TODO [Stage 9 hook]: Replace stubs with real Stage 9 components.
 
-def _build_stage9_arbiter(log_dir: Path, agent_mode: str = "stub"):
+def _build_stage9_arbiter(
+    log_dir: Path,
+    agent_mode: str = "stub",
+    agent_control_mode: str = "shadow",
+):
     """
     Build and return the Stage 9 AuthorityArbiter with REAL components.
     Returns None if imports fail (graceful degradation).
@@ -703,7 +828,13 @@ def _build_stage9_arbiter(log_dir: Path, agent_mode: str = "stub"):
         mpc_impl = RealMPCAdapter(dt_s=0.1)
         baseline_impl = RealBaselineAdapter()
         _adapter_mode = "api" if agent_mode in ("api", "compare") else "stub"
-        agent_impl = RealAgentAdapter(mode=_adapter_mode)
+        if agent_control_mode in {"baseline", "shadow", "assist"}:
+            class _NoopAgent:
+                def propose_contract(self, w): return None
+                def get_intent(self, w, c): return "keep_lane"
+            agent_impl = _NoopAgent()
+        else:
+            agent_impl = RealAgentAdapter(mode=_adapter_mode)
         LOGGER.info("Stage 10: Real MPC + Baseline + Agent adapters loaded (agent_mode=%s).", _adapter_mode)
     except ImportError as exc:
         LOGGER.warning("stage9_adapters unavailable (%s). Using minimal stubs.", exc)
@@ -852,7 +983,11 @@ def run(args: argparse.Namespace) -> int:
         )
 
     # ── 3. Stage 9 Arbiter (optional) ────────────────────────────────────────
-    arbiter = None if args.no_stage9 else _build_stage9_arbiter(log_dir, agent_mode=args.agent_mode)
+    arbiter = None if args.no_stage9 else _build_stage9_arbiter(
+        log_dir,
+        agent_mode=args.agent_mode,
+        agent_control_mode=args.agent_control_mode,
+    )
 
     # ── 3b. Compare-mode: separate agent adapter for side-by-side logging ────
     compare_agent = None
@@ -868,6 +1003,27 @@ def run(args: argparse.Namespace) -> int:
         except ImportError as exc:
             LOGGER.warning("Compare mode unavailable (%s). Falling back to normal mode.", exc)
             compare_agent = None
+
+    assist_agent = None
+    assist_baseline = None
+    assist_mpc = None
+    assist_log: List[Dict[str, Any]] = []
+    if args.agent_control_mode == "assist":
+        try:
+            from carla_bevfusion_stage1.stage9_adapters import (
+                RealAgentAdapter,
+                RealBaselineAdapter,
+                RealMPCAdapter,
+            )
+            assist_agent = RealAgentAdapter(mode="api" if args.agent_mode in ("api", "compare") else "stub")
+            assist_baseline = RealBaselineAdapter()
+            assist_mpc = RealMPCAdapter(dt_s=float(args.delta_t))
+            LOGGER.info("Agent assist mode ENABLED: bounded tactical intent -> MPC.")
+        except ImportError as exc:
+            LOGGER.warning("Agent assist unavailable (%s). Falling back to baseline control.", exc)
+            assist_agent = None
+            assist_baseline = None
+            assist_mpc = None
 
 
     # ── 4. Sensor rig + sync ──────────────────────────────────────────────────
@@ -966,10 +1122,94 @@ def run(args: argparse.Namespace) -> int:
             )
 
             # ── E. Stage 9 Arbiter ─────────────────────────────────────────
+            cmd = None
+            control_source = "none"
             if arbiter is not None and world_state is not None:
                 cmd = arbiter.step(world_state, sim_time_s=live_frame.timestamp_s)
-                if not args.samples_root and ego is not None:
-                    _apply_actuator_command(ego, cmd)
+                control_source = "baseline_or_arbiter"
+
+            if (
+                args.agent_control_mode == "assist"
+                and world_state is not None
+                and assist_agent is not None
+                and assist_baseline is not None
+                and assist_mpc is not None
+            ):
+                assist_baseline_req = assist_baseline.plan(world_state)
+                assist_baseline_intent = str(getattr(assist_baseline_req, "tactical_intent", "keep_lane"))
+                assist_ttc = float(
+                    ws_builder._prev_detections and
+                    _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
+                )
+                assist_should_query, assist_trigger_reason = _should_query_agent(
+                    args=args,
+                    frame_idx=frame_idx,
+                    baseline_intent=assist_baseline_intent,
+                    min_ttc_s=assist_ttc,
+                    world_state=world_state,
+                )
+                assist_record: Dict[str, Any] = {
+                    "frame_id": live_frame.frame_id,
+                    "frame_idx": frame_idx,
+                    "timestamp_s": live_frame.timestamp_s,
+                    "agent_queried": assist_should_query,
+                    "agent_trigger_reason": assist_trigger_reason,
+                    "baseline_intent": assist_baseline_intent,
+                    "assist_applied": False,
+                    "assist_reject_reason": None if assist_should_query else "not_triggered",
+                    "ego_v_mps": float(ego_tel.ego_v_mps),
+                    "min_ttc_s": assist_ttc,
+                    "route_progress_m": route_info.get("route_progress_m"),
+                }
+                if assist_should_query:
+                    intent_record = assist_agent.observe_intent(world_state)
+                    agent_intent = (
+                        str(getattr(intent_record, "tactical_intent", assist_baseline_intent))
+                        if intent_record is not None
+                        else assist_baseline_intent
+                    )
+                    assist_allowed, assist_reason = _agent_assist_allowed(
+                        args=args,
+                        intent_record=intent_record,
+                        baseline_intent=assist_baseline_intent,
+                        world_state=world_state,
+                    )
+                    assist_record.update(
+                        {
+                            "agent_intent": agent_intent,
+                            "agent_confidence": (
+                                float(getattr(intent_record, "confidence", 0.0))
+                                if intent_record is not None else 0.0
+                            ),
+                            "agent_validation_status": (
+                                str(getattr(intent_record, "validation_status", "unavailable"))
+                                if intent_record is not None else "unavailable"
+                            ),
+                            "agent_fallback_to_baseline": (
+                                bool(getattr(intent_record, "fallback_to_baseline", True))
+                                if intent_record is not None else True
+                            ),
+                            "assist_reject_reason": None if assist_allowed else assist_reason,
+                        }
+                    )
+                    if assist_allowed:
+                        assist_req = _trajectory_request_from_agent_intent(
+                            baseline_req=assist_baseline_req,
+                            agent_intent=agent_intent,
+                            world_state=world_state,
+                        )
+                        cmd = assist_mpc.execute(assist_req)
+                        control_source = "agent_assist"
+                        assist_record["assist_applied"] = True
+                        assist_record["assist_request"] = {
+                            "tactical_intent": agent_intent,
+                            "target_v_desired_mps": float(getattr(assist_req, "target_v_desired_mps", 0.0)),
+                            "target_lane_id": getattr(assist_req, "target_lane_id", None),
+                        }
+                assist_log.append(assist_record)
+
+            if cmd is not None and not args.samples_root and ego is not None:
+                _apply_actuator_command(ego, cmd)
 
             # ── F. Compare mode: side-by-side Agent vs Baseline ───────────
             if compare_agent is not None and compare_baseline is not None and world_state is not None:
@@ -1204,6 +1444,19 @@ def run(args: argparse.Namespace) -> int:
             if low_ttc_frames:
                 LOGGER.info("  Low-TTC frames   : %d, agent cautious: %d",
                             len(low_ttc_frames), len(low_ttc_disagree))
+
+        if assist_log:
+            assist_eval = _summarize_assist_log(assist_log, stats)
+            assist_path = log_dir / "stage10_agent_assist_evaluation.json"
+            assist_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(assist_path, "w") as f:
+                json.dump(assist_eval, f, indent=2, default=str)
+            LOGGER.info(
+                "Agent-assist evaluation saved -> %s (applied=%d/%d)",
+                assist_path,
+                assist_eval.get("assist_applied_frames", 0),
+                assist_eval.get("sim_frames", 0),
+            )
 
         LOGGER.info("=" * 60)
         LOGGER.info("Stage 10 Live Bridge finished.")

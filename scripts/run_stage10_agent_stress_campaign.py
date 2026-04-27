@@ -30,15 +30,19 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--bev-ckpt", required=True)
     parser.add_argument("--map", default="Town10HD_Opt")
     parser.add_argument("--cases", default="full",
-                        help="Comma-separated deterministic stress cases to run. Supported aliases: full, lane_only")
+                        help="Comma-separated deterministic stress cases to run. Supported aliases: full, lane_only, ab_blocked_clear")
     parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--run-tag", default="",
+                        help="Optional tag inserted into run folder names, useful for A/B runs")
     parser.add_argument("--max-frames", type=int, default=300)
     parser.add_argument("--route-distance-m", type=float, default=120.0)
     parser.add_argument("--agent-mode", default="compare", choices=["stub", "api", "compare"])
+    parser.add_argument("--agent-control-mode", default="shadow", choices=["baseline", "shadow", "assist"])
     parser.add_argument("--agent-trigger-mode", default="risk_or_event",
                         choices=["every_frame", "risk_or_event"])
     parser.add_argument("--agent-compare-stride", type=int, default=50)
     parser.add_argument("--agent-risk-ttc-threshold", type=float, default=2.0)
+    parser.add_argument("--agent-assist-min-confidence", type=float, default=0.50)
     parser.add_argument("--radar-ablation", default="zero_bev", choices=["none", "zero_bev"])
     parser.add_argument("--output-root", default=str(PROJECT_ROOT / "outputs" / "stage10_stress_campaign"))
     parser.add_argument("--report-root", default=str(PROJECT_ROOT / "benchmark" / "reports" / "stage10_stress_campaign"))
@@ -75,6 +79,7 @@ def _build_summary_payload(
         "repeats": int(args.repeats),
         "max_frames": int(args.max_frames),
         "agent_mode": args.agent_mode,
+        "agent_control_mode": args.agent_control_mode,
         "runs": runs,
     }
 
@@ -95,6 +100,7 @@ def _persist_progress(
 def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
     driving_path = stage10_log_dir / "stage10_driving_metrics.json"
     evaluation_path = stage10_log_dir / "stage10_agent_live_evaluation.json"
+    assist_path = stage10_log_dir / "stage10_agent_assist_evaluation.json"
     if not driving_path.exists():
         return {}
 
@@ -104,6 +110,11 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
         if evaluation_path.exists()
         else {}
     )
+    assist = (
+        json.loads(assist_path.read_text(encoding="utf-8"))
+        if assist_path.exists()
+        else {}
+    )
 
     low_ttc_analysis = evaluation.get("low_ttc_analysis") or {}
     queried_frames = int(evaluation.get("agent_queried_frames") or 0)
@@ -111,10 +122,13 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
     collision_count = int(driving.get("collision_count") or 0)
     query_ratio = round(queried_frames / max(sim_frames, 1), 4) if sim_frames else None
     safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
+    route = driving.get("route") or {}
 
     return {
         "table2": {
             "frames": sim_frames or int(driving.get("frames") or 0),
+            "route_progress_m": route.get("route_progress_m"),
+            "distance_traveled_m": route.get("distance_traveled_m"),
             "collision_count": collision_count,
             "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
             "safety_outcome": safety_outcome,
@@ -129,6 +143,8 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "agent_fallback_rate": evaluation.get("agent_fallback_rate"),
             "low_ttc_agent_cautious_rate": low_ttc_analysis.get("agent_cautious_rate"),
             "low_ttc_baseline_cautious_rate": low_ttc_analysis.get("baseline_cautious_rate"),
+            "assist_applied_frames": assist.get("assist_applied_frames"),
+            "assist_intervention_rate": assist.get("assist_intervention_rate"),
         },
     }
 
@@ -240,6 +256,20 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_distance_m": 12.0,
             "route_distance_m": 90.0,
         },
+        "blocked_clear_right": {
+            "adjacent_side": "right",
+            "case_label": "blocked_lane_clear_right",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 60.0,
+            "route_distance_m": 60.0,
+        },
+        "blocked_clear_left": {
+            "adjacent_side": "left",
+            "case_label": "blocked_lane_clear_left",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 60.0,
+            "route_distance_m": 60.0,
+        },
         "stop_follow": {
             "adjacent_side": "right",
             "case_label": "stop_follow_ambiguity",
@@ -258,6 +288,7 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
     aliases = {
         "full": ["right", "left", "unsafe_right", "unsafe_left", "stop_follow", "emergency_brake"],
         "lane_only": ["right", "left"],
+        "ab_blocked_clear": ["blocked_clear_right", "blocked_clear_left"],
     }
 
     expanded: List[str] = []
@@ -295,7 +326,8 @@ def main() -> int:
         for spec in case_specs:
             run_counter += 1
             case_label = spec["case_label"]
-            run_id = f"{case_label}_run{repeat_idx}"
+            tag_part = f"_{str(args.run_tag).strip()}" if str(args.run_tag).strip() else ""
+            run_id = f"{case_label}{tag_part}_run{repeat_idx}"
             manifest_path = output_root / f"{run_id}_manifest.json"
             stage10_output_root = output_root / run_id
             stage10_log_dir = report_root / run_id
@@ -317,9 +349,11 @@ def main() -> int:
                 "--route-distance-m", str(float(spec.get("route_distance_m", args.route_distance_m))),
                 "--max-frames", str(args.max_frames),
                 "--agent-mode", str(args.agent_mode),
+                "--agent-control-mode", str(args.agent_control_mode),
                 "--agent-trigger-mode", str(args.agent_trigger_mode),
                 "--agent-compare-stride", str(args.agent_compare_stride),
                 "--agent-risk-ttc-threshold", str(args.agent_risk_ttc_threshold),
+                "--agent-assist-min-confidence", str(args.agent_assist_min_confidence),
                 "--radar-ablation", str(args.radar_ablation),
             ]
 

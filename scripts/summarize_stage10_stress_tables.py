@@ -37,6 +37,24 @@ def _case_name(run_name: str) -> str:
     return RUN_SUFFIX_RE.sub("", run_name)
 
 
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _fmt_float(value: float | None) -> str:
+    if value is None:
+        return ""
+    return f"{value:.4f}"
+
+
+def _fmt_int(value: int | None) -> str:
+    if value is None:
+        return ""
+    return str(value)
+
+
 def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for driving_path in sorted(report_root.glob("*/stage10_driving_metrics.json")):
@@ -44,29 +62,40 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
         if not fnmatch.fnmatch(run_dir.name, run_glob):
             continue
         evaluation_path = run_dir / "stage10_agent_live_evaluation.json"
-        if not evaluation_path.exists():
-            continue
+        assist_path = run_dir / "stage10_agent_assist_evaluation.json"
 
         driving = json.loads(driving_path.read_text(encoding="utf-8"))
-        evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+        evaluation = (
+            json.loads(evaluation_path.read_text(encoding="utf-8"))
+            if evaluation_path.exists()
+            else {}
+        )
+        assist = json.loads(assist_path.read_text(encoding="utf-8")) if assist_path.exists() else {}
         low_ttc_analysis = evaluation.get("low_ttc_analysis") or {}
         queried_frames = int(evaluation.get("agent_queried_frames") or 0)
-        sim_frames = int(evaluation.get("sim_frames") or 0)
+        sim_frames = int(evaluation.get("sim_frames") or driving.get("frames") or 0)
         query_ratio = queried_frames / sim_frames if sim_frames else 0.0
         collision_count = int(driving.get("collision_count") or 0)
         safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
+        route = driving.get("route") or {}
 
         rows.append(
             {
                 "run_name": run_dir.name,
                 "case": _case_name(run_dir.name),
                 "frames": sim_frames or int(driving.get("frames") or 0),
+                "route_progress_m": _optional_float(route.get("route_progress_m")),
+                "distance_traveled_m": _optional_float(route.get("distance_traveled_m")),
                 "collision_count": collision_count,
                 "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
                 "safety_outcome": safety_outcome,
-                "agreement_rate": float(evaluation.get("agreement_rate") or 0.0),
-                "disagreement_rate": float(evaluation.get("disagreement_rate") or 0.0),
-                "useful_disagreement_count": int(evaluation.get("useful_disagreement_count") or 0),
+                "agreement_rate": _optional_float(evaluation.get("agreement_rate")),
+                "disagreement_rate": _optional_float(evaluation.get("disagreement_rate")),
+                "useful_disagreement_count": (
+                    int(evaluation["useful_disagreement_count"])
+                    if evaluation.get("useful_disagreement_count") is not None
+                    else None
+                ),
                 "agent_queried_frames": queried_frames,
                 "sim_frames": sim_frames,
                 "query_ratio": round(query_ratio, 4),
@@ -83,6 +112,16 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                 "low_ttc_baseline_cautious_rate": (
                     float(low_ttc_analysis["baseline_cautious_rate"])
                     if low_ttc_analysis.get("baseline_cautious_rate") is not None
+                    else None
+                ),
+                "assist_applied_frames": (
+                    int(assist["assist_applied_frames"])
+                    if assist.get("assist_applied_frames") is not None
+                    else None
+                ),
+                "assist_intervention_rate": (
+                    float(assist["assist_intervention_rate"])
+                    if assist.get("assist_intervention_rate") is not None
                     else None
                 ),
             }
@@ -109,8 +148,20 @@ def main() -> int:
         "num_runs": len(rows),
         "collision_free_runs": sum(1 for row in rows if row["collision_count"] == 0),
         "total_low_ttc_frames": sum(row["low_ttc_frames"] for row in rows),
-        "total_useful_disagreement_count": sum(row["useful_disagreement_count"] for row in rows),
-        "mean_agreement_rate": _mean([row["agreement_rate"] for row in rows]),
+        "total_useful_disagreement_count": sum(
+            row["useful_disagreement_count"]
+            for row in rows
+            if row["useful_disagreement_count"] is not None
+        ),
+        "mean_route_progress_m": _mean(
+            [row["route_progress_m"] for row in rows if row["route_progress_m"] is not None]
+        ),
+        "mean_distance_traveled_m": _mean(
+            [row["distance_traveled_m"] for row in rows if row["distance_traveled_m"] is not None]
+        ),
+        "mean_agreement_rate": _mean(
+            [row["agreement_rate"] for row in rows if row["agreement_rate"] is not None]
+        ),
         "mean_query_ratio": _mean([row["query_ratio"] for row in rows]),
         "mean_agent_fallback_rate": _mean(
             [row["agent_fallback_rate"] for row in rows if row["agent_fallback_rate"] is not None]
@@ -122,6 +173,11 @@ def main() -> int:
                 if row["low_ttc_agent_cautious_rate"] is not None
             ]
         ),
+        "total_assist_applied_frames": sum(
+            row["assist_applied_frames"]
+            for row in rows
+            if row["assist_applied_frames"] is not None
+        ),
     }
     summary = {
         "schema_version": "stage10_stress_tables_summary_v1",
@@ -131,6 +187,8 @@ def main() -> int:
             {
                 "case": row["case"],
                 "frames": row["frames"],
+                "route_progress_m": row["route_progress_m"],
+                "distance_traveled_m": row["distance_traveled_m"],
                 "collision_count": row["collision_count"],
                 "low_ttc_frames": row["low_ttc_frames"],
                 "safety_outcome": row["safety_outcome"],
@@ -149,6 +207,8 @@ def main() -> int:
                 "agent_fallback_rate": row["agent_fallback_rate"],
                 "low_ttc_agent_cautious_rate": row["low_ttc_agent_cautious_rate"],
                 "low_ttc_baseline_cautious_rate": row["low_ttc_baseline_cautious_rate"],
+                "assist_applied_frames": row["assist_applied_frames"],
+                "assist_intervention_rate": row["assist_intervention_rate"],
             }
             for row in rows
         ],
@@ -159,10 +219,11 @@ def main() -> int:
         Path(args.summary_json).write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print("=== TABLE 2 ===")
-    print("case,frames,collision_count,low_ttc_frames,safety_outcome")
+    print("case,frames,route_progress_m,distance_traveled_m,collision_count,low_ttc_frames,safety_outcome")
     for row in summary["table2_rows"]:
         print(
-            f"{row['case']},{row['frames']},{row['collision_count']},"
+            f"{row['case']},{row['frames']},{_fmt_float(row['route_progress_m'])},"
+            f"{_fmt_float(row['distance_traveled_m'])},{row['collision_count']},"
             f"{row['low_ttc_frames']},{row['safety_outcome']}"
         )
 
@@ -170,23 +231,21 @@ def main() -> int:
     print(
         "case,agreement_rate,disagreement_rate,useful_disagreement_count,"
         "agent_queried_frames,sim_frames,query_ratio,agent_fallback_rate,"
-        "low_ttc_agent_cautious_rate,low_ttc_baseline_cautious_rate"
+        "low_ttc_agent_cautious_rate,low_ttc_baseline_cautious_rate,"
+        "assist_applied_frames,assist_intervention_rate"
     )
     for row in summary["table3_rows"]:
-        fallback_rate = "" if row["agent_fallback_rate"] is None else f"{row['agent_fallback_rate']:.4f}"
-        agent_cautious = (
-            "" if row["low_ttc_agent_cautious_rate"] is None
-            else f"{row['low_ttc_agent_cautious_rate']:.4f}"
-        )
-        baseline_cautious = (
-            "" if row["low_ttc_baseline_cautious_rate"] is None
-            else f"{row['low_ttc_baseline_cautious_rate']:.4f}"
-        )
+        useful_count = _fmt_int(row["useful_disagreement_count"])
+        fallback_rate = _fmt_float(row["agent_fallback_rate"])
+        agent_cautious = _fmt_float(row["low_ttc_agent_cautious_rate"])
+        baseline_cautious = _fmt_float(row["low_ttc_baseline_cautious_rate"])
+        assist_applied = _fmt_int(row["assist_applied_frames"])
+        assist_rate = _fmt_float(row["assist_intervention_rate"])
         print(
-            f"{row['case']},{row['agreement_rate']:.4f},{row['disagreement_rate']:.4f},"
-            f"{row['useful_disagreement_count']},{row['agent_queried_frames']},"
+            f"{row['case']},{_fmt_float(row['agreement_rate'])},{_fmt_float(row['disagreement_rate'])},"
+            f"{useful_count},{row['agent_queried_frames']},"
             f"{row['sim_frames']},{row['query_ratio']:.4f},{fallback_rate},"
-            f"{agent_cautious},{baseline_cautious}"
+            f"{agent_cautious},{baseline_cautious},{assist_applied},{assist_rate}"
         )
 
     print("\n=== OVERALL ===")
