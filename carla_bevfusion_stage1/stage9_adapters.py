@@ -78,12 +78,13 @@ class RealMPCAdapter:
         tactical_intent = str(getattr(req, "tactical_intent", "keep_lane"))
         stop_mode = target_v < 0.5 or tactical_intent in {"safe_stop", "stop", "stop_before_obstacle"}
         lateral_bound = float(getattr(req, "lateral_bound_m", 1.5))
+        current_v = float(getattr(req, "current_speed_mps", 0.0))
 
         if self._lon_qp is not None:
-            throttle, brake = self._run_real_lon_mpc(target_v, stop_mode)
+            throttle, brake = self._run_real_lon_mpc(target_v, stop_mode, current_v)
             steer = self._run_real_lat_mpc(lateral_bound, tactical_intent)
         else:
-            throttle, brake, steer = self._p_controller_fallback(target_v, stop_mode)
+            throttle, brake, steer = self._p_controller_fallback(target_v, stop_mode, current_v)
 
         return ActuatorCommand(
             steer=_clamp(steer, -1.0, 1.0),
@@ -103,12 +104,16 @@ class RealMPCAdapter:
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _run_real_lon_mpc(self, target_v_mps: float, stop_mode: bool) -> tuple[float, float]:
+    def _run_real_lon_mpc(
+        self,
+        target_v_mps: float,
+        stop_mode: bool,
+        current_v_mps: float,
+    ) -> tuple[float, float]:
         """Run the OSQP longitudinal MPC and translate first acceleration to throttle/brake."""
         try:
-            current_v = 0.0  # will be updated when integrated with sensor live state
             result = self._lon_qp(
-                current_speed_mps=current_v,
+                current_speed_mps=max(0.0, float(current_v_mps)),
                 target_speed_mps=target_v_mps,
                 dt_s=self._dt_s,
                 horizon_steps=10,
@@ -122,7 +127,7 @@ class RealMPCAdapter:
                 return 0.0, _clamp(-a0 / 6.0, 0.0, 1.0)
         except Exception as exc:
             LOGGER.debug("lon MPC failed: %s", exc)
-            return self._p_controller_fallback(target_v_mps, stop_mode)[:2]
+            return self._p_controller_fallback(target_v_mps, stop_mode, current_v_mps)[:2]
 
     def _run_real_lat_mpc(self, lateral_bound_m: float, intent: str) -> float:
         """Run the OSQP lateral MPC and return normalised steer for the first step."""
@@ -149,10 +154,12 @@ class RealMPCAdapter:
             return 0.0
 
     def _p_controller_fallback(
-        self, target_v: float, stop_mode: bool
+        self,
+        target_v: float,
+        stop_mode: bool,
+        current_v: float = 0.0,
     ) -> tuple[float, float, float]:
         """Simple proportional fallback when OSQP is unavailable."""
-        current_v = 0.0
         err = target_v - current_v
         if stop_mode or err < -0.2:
             throttle = 0.0

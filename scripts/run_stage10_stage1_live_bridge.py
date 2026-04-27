@@ -785,15 +785,19 @@ def _trajectory_request_from_agent_intent(
     elif agent_intent == "slow_down":
         target_v = max(0.5, min(3.0, ego_v * 0.5))
     elif agent_intent in _ASSIST_LANE_CHANGE_INTENTS:
-        target_v = max(2.0, min(max(baseline_target_v, 3.0), 6.0))
+        # Keep blocked-lane assist cautious: enough speed to commit, not enough to ram the blocker.
+        if agent_intent.startswith("prepare_lane_change_"):
+            target_v = max(0.8, min(max(ego_v, 1.0), 1.5))
+        else:
+            target_v = max(1.0, min(max(ego_v, 1.5), 2.5))
     else:
         target_v = baseline_target_v
     lateral_bound_m = (
-        3.5 if agent_intent in _ASSIST_LANE_CHANGE_INTENTS
+        4.0 if agent_intent in _ASSIST_LANE_CHANGE_INTENTS
         else min(max(float(getattr(baseline_req, "lateral_bound_m", 0.75)), 0.75), 1.0)
     )
 
-    return TrajectoryRequest(
+    request = TrajectoryRequest(
         source="AGENT_ASSIST",
         tactical_intent=agent_intent,
         v_max_mps=min(float(getattr(baseline_req, "v_max_mps", 8.0)), 8.0),
@@ -807,6 +811,8 @@ def _trajectory_request_from_agent_intent(
         horizon_s=min(float(getattr(baseline_req, "horizon_s", 3.0)), 3.0),
         cost_profile="AGENT_ASSIST",
     )
+    setattr(request, "current_speed_mps", ego_v)
+    return request
 
 
 def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any]) -> Dict[str, Any]:
