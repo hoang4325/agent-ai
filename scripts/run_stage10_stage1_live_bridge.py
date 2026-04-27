@@ -743,6 +743,7 @@ def _agent_assist_allowed(
     intent_record: Any,
     baseline_intent: str,
     world_state: Any,
+    lane_change_completed: bool = False,
 ) -> Tuple[bool, str]:
     if intent_record is None:
         return False, "no_agent_intent"
@@ -760,6 +761,8 @@ def _agent_assist_allowed(
         return False, "low_confidence"
 
     if agent_intent in _ASSIST_LANE_CHANGE_INTENTS:
+        if lane_change_completed:
+            return False, "lane_change_already_completed"
         if not bool(getattr(world_state, "lane_change_permission", False)):
             return False, "lane_change_not_permitted"
         return True, "lane_change_assist"
@@ -881,10 +884,25 @@ def _same_lane_change_family(lhs: Optional[str], rhs: Optional[str]) -> bool:
     return _assist_target_lane(left) == _assist_target_lane(right)
 
 
+def _assist_lane_transition_completed(
+    *,
+    world_state: Any,
+    active_metadata: Dict[str, Any],
+) -> bool:
+    if world_state is None:
+        return False
+    origin_lane_id = str(active_metadata.get("origin_lane_id") or "")
+    if not origin_lane_id:
+        return False
+    current_lane_id = str(getattr(world_state, "ego_lane_id", "") or "")
+    return bool(current_lane_id) and current_lane_id != origin_lane_id
+
+
 def _can_continue_active_assist(
     *,
     args: argparse.Namespace,
     active_request: Any,
+    active_metadata: Dict[str, Any],
     baseline_intent: str,
     world_state: Any,
     min_ttc_s: float,
@@ -899,6 +917,8 @@ def _can_continue_active_assist(
     if float(min_ttc_s) < max(1.5, float(args.agent_risk_ttc_threshold) - 0.25):
         return False
     if not bool(getattr(world_state, "lane_change_permission", False)):
+        return False
+    if _assist_lane_transition_completed(world_state=world_state, active_metadata=active_metadata):
         return False
     return True
 
@@ -1171,6 +1191,7 @@ def run(args: argparse.Namespace) -> int:
     active_assist_hold_remaining = 0
     active_assist_applied_frames = 0
     active_assist_metadata: Dict[str, Any] = {}
+    assist_lane_change_completed = False
     if args.agent_control_mode == "assist":
         try:
             from carla_bevfusion_stage1.stage9_adapters import (
@@ -1350,6 +1371,16 @@ def run(args: argparse.Namespace) -> int:
                     "route_progress_m": route_info.get("route_progress_m"),
                     "active_assist_maneuver": active_assist_intent,
                 }
+                if _assist_lane_transition_completed(
+                    world_state=world_state,
+                    active_metadata=active_assist_metadata,
+                ):
+                    assist_lane_change_completed = True
+                    active_assist_request = None
+                    active_assist_intent = None
+                    active_assist_hold_remaining = 0
+                    active_assist_applied_frames = 0
+                    active_assist_metadata = {}
                 if assist_should_query:
                     last_assist_agent_query_wall_s = time.monotonic()
                     intent_record = assist_agent.observe_intent(world_state)
@@ -1364,6 +1395,7 @@ def run(args: argparse.Namespace) -> int:
                         intent_record=intent_record,
                         baseline_intent=assist_baseline_intent,
                         world_state=world_state,
+                        lane_change_completed=assist_lane_change_completed,
                     )
                     provenance = getattr(intent_record, "provenance", {}) or {}
                     assist_record.update(
@@ -1416,6 +1448,7 @@ def run(args: argparse.Namespace) -> int:
                             if intent_record is not None else "unknown",
                             "agent_reason_tags": list(getattr(intent_record, "reason_tags", []) or [])
                             if intent_record is not None else [],
+                            "origin_lane_id": str(getattr(world_state, "ego_lane_id", "") or ""),
                         }
                         active_assist_intent = _retune_active_assist_request(
                             request=active_assist_request,
@@ -1447,6 +1480,7 @@ def run(args: argparse.Namespace) -> int:
                 elif _can_continue_active_assist(
                     args=args,
                     active_request=active_assist_request,
+                    active_metadata=active_assist_metadata,
                     baseline_intent=assist_baseline_intent,
                     world_state=world_state,
                     min_ttc_s=assist_ttc,
@@ -1485,6 +1519,11 @@ def run(args: argparse.Namespace) -> int:
                         }
                     )
                 else:
+                    if _assist_lane_transition_completed(
+                        world_state=world_state,
+                        active_metadata=active_assist_metadata,
+                    ):
+                        assist_lane_change_completed = True
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
