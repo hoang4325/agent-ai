@@ -29,8 +29,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--bev-config", required=True)
     parser.add_argument("--bev-ckpt", required=True)
     parser.add_argument("--map", default="Town10HD_Opt")
-    parser.add_argument("--cases", default="right,left",
-                        help="Comma-separated deterministic stress cases to run. Supported: right,left")
+    parser.add_argument("--cases", default="full",
+                        help="Comma-separated deterministic stress cases to run. Supported aliases: full, lane_only")
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-frames", type=int, default=300)
     parser.add_argument("--route-distance-m", type=float, default=120.0)
@@ -54,19 +54,69 @@ def _run_command(command: List[str], *, label: str) -> None:
     subprocess.run(command, check=True, cwd=str(PROJECT_ROOT))
 
 
-def _case_specs(case_names: List[str]) -> List[Dict[str, str]]:
-    supported = {
-        "right": {"adjacent_side": "right", "case_label": "multilane_right"},
-        "left": {"adjacent_side": "left", "case_label": "multilane_left"},
+def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
+    supported: Dict[str, Dict[str, Any]] = {
+        "right": {
+            "adjacent_side": "right",
+            "case_label": "multilane_right_nominal",
+            "blocker_distance_m": 24.0,
+            "adjacent_distance_m": 42.0,
+            "route_distance_m": 120.0,
+        },
+        "left": {
+            "adjacent_side": "left",
+            "case_label": "multilane_left_nominal",
+            "blocker_distance_m": 24.0,
+            "adjacent_distance_m": 42.0,
+            "route_distance_m": 120.0,
+        },
+        "unsafe_right": {
+            "adjacent_side": "right",
+            "case_label": "unsafe_lane_change_right",
+            "blocker_distance_m": 18.0,
+            "adjacent_distance_m": 12.0,
+            "route_distance_m": 90.0,
+        },
+        "unsafe_left": {
+            "adjacent_side": "left",
+            "case_label": "unsafe_lane_change_left",
+            "blocker_distance_m": 18.0,
+            "adjacent_distance_m": 12.0,
+            "route_distance_m": 90.0,
+        },
+        "stop_follow": {
+            "adjacent_side": "right",
+            "case_label": "stop_follow_ambiguity",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 14.0,
+            "route_distance_m": 60.0,
+        },
+        "emergency_brake": {
+            "adjacent_side": "right",
+            "case_label": "emergency_brake_conflict",
+            "blocker_distance_m": 6.0,
+            "adjacent_distance_m": 16.0,
+            "route_distance_m": 45.0,
+        },
     }
-    specs: List[Dict[str, str]] = []
+    aliases = {
+        "full": ["right", "left", "unsafe_right", "unsafe_left", "stop_follow", "emergency_brake"],
+        "lane_only": ["right", "left"],
+    }
+
+    expanded: List[str] = []
     for case_name in case_names:
         key = case_name.strip().lower()
         if not key:
             continue
+        expanded.extend(aliases.get(key, [key]))
+
+    specs: List[Dict[str, Any]] = []
+    for key in expanded:
         if key not in supported:
-            raise ValueError(f"Unsupported stress case '{case_name}'. Supported: {', '.join(sorted(supported))}")
-        specs.append(supported[key])
+            labels = ", ".join(sorted({*supported.keys(), *aliases.keys()}))
+            raise ValueError(f"Unsupported stress case '{key}'. Supported: {labels}")
+        specs.append(dict(supported[key]))
     if not specs:
         raise ValueError("No stress cases selected.")
     return specs
@@ -100,8 +150,8 @@ def main() -> int:
                 "--tm-port", str(args.tm_port),
                 "--town", f"Carla/Maps/{args.map}",
                 "--adjacent-side", spec["adjacent_side"],
-                "--blocker-distance-m", str(args.blocker_distance_m),
-                "--adjacent-distance-m", str(args.adjacent_distance_m),
+                "--blocker-distance-m", str(float(spec.get("blocker_distance_m", args.blocker_distance_m))),
+                "--adjacent-distance-m", str(float(spec.get("adjacent_distance_m", args.adjacent_distance_m))),
                 "--output-manifest", str(manifest_path),
             ]
             if bool(args.npc_handbrake):
@@ -121,7 +171,7 @@ def main() -> int:
                 "--scenario-manifest", str(manifest_path),
                 "--attach-autopilot",
                 "--map", str(args.map),
-                "--route-distance-m", str(args.route_distance_m),
+                "--route-distance-m", str(float(spec.get("route_distance_m", args.route_distance_m))),
                 "--max-frames", str(args.max_frames),
                 "--agent-mode", str(args.agent_mode),
                 "--agent-trigger-mode", str(args.agent_trigger_mode),
@@ -147,6 +197,9 @@ def main() -> int:
                 "manifest_path": str(manifest_path),
                 "stage10_log_dir": str(stage10_log_dir),
                 "stage10_output_root": str(stage10_output_root),
+                "blocker_distance_m": float(spec.get("blocker_distance_m", args.blocker_distance_m)),
+                "adjacent_distance_m": float(spec.get("adjacent_distance_m", args.adjacent_distance_m)),
+                "route_distance_m": float(spec.get("route_distance_m", args.route_distance_m)),
                 "status": "pending",
                 "started_at_utc": _utc_now_iso(),
             }
