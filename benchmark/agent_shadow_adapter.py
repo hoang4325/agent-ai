@@ -51,6 +51,13 @@ ALLOWED_AGENT_INTENTS = frozenset({
     "keep_route_through_junction",
 })
 
+_INTENT_NORMALIZATION_MAP: dict[str, str] = {
+    "bounded_prepare_lane_change_left": "prepare_lane_change_left",
+    "bounded_prepare_lane_change_right": "prepare_lane_change_right",
+    "bounded_commit_lane_change_left": "commit_lane_change_left",
+    "bounded_commit_lane_change_right": "commit_lane_change_right",
+}
+
 FORBIDDEN_CONTROL_FIELDS = frozenset({
     "steering",
     "throttle",
@@ -296,6 +303,11 @@ class AgentShadowAdapter:
             return "fallback", True, "keep_lane", "current"
 
         intent = raw.get("tactical_intent")
+        if isinstance(intent, str):
+            normalized_intent = _INTENT_NORMALIZATION_MAP.get(intent.strip().lower())
+            if normalized_intent:
+                raw["tactical_intent"] = normalized_intent
+                intent = normalized_intent
         if not intent or intent not in ALLOWED_AGENT_INTENTS:
             logger.warning("[AgentShadow] Invalid intent '%s'", intent)
             return "invalid_intent", True, "keep_lane", "current"
