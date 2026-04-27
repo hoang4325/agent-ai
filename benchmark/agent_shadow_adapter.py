@@ -34,6 +34,10 @@ class AgentAPIParseError(Exception):
     """Raised when the API responds but the response cannot be parsed as JSON."""
 
 
+class AgentAPIHTTPError(Exception):
+    """Raised when the API returns a non-retriable HTTP error."""
+
+
 ALLOWED_AGENT_INTENTS = frozenset({
     "keep_lane",
     "follow",
@@ -194,6 +198,17 @@ class AgentShadowAdapter:
             fallback_reason_override = "parse_error"
             logger.warning(
                 "[AgentShadow] Parse error — fallback to baseline; frame=%d case=%s error=%s",
+                frame_id,
+                case_id,
+                exc,
+            )
+        except AgentAPIHTTPError as exc:
+            timeout_flag = False
+            raw = {}
+            call_latency_ms = (time.monotonic() - t0) * 1000.0
+            fallback_reason_override = "http_error"
+            logger.warning(
+                "[AgentShadow] HTTP error — fallback to baseline; frame=%d case=%s error=%s",
                 frame_id,
                 case_id,
                 exc,
@@ -462,30 +477,34 @@ class AgentShadowAdapter:
             }
             if "qwen" in model_name.lower():
                 payload_obj["reasoning_format"] = os.environ.get("AGENT_REASONING_FORMAT", "hidden")
-            payload = _json.dumps(payload_obj).encode("utf-8")
+            payload_candidates = [_json.dumps(payload_obj).encode("utf-8")]
+            text_payload_obj = dict(payload_obj)
+            text_payload_obj.pop("response_format", None)
+            payload_candidates.append(_json.dumps(text_payload_obj).encode("utf-8"))
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
                 "User-Agent": "AgentShadow/1.0"
             }
         else:
-            payload = _json.dumps({
+            payload_candidates = [_json.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"maxOutputTokens": 150, "temperature": 0.2},
-            }).encode("utf-8")
+            }).encode("utf-8")]
             headers = {
                 "Content-Type": "application/json",
                 "User-Agent": "AgentShadow/1.0"
             }
 
-        req = _urlreq.Request(endpoint, data=payload, headers=headers)
         timeout_s = self.config.api_timeout_s
         if is_openai_compat and timeout_s < 30.0:
             timeout_s = 30.0
 
         import time as _time
+        payload_idx = 0
         for attempt in range(3):
             try:
+                req = _urlreq.Request(endpoint, data=payload_candidates[payload_idx], headers=headers)
                 with _urlreq.urlopen(req, timeout=timeout_s) as resp:
                     resp_body = _json.loads(resp.read().decode("utf-8"))
                 
@@ -526,13 +545,21 @@ class AgentShadowAdapter:
                     parsed.pop(f, None)
                 return parsed
             except urllib.error.HTTPError as http_err:
+                err_body = http_err.read().decode("utf-8", errors="replace")
+                if (
+                    http_err.code == 400
+                    and "json_validate_failed" in err_body
+                    and payload_idx + 1 < len(payload_candidates)
+                ):
+                    payload_idx += 1
+                    logger.warning("[AgentShadow] JSON mode rejected by API; retrying text mode once.")
+                    continue
                 if http_err.code == 429 and attempt < 2:
                     logger.warning("[AgentShadow] 429 Too Many Requests -> sleeping 5s before retry %d", attempt + 1)
                     _time.sleep(5.0)
                     continue
-                err_body = http_err.read().decode("utf-8", errors="replace")
                 logger.error("[AgentShadow] HTTPError %d: %s \nBody: %s", http_err.code, http_err.reason, err_body)
-                raise TimeoutError(f"API HTTP Error {http_err.code}") from http_err
+                raise AgentAPIHTTPError(f"API HTTP Error {http_err.code}") from http_err
             except (urllib.error.URLError, socket.timeout, OSError) as net_err:
                 if attempt < 2:
                     logger.warning("[AgentShadow] Timeout/Network Error %s -> sleeping 2s before retry %d", net_err, attempt + 1)
