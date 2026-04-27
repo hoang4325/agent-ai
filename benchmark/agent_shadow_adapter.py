@@ -461,6 +461,15 @@ class AgentShadowAdapter:
         )
         is_openai_compat = "/chat/completions" in endpoint
 
+        default_user_agent = os.environ.get(
+            "AGENT_API_USER_AGENT",
+            (
+                "Mozilla/5.0 (X11; Linux x86_64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+        )
+
         if is_openai_compat:
             # model_id handling is required since /chat/completions needs a model field
             # If it's using the default benchmark model_id meant for Gemini, swap it.
@@ -521,8 +530,9 @@ class AgentShadowAdapter:
                 payload_candidates = rich_variants + compact_variants
             headers = {
                 "Content-Type": "application/json",
+                "Accept": "application/json",
                 "Authorization": f"Bearer {api_key}",
-                "User-Agent": "AgentShadow/1.0"
+                "User-Agent": default_user_agent,
             }
         else:
             payload_candidates = [
@@ -543,7 +553,8 @@ class AgentShadowAdapter:
             ]
             headers = {
                 "Content-Type": "application/json",
-                "User-Agent": "AgentShadow/1.0"
+                "Accept": "application/json",
+                "User-Agent": default_user_agent,
             }
 
         timeout_s = self.config.api_timeout_s
@@ -612,6 +623,14 @@ class AgentShadowAdapter:
                 return parsed
             except urllib.error.HTTPError as http_err:
                 err_body = http_err.read().decode("utf-8", errors="replace")
+                if "error code: 1010" in err_body.lower():
+                    logger.error(
+                        "[AgentShadow] Cloudflare 1010 access denied. This usually means the upstream "
+                        "edge blocked this request based on browser signature or IP reputation. "
+                        "payload_variant=%s body=%s",
+                        payload_candidates[payload_idx][1],
+                        err_body[:400],
+                    )
                 if (
                     http_err.code == 400
                     and "json_validate_failed" in err_body
