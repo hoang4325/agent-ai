@@ -29,7 +29,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--title-prefix",
-        default="Stage10 Blocked-Lane",
+        default="Blocked-Lane Cases",
         help="Optional title prefix for the rendered figures.",
     )
     return parser.parse_args()
@@ -49,6 +49,11 @@ def _display_case_name(base_case: str) -> str:
         "blocked_lane_clear_left": "Blocked-Clear Left",
     }
     return mapping.get(base_case, base_case.replace("_", " ").title())
+
+
+def _clean_title_prefix(title_prefix: str) -> str:
+    cleaned = str(title_prefix).replace("Stage10", "").strip(" :-")
+    return cleaned or "Blocked-Lane Cases"
 
 
 def _load_rows(summary_paths: List[Path]) -> Dict[str, Dict[str, Dict[str, Any]]]:
@@ -77,6 +82,7 @@ def _require_variant(grouped: Dict[str, Dict[str, Dict[str, Any]]], variant: str
 
 
 def _plot_route_progress(grouped: Dict[str, Dict[str, Dict[str, Any]]], output_dir: Path, title_prefix: str) -> Path:
+    title_prefix = _clean_title_prefix(title_prefix)
     base_cases = sorted(grouped.keys())
     labels = [_display_case_name(base_case) for base_case in base_cases]
     baseline_vals = [
@@ -127,6 +133,7 @@ def _plot_route_progress(grouped: Dict[str, Dict[str, Dict[str, Any]]], output_d
 
 
 def _plot_agent_intervention(grouped: Dict[str, Dict[str, Dict[str, Any]]], output_dir: Path, title_prefix: str) -> Path:
+    title_prefix = _clean_title_prefix(title_prefix)
     base_cases = sorted(grouped.keys())
     labels = [_display_case_name(base_case) for base_case in base_cases]
     queried_vals = [
@@ -137,38 +144,112 @@ def _plot_agent_intervention(grouped: Dict[str, Dict[str, Dict[str, Any]]], outp
         float(grouped[base_case]["assist"].get("assist_applied_frames") or 0.0)
         for base_case in base_cases
     ]
+    continued_hold_vals = []
+    queried_applied_vals = []
+    queried_rejected_vals = []
+    for base_case in base_cases:
+        validation = grouped[base_case]["assist"].get("assist_validation_status_counts") or {}
+        continued_valid = float(validation.get("continued_valid") or 0.0)
+        queried_applied = max(float(grouped[base_case]["assist"].get("assist_applied_frames") or 0.0) - continued_valid, 0.0)
+        queried_total = float(grouped[base_case]["assist"].get("assist_agent_query_frames") or 0.0)
+        queried_rejected = max(queried_total - queried_applied, 0.0)
+        continued_hold_vals.append(continued_valid)
+        queried_applied_vals.append(queried_applied)
+        queried_rejected_vals.append(queried_rejected)
 
     x = np.arange(len(base_cases))
-    width = 0.34
+    width = 0.56
 
-    fig, ax = plt.subplots(figsize=(8.6, 5.2), dpi=180)
-    queried_bars = ax.bar(x - width / 2, queried_vals, width, label="Agent Queried Frames", color="#7bc8a4")
-    applied_bars = ax.bar(x + width / 2, applied_vals, width, label="Assist Applied Frames", color="#f59e0b")
+    fig, axes = plt.subplots(1, 2, figsize=(11.0, 5.0), dpi=180, sharey=False)
 
+    # Panel A: what happened when the Agent was queried?
+    ax = axes[0]
+    accepted_bars = ax.bar(
+        x,
+        queried_applied_vals,
+        width,
+        label="Queried and accepted",
+        color="#2f6fed",
+    )
+    rejected_bars = ax.bar(
+        x,
+        queried_rejected_vals,
+        width,
+        bottom=queried_applied_vals,
+        label="Queried but rejected",
+        color="#d95f5f",
+    )
+    ax.set_title("Agent Query Outcomes")
     ax.set_ylabel("Frames")
-    ax.set_title(f"{title_prefix}: Agent Intervention")
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.35)
-    ax.legend(frameon=False)
     ax.set_axisbelow(True)
+    ymax_left = max(queried_vals + [1.0])
+    ax.set_ylim(0, ymax_left * 1.22)
+    for idx, total in enumerate(queried_vals):
+        ax.annotate(
+            f"{int(total)} queried",
+            xy=(x[idx], total),
+            xytext=(0, 4),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
 
-    ymax = max(queried_vals + applied_vals + [1.0])
-    ax.set_ylim(0, ymax * 1.20)
+    # Panel B: how long did assist remain active?
+    ax = axes[1]
+    direct_bars = ax.bar(
+        x,
+        queried_applied_vals,
+        width,
+        label="Applied at query frame",
+        color="#7bc8a4",
+    )
+    hold_bars = ax.bar(
+        x,
+        continued_hold_vals,
+        width,
+        bottom=queried_applied_vals,
+        label="Continued hold frames",
+        color="#f59e0b",
+    )
+    ax.set_title("Assist Control Duration")
+    ax.set_ylabel("Frames")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.35)
+    ax.set_axisbelow(True)
+    ymax_right = max(applied_vals + [1.0])
+    ax.set_ylim(0, ymax_right * 1.22)
+    for idx, total in enumerate(applied_vals):
+        ax.annotate(
+            f"{int(total)} control",
+            xy=(x[idx], total),
+            xytext=(0, 4),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
 
-    for bars in (queried_bars, applied_bars):
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(
-                f"{int(height)}",
-                xy=(bar.get_x() + bar.get_width() / 2, height),
-                xytext=(0, 4),
-                textcoords="offset points",
-                ha="center",
-                va="bottom",
-                fontsize=9,
-            )
-
+    handles = [accepted_bars, rejected_bars, direct_bars, hold_bars]
+    labels_legend = [
+        "Queried and accepted",
+        "Queried but rejected",
+        "Applied at query frame",
+        "Continued hold frames",
+    ]
+    fig.legend(
+        handles=[h[0] for h in handles],
+        labels=labels_legend,
+        frameon=False,
+        ncol=2,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.02),
+    )
+    fig.suptitle(f"{title_prefix}: Agent Intervention Breakdown", y=1.06, fontsize=15)
     fig.tight_layout()
     path = output_dir / "blocked_clear_agent_intervention.png"
     fig.savefig(path, bbox_inches="tight")
