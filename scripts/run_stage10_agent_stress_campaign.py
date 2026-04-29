@@ -30,7 +30,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--bev-ckpt", required=True)
     parser.add_argument("--map", default="Town10HD_Opt")
     parser.add_argument("--cases", default="full",
-                        help="Comma-separated deterministic stress cases to run. Supported aliases: full, lane_only, ab_blocked_clear")
+                        help=(
+                            "Comma-separated deterministic stress cases to run. "
+                            "Supported aliases: full, lane_only, ab_blocked_clear, "
+                            "ab_blocked_clear_rear, ab_blocked_gap"
+                        ))
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--run-tag", default="",
                         help="Optional tag inserted into run folder names, useful for A/B runs")
@@ -46,6 +50,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                         help="Wall-clock rate limit for real Agent API calls")
     parser.add_argument("--radar-ablation", default="zero_bev", choices=["none", "zero_bev"])
+    parser.add_argument("--record-mp4", action="store_true",
+                        help="Record each Stage10 stress run to MP4")
+    parser.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown"), default="chase")
+    parser.add_argument("--recording-width", type=int, default=1280)
+    parser.add_argument("--recording-height", type=int, default=720)
+    parser.add_argument("--recording-fov", type=float, default=100.0)
+    parser.add_argument("--recording-fps", type=float, default=0.0)
     parser.add_argument("--output-root", default=str(PROJECT_ROOT / "outputs" / "stage10_stress_campaign"))
     parser.add_argument("--report-root", default=str(PROJECT_ROOT / "benchmark" / "reports" / "stage10_stress_campaign"))
     parser.add_argument("--ego-autopilot", action="store_true",
@@ -53,6 +64,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--npc-handbrake", action="store_true", default=True)
     parser.add_argument("--blocker-distance-m", type=float, default=24.0)
     parser.add_argument("--adjacent-distance-m", type=float, default=42.0)
+    parser.add_argument("--adjacent-position", choices=["ahead", "behind", "both"], default="ahead",
+                        help="Place adjacent-lane NPC(s) ahead, behind, or both around ego.")
+    parser.add_argument("--adjacent-front-distance-m", type=float, default=0.0)
+    parser.add_argument("--adjacent-rear-distance-m", type=float, default=0.0)
+    parser.add_argument("--moving-adjacent-npcs", action="store_true",
+                        help="Let adjacent-lane NPCs move with Traffic Manager autopilot.")
+    parser.add_argument("--adjacent-speed-diff-percent", type=float, default=50.0,
+                        help="Traffic Manager speed difference for moving adjacent NPCs; positive means slower.")
     parser.add_argument("--spawn-probe-top-k", type=int, default=8,
                         help="Number of corridor candidates to probe for each deterministic spawn case")
     parser.add_argument("--spawn-max-candidates", type=int, default=6,
@@ -207,8 +226,14 @@ def _spawn_with_probe_retry(
             "--s", str(float(candidate["s"])),
             "--blocker-distance-m", str(float(spec.get("blocker_distance_m", args.blocker_distance_m))),
             "--adjacent-distance-m", str(float(spec.get("adjacent_distance_m", args.adjacent_distance_m))),
+            "--adjacent-position", str(spec.get("adjacent_position", args.adjacent_position)),
+            "--adjacent-front-distance-m", str(float(spec.get("adjacent_front_distance_m", args.adjacent_front_distance_m))),
+            "--adjacent-rear-distance-m", str(float(spec.get("adjacent_rear_distance_m", args.adjacent_rear_distance_m))),
+            "--adjacent-speed-diff-percent", str(float(spec.get("adjacent_speed_diff_percent", args.adjacent_speed_diff_percent))),
             "--output-manifest", str(manifest_path),
         ]
+        if bool(spec.get("moving_adjacent_npcs", args.moving_adjacent_npcs)):
+            spawn_cmd.append("--moving-adjacent-npcs")
         if bool(args.npc_handbrake):
             spawn_cmd.append("--npc-handbrake")
 
@@ -268,11 +293,51 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_distance_m": 60.0,
             "route_distance_m": 60.0,
         },
+        "blocked_clear_right_rear": {
+            "adjacent_side": "right",
+            "case_label": "blocked_lane_clear_right_rear_npc",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 35.0,
+            "adjacent_position": "behind",
+            "route_distance_m": 60.0,
+        },
+        "blocked_gap_right": {
+            "adjacent_side": "right",
+            "case_label": "blocked_lane_gap_right",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 65.0,
+            "adjacent_position": "both",
+            "adjacent_front_distance_m": 65.0,
+            "adjacent_rear_distance_m": 35.0,
+            "moving_adjacent_npcs": True,
+            "adjacent_speed_diff_percent": 50.0,
+            "route_distance_m": 60.0,
+        },
         "blocked_clear_left": {
             "adjacent_side": "left",
             "case_label": "blocked_lane_clear_left",
             "blocker_distance_m": 10.0,
             "adjacent_distance_m": 60.0,
+            "route_distance_m": 60.0,
+        },
+        "blocked_clear_left_rear": {
+            "adjacent_side": "left",
+            "case_label": "blocked_lane_clear_left_rear_npc",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 35.0,
+            "adjacent_position": "behind",
+            "route_distance_m": 60.0,
+        },
+        "blocked_gap_left": {
+            "adjacent_side": "left",
+            "case_label": "blocked_lane_gap_left",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 65.0,
+            "adjacent_position": "both",
+            "adjacent_front_distance_m": 65.0,
+            "adjacent_rear_distance_m": 35.0,
+            "moving_adjacent_npcs": True,
+            "adjacent_speed_diff_percent": 50.0,
             "route_distance_m": 60.0,
         },
         "stop_follow": {
@@ -294,6 +359,8 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
         "full": ["right", "left", "unsafe_right", "unsafe_left", "stop_follow", "emergency_brake"],
         "lane_only": ["right", "left"],
         "ab_blocked_clear": ["blocked_clear_right", "blocked_clear_left"],
+        "ab_blocked_clear_rear": ["blocked_clear_right_rear", "blocked_clear_left_rear"],
+        "ab_blocked_gap": ["blocked_gap_right", "blocked_gap_left"],
     }
 
     expanded: List[str] = []
@@ -343,6 +410,7 @@ def main() -> int:
                 "--carla-root", str(args.carla_root),
                 "--carla-host", str(args.carla_host),
                 "--carla-port", str(args.carla_port),
+                "--tm-port", str(args.tm_port),
                 "--bev-repo", str(args.bev_repo),
                 "--bev-config", str(args.bev_config),
                 "--bev-ckpt", str(args.bev_ckpt),
@@ -361,6 +429,15 @@ def main() -> int:
                 "--agent-max-requests-per-minute", str(args.agent_max_requests_per_minute),
                 "--radar-ablation", str(args.radar_ablation),
             ]
+            if bool(args.record_mp4):
+                stage10_cmd.extend([
+                    "--record-mp4",
+                    "--recording-camera-mode", str(args.recording_camera_mode),
+                    "--recording-width", str(args.recording_width),
+                    "--recording-height", str(args.recording_height),
+                    "--recording-fov", str(args.recording_fov),
+                    "--recording-fps", str(args.recording_fps),
+                ])
             if bool(args.ego_autopilot):
                 stage10_cmd.append("--attach-autopilot")
 
@@ -383,6 +460,11 @@ def main() -> int:
                 "stage10_output_root": str(stage10_output_root),
                 "blocker_distance_m": float(spec.get("blocker_distance_m", args.blocker_distance_m)),
                 "adjacent_distance_m": float(spec.get("adjacent_distance_m", args.adjacent_distance_m)),
+                "adjacent_position": str(spec.get("adjacent_position", args.adjacent_position)),
+                "adjacent_front_distance_m": float(spec.get("adjacent_front_distance_m", args.adjacent_front_distance_m)),
+                "adjacent_rear_distance_m": float(spec.get("adjacent_rear_distance_m", args.adjacent_rear_distance_m)),
+                "moving_adjacent_npcs": bool(spec.get("moving_adjacent_npcs", args.moving_adjacent_npcs)),
+                "adjacent_speed_diff_percent": float(spec.get("adjacent_speed_diff_percent", args.adjacent_speed_diff_percent)),
                 "route_distance_m": float(spec.get("route_distance_m", args.route_distance_m)),
                 "status": "pending",
                 "started_at_utc": _utc_now_iso(),

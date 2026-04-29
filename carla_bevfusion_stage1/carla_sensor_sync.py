@@ -182,6 +182,7 @@ class CarlaSensorSync:
         image_height: int = 900,
         camera_fov: float = 70.0,
         enable_radar: bool = True,
+        traffic_manager=None,
     ) -> None:
         self._world = world
         self._ego = ego_actor
@@ -192,6 +193,7 @@ class CarlaSensorSync:
         self._img_h = image_height
         self._cam_fov = camera_fov
         self._enable_radar = enable_radar
+        self._traffic_manager = traffic_manager
 
         self._sensor_actors: Dict[str, object] = {}
         self._collector: Optional[FrameCollector] = None
@@ -209,7 +211,9 @@ class CarlaSensorSync:
 
         # Wire up synchronous mode
         self._sync_ctx = CarlaSynchronousMode(
-            self._world, fixed_delta_seconds=self._delta_s
+            self._world,
+            fixed_delta_seconds=self._delta_s,
+            traffic_manager=self._traffic_manager,
         )
         self._sync_ctx.__enter__()
 

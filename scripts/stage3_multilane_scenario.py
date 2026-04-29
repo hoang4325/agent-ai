@@ -71,6 +71,35 @@ def parse_args() -> argparse.Namespace:
     spawn_parser.add_argument("--adjacent-filter", default="vehicle.audi.tt")
     spawn_parser.add_argument("--blocker-distance-m", type=float, default=24.0)
     spawn_parser.add_argument("--adjacent-distance-m", type=float, default=42.0)
+    spawn_parser.add_argument(
+        "--adjacent-position",
+        choices=("ahead", "behind", "both"),
+        default="ahead",
+        help="Place adjacent-lane actor(s) ahead, behind, or both around ego.",
+    )
+    spawn_parser.add_argument(
+        "--adjacent-front-distance-m",
+        type=float,
+        default=0.0,
+        help="Front adjacent-lane actor distance when --adjacent-position=both; defaults to --adjacent-distance-m.",
+    )
+    spawn_parser.add_argument(
+        "--adjacent-rear-distance-m",
+        type=float,
+        default=0.0,
+        help="Rear adjacent-lane actor distance when --adjacent-position=both; defaults to 35m.",
+    )
+    spawn_parser.add_argument(
+        "--moving-adjacent-npcs",
+        action="store_true",
+        help="Enable Traffic Manager autopilot for adjacent-lane NPCs while keeping the blocker static.",
+    )
+    spawn_parser.add_argument(
+        "--adjacent-speed-diff-percent",
+        type=float,
+        default=50.0,
+        help="Traffic Manager speed difference for moving adjacent NPCs; positive means slower than speed limit.",
+    )
     spawn_parser.add_argument("--ego-z-offset-m", type=float, default=0.4)
     spawn_parser.add_argument("--npc-handbrake", action="store_true")
     spawn_parser.add_argument("--output-manifest", required=True)
@@ -290,6 +319,34 @@ def _advance_along_lane(start: carla.Waypoint, distance_m: float, step_m: float 
     return current
 
 
+def _best_previous_waypoint(current: carla.Waypoint, step_m: float) -> carla.Waypoint | None:
+    previous_waypoints = list(current.previous(float(step_m)))
+    if not previous_waypoints:
+        return None
+
+    current_forward = _forward_xy(current)
+
+    def continuity_cost(candidate: carla.Waypoint) -> float:
+        cand_forward = _forward_xy(candidate)
+        dot = current_forward[0] * cand_forward[0] + current_forward[1] * cand_forward[1]
+        return -dot
+
+    previous_waypoints.sort(key=continuity_cost)
+    return previous_waypoints[0]
+
+
+def _retreat_along_lane(start: carla.Waypoint, distance_m: float, step_m: float = 2.0) -> carla.Waypoint:
+    current = start
+    traveled = 0.0
+    while traveled + 1e-6 < float(distance_m):
+        previous_wp = _best_previous_waypoint(current, float(step_m))
+        if previous_wp is None:
+            break
+        current = previous_wp
+        traveled += float(step_m)
+    return current
+
+
 def _vehicle_blueprint(world: carla.World, pattern: str, role_name: str) -> carla.ActorBlueprint:
     blueprints = world.get_blueprint_library().filter(str(pattern))
     if not blueprints:
@@ -312,6 +369,34 @@ def _spawn_vehicle(world: carla.World, blueprint: carla.ActorBlueprint, transfor
 
 def _parking_brake(vehicle: carla.Vehicle) -> None:
     vehicle.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0, hand_brake=True))
+
+
+def _enable_adjacent_autopilot(
+    *,
+    vehicle: carla.Vehicle | None,
+    traffic_manager: carla.TrafficManager,
+    tm_port: int,
+    speed_diff_percent: float,
+) -> None:
+    if vehicle is None:
+        return
+    vehicle.set_autopilot(True, int(tm_port))
+    try:
+        traffic_manager.auto_lane_change(vehicle, False)
+    except RuntimeError:
+        LOGGER.warning("Failed to disable auto lane change for adjacent actor id=%s", int(vehicle.id))
+    try:
+        traffic_manager.vehicle_percentage_speed_difference(vehicle, float(speed_diff_percent))
+    except RuntimeError:
+        LOGGER.warning("Failed to set speed difference for adjacent actor id=%s", int(vehicle.id))
+    try:
+        traffic_manager.distance_to_leading_vehicle(vehicle, 8.0)
+    except RuntimeError:
+        LOGGER.warning("Failed to set following distance for adjacent actor id=%s", int(vehicle.id))
+
+
+def _actor_id_or_zero(actor: carla.Actor | None) -> int:
+    return int(actor.id) if actor is not None else 0
 
 
 def command_probe(args: argparse.Namespace) -> int:
@@ -348,7 +433,7 @@ def command_probe(args: argparse.Namespace) -> int:
 def command_spawn(args: argparse.Namespace) -> int:
     client, world = connect_world(host=args.host, port=args.port, timeout_s=args.timeout_s, town=args.town)
     traffic_manager = client.get_trafficmanager(int(args.tm_port))
-    traffic_manager.set_synchronous_mode(False)
+    traffic_manager.set_synchronous_mode(bool(args.moving_adjacent_npcs))
 
     if args.road_id is None or args.lane_id is None:
         candidates = find_corridor_candidates(
@@ -394,9 +479,24 @@ def command_spawn(args: argparse.Namespace) -> int:
         ego_wp.transform.rotation,
     )
     blocker_wp = _advance_along_lane(ego_wp, float(args.blocker_distance_m))
-    adjacent_target_wp = _advance_along_lane(adjacent_wp, float(args.adjacent_distance_m))
+    adjacent_position = str(args.adjacent_position)
+    adjacent_front_distance_m = (
+        float(args.adjacent_front_distance_m)
+        if float(args.adjacent_front_distance_m) > 0.0
+        else float(args.adjacent_distance_m)
+    )
+    adjacent_rear_distance_m = (
+        float(args.adjacent_rear_distance_m)
+        if float(args.adjacent_rear_distance_m) > 0.0
+        else 35.0
+    )
+    adjacent_front_wp = _advance_along_lane(adjacent_wp, adjacent_front_distance_m)
+    adjacent_rear_wp = _retreat_along_lane(adjacent_wp, adjacent_rear_distance_m)
 
     spawned_actors: list[carla.Actor] = []
+    adjacent_vehicle: carla.Vehicle | None = None
+    adjacent_front_vehicle: carla.Vehicle | None = None
+    adjacent_rear_vehicle: carla.Vehicle | None = None
     try:
         ego = _spawn_vehicle(world, _vehicle_blueprint(world, args.ego_filter, "hero"), ego_transform)
         spawned_actors.append(ego)
@@ -413,19 +513,37 @@ def command_spawn(args: argparse.Namespace) -> int:
             ),
         )
         spawned_actors.append(blocker)
-        adjacent_vehicle = _spawn_vehicle(
-            world,
-            _vehicle_blueprint(world, args.adjacent_filter, "stage3_adjacent"),
-            carla.Transform(
-                carla.Location(
-                    x=float(adjacent_target_wp.transform.location.x),
-                    y=float(adjacent_target_wp.transform.location.y),
-                    z=float(adjacent_target_wp.transform.location.z + float(args.ego_z_offset_m)),
+        if adjacent_position in {"ahead", "both"}:
+            adjacent_front_vehicle = _spawn_vehicle(
+                world,
+                _vehicle_blueprint(world, args.adjacent_filter, "stage3_adjacent_front"),
+                carla.Transform(
+                    carla.Location(
+                        x=float(adjacent_front_wp.transform.location.x),
+                        y=float(adjacent_front_wp.transform.location.y),
+                        z=float(adjacent_front_wp.transform.location.z + float(args.ego_z_offset_m)),
+                    ),
+                    adjacent_front_wp.transform.rotation,
                 ),
-                adjacent_target_wp.transform.rotation,
-            ),
-        )
-        spawned_actors.append(adjacent_vehicle)
+            )
+            spawned_actors.append(adjacent_front_vehicle)
+        if adjacent_position in {"behind", "both"}:
+            adjacent_rear_vehicle = _spawn_vehicle(
+                world,
+                _vehicle_blueprint(world, args.adjacent_filter, "stage3_adjacent_rear"),
+                carla.Transform(
+                    carla.Location(
+                        x=float(adjacent_rear_wp.transform.location.x),
+                        y=float(adjacent_rear_wp.transform.location.y),
+                        z=float(adjacent_rear_wp.transform.location.z + float(args.ego_z_offset_m)),
+                    ),
+                    adjacent_rear_wp.transform.rotation,
+                ),
+            )
+            spawned_actors.append(adjacent_rear_vehicle)
+        adjacent_vehicle = adjacent_front_vehicle or adjacent_rear_vehicle
+        if adjacent_vehicle is None:
+            raise RuntimeError(f"No adjacent-lane actor spawned for adjacent_position={adjacent_position}")
     except Exception:
         for actor in reversed(spawned_actors):
             try:
@@ -433,9 +551,26 @@ def command_spawn(args: argparse.Namespace) -> int:
             except RuntimeError:
                 LOGGER.warning("Failed to destroy partially spawned actor id=%s", getattr(actor, "id", "unknown"))
         raise
+    if bool(args.moving_adjacent_npcs):
+        _enable_adjacent_autopilot(
+            vehicle=adjacent_front_vehicle,
+            traffic_manager=traffic_manager,
+            tm_port=int(args.tm_port),
+            speed_diff_percent=float(args.adjacent_speed_diff_percent),
+        )
+        _enable_adjacent_autopilot(
+            vehicle=adjacent_rear_vehicle,
+            traffic_manager=traffic_manager,
+            tm_port=int(args.tm_port),
+            speed_diff_percent=float(args.adjacent_speed_diff_percent),
+        )
+
     if args.npc_handbrake:
         _parking_brake(blocker)
-        _parking_brake(adjacent_vehicle)
+        if adjacent_front_vehicle is not None and not bool(args.moving_adjacent_npcs):
+            _parking_brake(adjacent_front_vehicle)
+        if adjacent_rear_vehicle is not None and not bool(args.moving_adjacent_npcs):
+            _parking_brake(adjacent_rear_vehicle)
 
     manifest = {
         "town": world.get_map().name,
@@ -445,6 +580,16 @@ def command_spawn(args: argparse.Namespace) -> int:
         "ego_actor_id": int(ego.id),
         "blocker_actor_id": int(blocker.id),
         "adjacent_actor_id": int(adjacent_vehicle.id),
+        "adjacent_front_actor_id": _actor_id_or_zero(adjacent_front_vehicle),
+        "adjacent_rear_actor_id": _actor_id_or_zero(adjacent_rear_vehicle),
+        "adjacent_actor_ids": [
+            int(actor_id)
+            for actor_id in [
+                _actor_id_or_zero(adjacent_front_vehicle),
+                _actor_id_or_zero(adjacent_rear_vehicle),
+            ]
+            if int(actor_id) > 0
+        ],
         "adjacent_side": str(args.adjacent_side),
         "scenario_type": "stage3a_non_junction_multilane",
         "corridor": {
@@ -472,6 +617,11 @@ def command_spawn(args: argparse.Namespace) -> int:
         "placements": {
             "blocker_distance_m": float(args.blocker_distance_m),
             "adjacent_distance_m": float(args.adjacent_distance_m),
+            "adjacent_position": adjacent_position,
+            "adjacent_front_distance_m": adjacent_front_distance_m,
+            "adjacent_rear_distance_m": adjacent_rear_distance_m,
+            "moving_adjacent_npcs": bool(args.moving_adjacent_npcs),
+            "adjacent_speed_diff_percent": float(args.adjacent_speed_diff_percent),
         },
     }
     output_manifest = Path(args.output_manifest)
@@ -505,10 +655,11 @@ def command_spawn(args: argparse.Namespace) -> int:
     }
     output_manifest.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     LOGGER.info(
-        "Spawned scenario ego=%d blocker=%d adjacent=%d road=%d lane=%d side=%s manifest=%s",
+        "Spawned scenario ego=%d blocker=%d adjacent_front=%d adjacent_rear=%d road=%d lane=%d side=%s manifest=%s",
         ego.id,
         blocker.id,
-        adjacent_vehicle.id,
+        _actor_id_or_zero(adjacent_front_vehicle),
+        _actor_id_or_zero(adjacent_rear_vehicle),
         ego_wp.road_id,
         ego_wp.lane_id,
         args.adjacent_side,
@@ -521,11 +672,15 @@ def command_spawn(args: argparse.Namespace) -> int:
 def command_destroy(args: argparse.Namespace) -> int:
     client, world = connect_world(host=args.host, port=args.port, timeout_s=args.timeout_s, town=None)
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
-    actor_ids = [
-        int(manifest.get("ego_actor_id", 0)),
-        int(manifest.get("blocker_actor_id", 0)),
-        int(manifest.get("adjacent_actor_id", 0)),
-    ]
+    actor_ids = []
+    for key in ["ego_actor_id", "blocker_actor_id", "adjacent_actor_id", "adjacent_front_actor_id", "adjacent_rear_actor_id"]:
+        actor_id = int(manifest.get(key, 0) or 0)
+        if actor_id > 0 and actor_id not in actor_ids:
+            actor_ids.append(actor_id)
+    for actor_id in manifest.get("adjacent_actor_ids", []) or []:
+        actor_id = int(actor_id or 0)
+        if actor_id > 0 and actor_id not in actor_ids:
+            actor_ids.append(actor_id)
     destroyed = []
     for actor_id in actor_ids:
         if actor_id <= 0:

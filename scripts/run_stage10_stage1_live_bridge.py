@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import signal
 import sys
 import threading
@@ -68,6 +69,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--carla-root",   required=True,  help="Path to CARLA installation root")
     p.add_argument("--carla-host",   default="127.0.0.1")
     p.add_argument("--carla-port",   type=int, default=2000)
+    p.add_argument("--tm-port",      type=int, default=8000)
     p.add_argument("--bev-repo",     required=True,  help="BEVFusion git repo root")
     p.add_argument("--bev-config",   required=True,  help="BEVFusion YAML config path")
     p.add_argument("--bev-ckpt",     required=True,  help="BEVFusion checkpoint .pth")
@@ -121,6 +123,19 @@ def _parse_args() -> argparse.Namespace:
                    help="Minimum Agent confidence required before bounded assist can override the baseline request")
     p.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                    help="Wall-clock rate limit for real Agent API calls; set <=0 to disable")
+    p.add_argument("--record-mp4", action="store_true",
+                   help="Record the Stage10 live CARLA run to an MP4 attached to the ego vehicle")
+    p.add_argument("--recording-path", default=None,
+                   help="Optional MP4 output path. Defaults to <log-dir>/video/stage10_live.mp4")
+    p.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown"), default="chase")
+    p.add_argument("--recording-width", type=int, default=1280)
+    p.add_argument("--recording-height", type=int, default=720)
+    p.add_argument("--recording-fov", type=float, default=100.0)
+    p.add_argument("--recording-fps", type=float, default=0.0,
+                   help="Recording FPS. Defaults to 1 / --delta-t when <= 0")
+    p.add_argument("--recording-overlay", dest="recording_overlay", action="store_true")
+    p.add_argument("--recording-no-overlay", dest="recording_overlay", action="store_false")
+    p.set_defaults(recording_overlay=True)
     return p.parse_args()
 
 
@@ -259,6 +274,37 @@ def _load_scenario_manifest(manifest_path: Optional[str]) -> Optional[Dict[str, 
     return manifest
 
 
+def _mp4_recording_disabled() -> bool:
+    return str(os.getenv("AGENTAI_DISABLE_MP4", "0")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _stage10_overlay_lines(
+    *,
+    frame_idx: int,
+    live_frame: Any,
+    ego_tel: Any,
+    route_info: Dict[str, Any],
+    det_count: int,
+    control_source: str,
+    agent_mode: str,
+    agent_control_mode: str,
+    min_ttc_s: float,
+) -> List[str]:
+    route_pct = route_info.get("route_completion_pct")
+    route_label = "n/a" if route_pct is None else f"{float(route_pct):.1f}%"
+    return [
+        (
+            f"stage10 tick={frame_idx} carla_frame={live_frame.frame_id} "
+            f"agent={agent_mode}/{agent_control_mode}"
+        ),
+        (
+            f"speed={float(ego_tel.ego_v_mps):.2f} mps dets={int(det_count)} "
+            f"ttc={float(min_ttc_s):.1f}s route={route_label}"
+        ),
+        f"lane={ego_tel.ego_lane_id} control={control_source}",
+    ]
+
+
 def _resolve_target_map(args: argparse.Namespace, scenario_manifest: Optional[Dict[str, Any]]) -> str:
     if scenario_manifest and str(args.map) == "Town01":
         manifest_town = scenario_manifest.get("town")
@@ -285,6 +331,13 @@ def _agent_preferred_lane_from_manifest(scenario_manifest: Optional[Dict[str, An
     if blocker_distance_m <= 12.5 and adjacent_distance_m >= 30.0:
         return side
     return "current"
+
+
+def _moving_adjacent_npcs_enabled(scenario_manifest: Optional[Dict[str, Any]]) -> bool:
+    if not scenario_manifest:
+        return False
+    placements = scenario_manifest.get("placements") or {}
+    return bool(placements.get("moving_adjacent_npcs", False))
 
 
 def _resolve_attach_actor_id(
@@ -1106,19 +1159,27 @@ def run(args: argparse.Namespace) -> int:
     # Sensors are spawned NOW, after the model is warm, so no frames are missed.
     route_tracker: Optional[RouteProgressTracker] = None
     collision_monitor: Optional[CollisionMonitor] = None
+    video_recorder = None
     world = None
+    traffic_manager = None
     agent_preferred_lane = "current"
     ego_spawned_by_stage10 = False
     if args.samples_root:
         sensor_source = FolderWatcherSync(args.samples_root, args.max_frames)
         ego = None
         carla_map = None
+        if bool(args.record_mp4):
+            LOGGER.warning("Stage10 --record-mp4 requires live CARLA mode; watch mode has no ego camera to record.")
     else:
         scenario_manifest = _load_scenario_manifest(args.scenario_manifest)
         args.map = _resolve_target_map(args, scenario_manifest)
         agent_preferred_lane = _agent_preferred_lane_from_manifest(scenario_manifest)
         client, world = _connect_carla(args.carla_host, args.carla_port)
         world = _load_map_if_needed(client, world, args.map)
+        if _moving_adjacent_npcs_enabled(scenario_manifest):
+            tm_port = int((scenario_manifest or {}).get("tm_port", args.tm_port))
+            traffic_manager = client.get_trafficmanager(tm_port)
+            LOGGER.info("Stage10 moving adjacent NPCs: Traffic Manager sync enabled on port %d", tm_port)
         carla_map = world.get_map()
         ego, ego_spawned_by_stage10, ego_source = _spawn_or_get_ego(world, args, scenario_manifest)
         route_tracker = RouteProgressTracker.build(
@@ -1156,7 +1217,38 @@ def run(args: argparse.Namespace) -> int:
             image_width=args.image_width,
             image_height=args.image_height,
             enable_radar=args.enable_radar,
+            traffic_manager=traffic_manager,
         )
+
+        effective_record_mp4 = bool(args.record_mp4)
+        if effective_record_mp4 and _mp4_recording_disabled():
+            LOGGER.warning("Stage10 MP4 recording disabled by AGENTAI_DISABLE_MP4; ignoring --record-mp4")
+            effective_record_mp4 = False
+        if effective_record_mp4:
+            from stage3c.video_recorder import Stage3CVideoRecorder
+
+            recording_path = (
+                Path(args.recording_path)
+                if args.recording_path
+                else log_dir / "video" / "stage10_live.mp4"
+            )
+            recording_fps = (
+                float(args.recording_fps)
+                if float(args.recording_fps) > 0.0
+                else 1.0 / max(float(args.delta_t), 1e-6)
+            )
+            video_recorder = Stage3CVideoRecorder(
+                world=world,
+                vehicle=ego,
+                output_path=recording_path,
+                fps=recording_fps,
+                width=int(args.recording_width),
+                height=int(args.recording_height),
+                fov=float(args.recording_fov),
+                mode=str(args.recording_camera_mode),
+                overlay=bool(args.recording_overlay),
+            )
+            LOGGER.info("Stage10 MP4 recording enabled -> %s", recording_path)
 
     # ── 3. Stage 9 Arbiter (optional) ────────────────────────────────────────
     arbiter = None if args.no_stage9 else _build_stage9_arbiter(
@@ -1626,6 +1718,32 @@ def run(args: argparse.Namespace) -> int:
                 except Exception as exc:
                     LOGGER.debug("Compare-mode error frame=%d: %s", frame_idx, exc)
 
+            if video_recorder is not None:
+                min_ttc_s = float(
+                    ws_builder._prev_detections and
+                    _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
+                )
+                wrote_video = video_recorder.write_frame(
+                    carla_frame=int(live_frame.frame_id),
+                    overlay_lines=_stage10_overlay_lines(
+                        frame_idx=frame_idx,
+                        live_frame=live_frame,
+                        ego_tel=ego_tel,
+                        route_info=route_info,
+                        det_count=len(det_list.detections),
+                        control_source=control_source,
+                        agent_mode=str(args.agent_mode),
+                        agent_control_mode=str(args.agent_control_mode),
+                        min_ttc_s=min_ttc_s,
+                    ),
+                )
+                if not wrote_video:
+                    LOGGER.warning(
+                        "Stage10 video recorder missed carla_frame=%d frame_idx=%d",
+                        int(live_frame.frame_id),
+                        frame_idx,
+                    )
+
             stats["frames"] += 1
             elapsed_ms = (time.monotonic() - t_tick) * 1000
 
@@ -1649,6 +1767,12 @@ def run(args: argparse.Namespace) -> int:
         return 1
     finally:
         sensor_source.stop()
+        if video_recorder is not None:
+            try:
+                _write_json(log_dir / "stage10_video_manifest.json", video_recorder.manifest())
+                LOGGER.info("Stage10 video manifest -> %s", log_dir / "stage10_video_manifest.json")
+            finally:
+                video_recorder.close()
         if collision_monitor is not None:
             collision_monitor.stop()
             for event in collision_monitor.events():
