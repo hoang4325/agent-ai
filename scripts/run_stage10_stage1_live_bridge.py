@@ -370,6 +370,87 @@ def _moving_adjacent_npcs_enabled(scenario_manifest: Optional[Dict[str, Any]]) -
     return bool(placements.get("moving_adjacent_npcs", False))
 
 
+def _scenario_adjacent_actor_ids(scenario_manifest: Optional[Dict[str, Any]]) -> List[int]:
+    if not scenario_manifest:
+        return []
+    actor_ids: List[int] = []
+    for key in ("adjacent_actor_id", "adjacent_front_actor_id", "adjacent_rear_actor_id"):
+        actor_id = int(scenario_manifest.get(key, 0) or 0)
+        if actor_id > 0 and actor_id not in actor_ids:
+            actor_ids.append(actor_id)
+    for actor_id in scenario_manifest.get("adjacent_actor_ids", []) or []:
+        actor_id = int(actor_id or 0)
+        if actor_id > 0 and actor_id not in actor_ids:
+            actor_ids.append(actor_id)
+    return actor_ids
+
+
+def _adjacent_desired_speed_kmh(speed_diff_percent: float) -> float:
+    faster_pct = max(0.0, -float(speed_diff_percent))
+    return max(80.0, min(110.0, 70.0 + faster_pct * 0.25))
+
+
+def _activate_moving_adjacent_npcs(
+    *,
+    world: Any,
+    traffic_manager: Any,
+    tm_port: int,
+    scenario_manifest: Optional[Dict[str, Any]],
+) -> None:
+    if world is None or traffic_manager is None or not scenario_manifest:
+        return
+    if not _moving_adjacent_npcs_enabled(scenario_manifest):
+        return
+
+    try:
+        import carla  # type: ignore
+    except ImportError:
+        return
+
+    placements = scenario_manifest.get("placements") or {}
+    speed_diff_percent = float(placements.get("adjacent_speed_diff_percent", -80.0))
+    desired_speed_kmh = _adjacent_desired_speed_kmh(speed_diff_percent)
+    actor_ids = _scenario_adjacent_actor_ids(scenario_manifest)
+    activated: List[int] = []
+    for actor_id in actor_ids:
+        actor = world.get_actor(int(actor_id))
+        if actor is None:
+            LOGGER.warning("Moving adjacent NPC id=%s missing; cannot enable autopilot.", actor_id)
+            continue
+        try:
+            actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0, hand_brake=False))
+        except RuntimeError:
+            LOGGER.warning("Failed to release adjacent NPC brake id=%s", actor_id)
+        try:
+            actor.set_autopilot(True, int(tm_port))
+        except RuntimeError:
+            LOGGER.warning("Failed to enable adjacent NPC autopilot id=%s tm_port=%s", actor_id, tm_port)
+            continue
+        for action_name, value in (
+            ("auto_lane_change", False),
+            ("vehicle_percentage_speed_difference", speed_diff_percent),
+            ("ignore_lights_percentage", 100.0),
+            ("ignore_signs_percentage", 100.0),
+            ("distance_to_leading_vehicle", 3.0),
+        ):
+            try:
+                getattr(traffic_manager, action_name)(actor, value)
+            except (AttributeError, RuntimeError):
+                LOGGER.debug("Traffic Manager %s unavailable for adjacent NPC id=%s", action_name, actor_id)
+        try:
+            traffic_manager.set_desired_speed(actor, desired_speed_kmh)
+        except (AttributeError, RuntimeError):
+            LOGGER.debug("Traffic Manager set_desired_speed unavailable for adjacent NPC id=%s", actor_id)
+        activated.append(int(actor_id))
+    if activated:
+        LOGGER.info(
+            "Stage10 activated moving adjacent NPCs ids=%s speed_diff=%.1f%% desired_speed=%.1f km/h",
+            activated,
+            speed_diff_percent,
+            desired_speed_kmh,
+        )
+
+
 def _carla_enum_name(value: Any) -> str:
     return str(value).split(".")[-1]
 
@@ -1488,6 +1569,13 @@ def run(args: argparse.Namespace) -> int:
             LOGGER.info("Stage10 moving adjacent NPCs: Traffic Manager sync enabled on port %d", tm_port)
         carla_map = world.get_map()
         ego, ego_spawned_by_stage10, ego_source = _spawn_or_get_ego(world, args, scenario_manifest)
+        if traffic_manager is not None:
+            _activate_moving_adjacent_npcs(
+                world=world,
+                traffic_manager=traffic_manager,
+                tm_port=int((scenario_manifest or {}).get("tm_port", args.tm_port)),
+                scenario_manifest=scenario_manifest,
+            )
         route_tracker = RouteProgressTracker.build(
             carla_map=carla_map,
             spawn_point_index=args.spawn_point,
