@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import os
 import signal
 import sys
@@ -354,6 +355,14 @@ def _agent_target_lane_id_from_manifest(scenario_manifest: Optional[Dict[str, An
     return "" if lane_id is None else str(lane_id)
 
 
+def _agent_origin_lane_id_from_manifest(scenario_manifest: Optional[Dict[str, Any]]) -> str:
+    if not scenario_manifest:
+        return ""
+    corridor = scenario_manifest.get("corridor") or {}
+    lane_id = corridor.get("lane_id")
+    return "" if lane_id is None else str(lane_id)
+
+
 def _moving_adjacent_npcs_enabled(scenario_manifest: Optional[Dict[str, Any]]) -> bool:
     if not scenario_manifest:
         return False
@@ -433,6 +442,135 @@ def _current_lane_change_permission(
     allowed = bool(enum_allows and marking_allows)
     status = "ok" if allowed else "blocked"
     return allowed, f"{side}:{marking}:lane_change={lane_change}:{status}"
+
+
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(float(lower), min(float(upper), float(value)))
+
+
+def _lane_id_int(lane_id: Any) -> Optional[int]:
+    try:
+        return int(str(lane_id))
+    except (TypeError, ValueError):
+        return None
+
+
+def _lane_passed_target(current_lane_id: Any, origin_lane_id: Any, target_lane_id: Any) -> bool:
+    current = _lane_id_int(current_lane_id)
+    origin = _lane_id_int(origin_lane_id)
+    target = _lane_id_int(target_lane_id)
+    if current is None or origin is None or target is None:
+        return False
+    if current in {origin, target} or origin == target:
+        return False
+    return bool((target - origin) * (current - target) > 0)
+
+
+def _wrap_degrees(angle_deg: float) -> float:
+    return (float(angle_deg) + 180.0) % 360.0 - 180.0
+
+
+def _is_driving_waypoint(waypoint: Any) -> bool:
+    return bool("driving" in _carla_enum_name(getattr(waypoint, "lane_type", "unknown")).lower())
+
+
+def _find_target_lane_waypoint(carla_map: Any, ego: Any, target_lane_id: str) -> Any:
+    if carla_map is None or ego is None:
+        return None
+    try:
+        start = carla_map.get_waypoint(ego.get_location(), project_to_road=True)
+    except RuntimeError:
+        return None
+    if start is None:
+        return None
+    if not target_lane_id or str(getattr(start, "lane_id", "")) == str(target_lane_id):
+        return start
+
+    visited: Set[Tuple[int, int, int]] = set()
+    frontier: List[Any] = [start]
+    for _ in range(4):
+        next_frontier: List[Any] = []
+        for waypoint in frontier:
+            key = (
+                int(getattr(waypoint, "road_id", 0)),
+                int(getattr(waypoint, "section_id", 0)),
+                int(getattr(waypoint, "lane_id", 0)),
+            )
+            if key in visited:
+                continue
+            visited.add(key)
+            if str(getattr(waypoint, "lane_id", "")) == str(target_lane_id):
+                return waypoint
+            for adjacent in (waypoint.get_left_lane(), waypoint.get_right_lane()):
+                if adjacent is None or not _is_driving_waypoint(adjacent):
+                    continue
+                if not _same_direction_waypoints(start, adjacent):
+                    continue
+                if str(getattr(adjacent, "lane_id", "")) == str(target_lane_id):
+                    return adjacent
+                next_frontier.append(adjacent)
+        frontier = next_frontier
+    return None
+
+
+def _map_lane_centering_control(
+    *,
+    carla_map: Any,
+    ego: Any,
+    target_lane_id: str,
+    target_speed_mps: float,
+    source: str,
+    max_steer: float = 0.42,
+) -> Any:
+    from stage9.schemas import ActuatorCommand
+
+    target_wp = _find_target_lane_waypoint(carla_map, ego, target_lane_id)
+    if target_wp is None:
+        return None
+
+    velocity = ego.get_velocity()
+    current_speed = float(math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2))
+    ego_tf = ego.get_transform()
+    ego_loc = ego_tf.location
+
+    lookahead_m = _clamp(4.0 + current_speed * 0.7, 4.0, 8.0)
+    next_candidates = [
+        wp for wp in target_wp.next(float(lookahead_m))
+        if str(getattr(wp, "lane_id", "")) == str(getattr(target_wp, "lane_id", ""))
+    ]
+    aim_wp = next_candidates[0] if next_candidates else target_wp
+    aim_loc = aim_wp.transform.location
+
+    yaw_rad = math.radians(float(ego_tf.rotation.yaw))
+    dx = float(aim_loc.x - ego_loc.x)
+    dy = float(aim_loc.y - ego_loc.y)
+    local_x = math.cos(yaw_rad) * dx + math.sin(yaw_rad) * dy
+    local_y = -math.sin(yaw_rad) * dx + math.cos(yaw_rad) * dy
+    local_x = max(local_x, 1.0)
+
+    heading_error_rad = math.radians(_wrap_degrees(float(aim_wp.transform.rotation.yaw) - float(ego_tf.rotation.yaw)))
+    pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
+    steer = _clamp(0.75 * heading_error_rad + 1.25 * pure_pursuit, -max_steer, max_steer)
+
+    lateral_abs = abs(float(local_y))
+    target_speed = float(target_speed_mps)
+    if lateral_abs > 2.2:
+        target_speed = min(target_speed, 1.5)
+    elif lateral_abs > 1.2:
+        target_speed = min(target_speed, 2.5)
+    speed_error = target_speed - current_speed
+    throttle = _clamp(0.20 * speed_error, 0.0, 0.42)
+    brake = _clamp(-0.35 * speed_error, 0.0, 0.65)
+    if lateral_abs > 2.8:
+        brake = max(brake, 0.20)
+        throttle = min(throttle, 0.10)
+
+    return ActuatorCommand(
+        steer=steer,
+        throttle=throttle,
+        brake=brake,
+        source=source,
+    )
 
 
 def _draw_scenario_actor_labels(world: Any, scenario_manifest: Optional[Dict[str, Any]], *, life_time_s: float) -> None:
@@ -1104,8 +1242,8 @@ def _assist_lane_transition_completed(
         return False
     current_lane_id = str(getattr(world_state, "ego_lane_id", "") or "")
     target_lane_id = str(active_metadata.get("target_lane_id") or "")
-    if target_lane_id and current_lane_id != target_lane_id:
-        return False
+    if target_lane_id:
+        return bool(current_lane_id) and current_lane_id == target_lane_id
     if not target_lane_id and current_lane_id == origin_lane_id:
         return False
     lateral_error_m = abs(float(getattr(world_state, "ego_lateral_error_m", 99.0)))
@@ -1327,6 +1465,7 @@ def run(args: argparse.Namespace) -> int:
     traffic_manager = None
     scenario_manifest: Optional[Dict[str, Any]] = None
     agent_preferred_lane = "current"
+    agent_origin_lane_id = ""
     agent_target_lane_id = ""
     ego_spawned_by_stage10 = False
     if args.samples_root:
@@ -1339,6 +1478,7 @@ def run(args: argparse.Namespace) -> int:
         scenario_manifest = _load_scenario_manifest(args.scenario_manifest)
         args.map = _resolve_target_map(args, scenario_manifest)
         agent_preferred_lane = _agent_preferred_lane_from_manifest(scenario_manifest)
+        agent_origin_lane_id = _agent_origin_lane_id_from_manifest(scenario_manifest)
         agent_target_lane_id = _agent_target_lane_id_from_manifest(scenario_manifest)
         client, world = _connect_carla(args.carla_host, args.carla_port)
         world = _load_map_if_needed(client, world, args.map)
@@ -1363,8 +1503,9 @@ def run(args: argparse.Namespace) -> int:
         )
         LOGGER.info("Stage10 ego source=%s actor_id=%s", ego_source, getattr(ego, "id", "unknown"))
         LOGGER.info(
-            "Stage10 Agent route hint: preferred_lane=%s target_lane_id=%s",
+            "Stage10 Agent route hint: preferred_lane=%s origin_lane_id=%s target_lane_id=%s",
             agent_preferred_lane,
+            agent_origin_lane_id or "unknown",
             agent_target_lane_id or "unknown",
         )
         collision_monitor = CollisionMonitor(
@@ -1551,6 +1692,11 @@ def run(args: argparse.Namespace) -> int:
                     active_assist_hold_remaining = 0
                     active_assist_applied_frames = 0
                     active_assist_metadata = {}
+                lane_change_overshoot = _lane_passed_target(
+                    getattr(world_state, "ego_lane_id", ""),
+                    agent_origin_lane_id,
+                    agent_target_lane_id,
+                )
                 preferred_lane_for_frame = (
                     "current" if assist_lane_change_completed else agent_preferred_lane
                 )
@@ -1564,7 +1710,9 @@ def run(args: argparse.Namespace) -> int:
                         target_lane_id=agent_target_lane_id,
                     )
                 setattr(world_state, "agent_preferred_lane", preferred_lane_for_frame)
+                setattr(world_state, "agent_origin_lane_id", agent_origin_lane_id)
                 setattr(world_state, "agent_target_lane_id", agent_target_lane_id)
+                setattr(world_state, "lane_change_overshoot", lane_change_overshoot)
                 setattr(world_state, "lane_change_permission", lane_change_allowed)
                 setattr(world_state, "lane_change_rule", lane_change_rule)
                 setattr(
@@ -1663,7 +1811,9 @@ def run(args: argparse.Namespace) -> int:
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
                     "active_assist_maneuver": active_assist_intent,
+                    "agent_origin_lane_id": agent_origin_lane_id,
                     "agent_target_lane_id": agent_target_lane_id,
+                    "lane_change_overshoot": bool(getattr(world_state, "lane_change_overshoot", False)),
                     "lane_change_permission": bool(getattr(world_state, "lane_change_permission", False)),
                     "lane_change_rule": str(getattr(world_state, "lane_change_rule", "unknown")),
                 }
@@ -1678,8 +1828,18 @@ def run(args: argparse.Namespace) -> int:
                             baseline_req=assist_baseline_req,
                             world_state=world_state,
                         )
-                        cmd = assist_mpc.execute(cruise_req)
-                        control_source = "post_lane_change_cruise"
+                        cruise_speed_mps = 1.6 if bool(getattr(world_state, "lane_change_overshoot", False)) else 3.8
+                        cmd = _map_lane_centering_control(
+                            carla_map=carla_map,
+                            ego=ego,
+                            target_lane_id=agent_target_lane_id,
+                            target_speed_mps=cruise_speed_mps,
+                            source="MAP_LANE_CENTER_POST",
+                            max_steer=0.45,
+                        )
+                        if cmd is None:
+                            cmd = assist_mpc.execute(cruise_req)
+                        control_source = "post_lane_change_centering"
                         assist_record.update(
                             {
                                 "assist_applied": True,
@@ -1788,8 +1948,17 @@ def run(args: argparse.Namespace) -> int:
                             applied_frames=active_assist_applied_frames,
                             args=args,
                         )
-                        cmd = assist_mpc.execute(assist_req)
-                        control_source = "agent_assist"
+                        cmd = _map_lane_centering_control(
+                            carla_map=carla_map,
+                            ego=ego,
+                            target_lane_id=agent_target_lane_id,
+                            target_speed_mps=float(getattr(assist_req, "target_v_desired_mps", 2.0)),
+                            source="MAP_LANE_CENTER_ASSIST",
+                            max_steer=0.42,
+                        )
+                        if cmd is None:
+                            cmd = assist_mpc.execute(assist_req)
+                        control_source = "agent_lane_center_assist"
                         assist_record["assist_applied"] = True
                         assist_record["assist_request"] = {
                             "tactical_intent": active_assist_intent,
@@ -1825,8 +1994,17 @@ def run(args: argparse.Namespace) -> int:
                         applied_frames=active_assist_applied_frames,
                         args=args,
                     )
-                    cmd = assist_mpc.execute(active_assist_request)
-                    control_source = "agent_assist_hold"
+                    cmd = _map_lane_centering_control(
+                        carla_map=carla_map,
+                        ego=ego,
+                        target_lane_id=agent_target_lane_id,
+                        target_speed_mps=float(getattr(active_assist_request, "target_v_desired_mps", 2.5)),
+                        source="MAP_LANE_CENTER_ASSIST_HOLD",
+                        max_steer=0.42,
+                    )
+                    if cmd is None:
+                        cmd = assist_mpc.execute(active_assist_request)
+                    control_source = "agent_lane_center_assist_hold"
                     assist_record.update(
                         {
                             "assist_applied": True,
