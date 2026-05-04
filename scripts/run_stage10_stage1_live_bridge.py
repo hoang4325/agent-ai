@@ -1003,6 +1003,30 @@ def _trajectory_request_from_agent_intent(
     return request
 
 
+def _post_lane_change_cruise_request(*, baseline_req: Any, world_state: Any) -> Any:
+    from stage9.schemas import TrajectoryRequest
+
+    ego_v = float(getattr(world_state, "ego_v_mps", 0.0))
+    target_v = max(3.5, min(max(ego_v + 1.0, 3.5), 5.0))
+    request = TrajectoryRequest(
+        source="POST_LANE_CHANGE",
+        tactical_intent="keep_lane",
+        v_max_mps=min(float(getattr(baseline_req, "v_max_mps", 8.0)), 8.0),
+        a_long_max_mps2=min(float(getattr(baseline_req, "a_long_max_mps2", 2.5)), 2.0),
+        a_lat_max_mps2=min(float(getattr(baseline_req, "a_lat_max_mps2", 1.5)), 1.2),
+        jerk_max_mps3=min(float(getattr(baseline_req, "jerk_max_mps3", 3.0)), 3.0),
+        lateral_bound_m=1.0,
+        drivable_envelope=getattr(baseline_req, "drivable_envelope", None),
+        target_lane_id="current",
+        target_v_desired_mps=target_v,
+        horizon_s=min(float(getattr(baseline_req, "horizon_s", 3.0)), 3.0),
+        cost_profile="POST_LANE_CHANGE",
+    )
+    setattr(request, "current_speed_mps", ego_v)
+    setattr(request, "current_lateral_error_m", float(getattr(world_state, "ego_lateral_error_m", 0.0)))
+    return request
+
+
 def _assist_hold_frames(args: argparse.Namespace) -> int:
     delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
     return max(12, min(35, int(round(3.0 / delta_t))))
@@ -1522,6 +1546,11 @@ def run(args: argparse.Namespace) -> int:
                 )
                 if transition_stable:
                     assist_lane_change_completed = True
+                    active_assist_request = None
+                    active_assist_intent = None
+                    active_assist_hold_remaining = 0
+                    active_assist_applied_frames = 0
+                    active_assist_metadata = {}
                 preferred_lane_for_frame = (
                     "current" if assist_lane_change_completed else agent_preferred_lane
                 )
@@ -1603,20 +1632,23 @@ def run(args: argparse.Namespace) -> int:
                     ws_builder._prev_detections and
                     _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
                 )
-                assist_should_query, assist_trigger_reason = _should_query_agent(
-                    args=args,
-                    frame_idx=frame_idx,
-                    baseline_intent=assist_baseline_intent,
-                    min_ttc_s=assist_ttc,
-                    world_state=world_state,
-                )
-                assist_should_query, assist_trigger_reason = _apply_agent_rate_limit(
-                    args=args,
-                    requested=assist_should_query,
-                    trigger_reason=assist_trigger_reason,
-                    now_s=time.monotonic(),
-                    last_query_s=last_assist_agent_query_wall_s,
-                )
+                if assist_lane_change_completed:
+                    assist_should_query, assist_trigger_reason = False, "lane_change_completed_post_cruise"
+                else:
+                    assist_should_query, assist_trigger_reason = _should_query_agent(
+                        args=args,
+                        frame_idx=frame_idx,
+                        baseline_intent=assist_baseline_intent,
+                        min_ttc_s=assist_ttc,
+                        world_state=world_state,
+                    )
+                    assist_should_query, assist_trigger_reason = _apply_agent_rate_limit(
+                        args=args,
+                        requested=assist_should_query,
+                        trigger_reason=assist_trigger_reason,
+                        now_s=time.monotonic(),
+                        last_query_s=last_assist_agent_query_wall_s,
+                    )
                 assist_record: Dict[str, Any] = {
                     "frame_id": live_frame.frame_id,
                     "frame_idx": frame_idx,
@@ -1635,7 +1667,42 @@ def run(args: argparse.Namespace) -> int:
                     "lane_change_permission": bool(getattr(world_state, "lane_change_permission", False)),
                     "lane_change_rule": str(getattr(world_state, "lane_change_rule", "unknown")),
                 }
-                if _assist_lane_transition_completed(
+                if assist_lane_change_completed:
+                    active_assist_request = None
+                    active_assist_intent = None
+                    active_assist_hold_remaining = 0
+                    active_assist_applied_frames = 0
+                    active_assist_metadata = {}
+                    if assist_ttc >= max(3.0, float(args.agent_risk_ttc_threshold)):
+                        cruise_req = _post_lane_change_cruise_request(
+                            baseline_req=assist_baseline_req,
+                            world_state=world_state,
+                        )
+                        cmd = assist_mpc.execute(cruise_req)
+                        control_source = "post_lane_change_cruise"
+                        assist_record.update(
+                            {
+                                "assist_applied": True,
+                                "post_lane_change_cruise": True,
+                                "assist_reject_reason": None,
+                                "agent_intent": "keep_lane_after_lane_change",
+                                "agent_validation_status": "post_lane_change_cruise",
+                                "assist_request": {
+                                    "tactical_intent": str(getattr(cruise_req, "tactical_intent", "")),
+                                    "target_v_desired_mps": float(getattr(cruise_req, "target_v_desired_mps", 0.0)),
+                                    "target_lane_id": getattr(cruise_req, "target_lane_id", None),
+                                },
+                                "applied_command": {
+                                    "throttle": float(getattr(cmd, "throttle", 0.0)),
+                                    "steer": float(getattr(cmd, "steer", 0.0)),
+                                    "brake": float(getattr(cmd, "brake", 0.0)),
+                                    "source": str(getattr(cmd, "source", "unknown")),
+                                },
+                            }
+                        )
+                    else:
+                        assist_record["assist_reject_reason"] = "post_lane_change_low_ttc"
+                elif _assist_lane_transition_completed(
                     world_state=world_state,
                     active_metadata=active_assist_metadata,
                 ):
@@ -1645,7 +1712,7 @@ def run(args: argparse.Namespace) -> int:
                     active_assist_hold_remaining = 0
                     active_assist_applied_frames = 0
                     active_assist_metadata = {}
-                if assist_should_query:
+                elif assist_should_query:
                     last_assist_agent_query_wall_s = time.monotonic()
                     intent_record = assist_agent.observe_intent(world_state)
                     raw_agent_intent = (
