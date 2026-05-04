@@ -1084,6 +1084,17 @@ def _should_query_agent(
     if float(min_ttc_s) < float(args.agent_risk_ttc_threshold):
         return True, "low_ttc"
 
+    try:
+        preferred_lane = str(getattr(world_state, "agent_preferred_lane", "current"))
+        if (
+            preferred_lane in {"left", "right"}
+            and bool(getattr(world_state, "lane_change_permission", False))
+            and not bool(getattr(world_state, "agent_lane_change_decision_seen", False))
+        ):
+            return True, f"scenario_lane_change_{preferred_lane}"
+    except Exception:
+        pass
+
     if baseline_intent not in {"keep_lane"}:
         return True, f"baseline_{baseline_intent}"
 
@@ -1360,6 +1371,14 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
     attempted = [r for r in assist_log if r.get("agent_queried")]
     accepted = [r for r in assist_log if r.get("assist_applied")]
     rejected = [r for r in assist_log if r.get("agent_queried") and not r.get("assist_applied")]
+    agent_decision_applied = [
+        r
+        for r in accepted
+        if r.get("agent_queried") and not r.get("post_lane_change_cruise")
+    ]
+    assist_hold_applied = [r for r in accepted if r.get("assist_continued")]
+    post_lane_change_applied = [r for r in accepted if r.get("post_lane_change_cruise")]
+    controller_only_applied = [r for r in accepted if not r.get("agent_queried")]
     rejection_counts: Dict[str, int] = {}
     intent_counts: Dict[str, int] = {}
     fallback_reason_counts: Dict[str, int] = {}
@@ -1385,8 +1404,13 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
         "sim_frames": sim_frames,
         "agent_query_frames": len(attempted),
         "assist_applied_frames": len(accepted),
+        "agent_decision_applied_frames": len(agent_decision_applied),
+        "assist_hold_applied_frames": len(assist_hold_applied),
+        "post_lane_change_cruise_frames": len(post_lane_change_applied),
+        "controller_only_applied_frames": len(controller_only_applied),
         "assist_rejected_frames": len(rejected),
         "assist_intervention_rate": round(len(accepted) / max(sim_frames, 1), 4),
+        "agent_decision_intervention_rate": round(len(agent_decision_applied) / max(sim_frames, 1), 4),
         "agent_query_rate": round(len(attempted) / max(sim_frames, 1), 4),
         "agent_intent_distribution": intent_counts,
         "assist_reject_reason_counts": rejection_counts,
@@ -1683,6 +1707,7 @@ def run(args: argparse.Namespace) -> int:
     active_assist_applied_frames = 0
     active_assist_metadata: Dict[str, Any] = {}
     assist_lane_change_completed = False
+    agent_lane_change_decision_seen = False
     if args.agent_control_mode == "assist":
         try:
             from carla_bevfusion_stage1.stage9_adapters import (
@@ -1803,6 +1828,11 @@ def run(args: argparse.Namespace) -> int:
                 setattr(world_state, "lane_change_overshoot", lane_change_overshoot)
                 setattr(world_state, "lane_change_permission", lane_change_allowed)
                 setattr(world_state, "lane_change_rule", lane_change_rule)
+                setattr(
+                    world_state,
+                    "agent_lane_change_decision_seen",
+                    agent_lane_change_decision_seen,
+                )
                 setattr(
                     world_state,
                     "route_conflict_flags",
@@ -1962,6 +1992,11 @@ def run(args: argparse.Namespace) -> int:
                     active_assist_metadata = {}
                 elif assist_should_query:
                     last_assist_agent_query_wall_s = time.monotonic()
+                    if (
+                        str(getattr(world_state, "agent_preferred_lane", "current")) in {"left", "right"}
+                        and bool(getattr(world_state, "lane_change_permission", False))
+                    ):
+                        agent_lane_change_decision_seen = True
                     intent_record = assist_agent.observe_intent(world_state)
                     raw_agent_intent = (
                         str(getattr(intent_record, "tactical_intent", assist_baseline_intent))

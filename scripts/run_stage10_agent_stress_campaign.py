@@ -182,8 +182,10 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
     )
 
     low_ttc_analysis = evaluation.get("low_ttc_analysis") or {}
-    queried_frames = int(evaluation.get("agent_queried_frames") or 0)
-    sim_frames = int(evaluation.get("sim_frames") or 0)
+    assist_query_frames = int(assist.get("agent_query_frames") or 0)
+    assist_sim_frames = int(assist.get("sim_frames") or 0)
+    queried_frames = int(evaluation.get("agent_queried_frames") or assist_query_frames or 0)
+    sim_frames = int(evaluation.get("sim_frames") or assist_sim_frames or 0)
     collision_count = int(driving.get("collision_count") or 0)
     query_ratio = round(queried_frames / max(sim_frames, 1), 4) if sim_frames else None
     safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
@@ -210,6 +212,13 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "low_ttc_baseline_cautious_rate": low_ttc_analysis.get("baseline_cautious_rate"),
             "assist_applied_frames": assist.get("assist_applied_frames"),
             "assist_intervention_rate": assist.get("assist_intervention_rate"),
+            "assist_agent_query_frames": assist_query_frames,
+            "assist_agent_query_rate": assist.get("agent_query_rate"),
+            "agent_decision_applied_frames": assist.get("agent_decision_applied_frames"),
+            "agent_decision_intervention_rate": assist.get("agent_decision_intervention_rate"),
+            "assist_hold_applied_frames": assist.get("assist_hold_applied_frames"),
+            "post_lane_change_cruise_frames": assist.get("post_lane_change_cruise_frames"),
+            "controller_only_applied_frames": assist.get("controller_only_applied_frames"),
         },
     }
 
