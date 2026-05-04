@@ -104,7 +104,7 @@ def parse_args() -> argparse.Namespace:
     spawn_parser.add_argument(
         "--adjacent-speed-diff-percent",
         type=float,
-        default=50.0,
+        default=-80.0,
         help="Traffic Manager speed difference for moving adjacent NPCs; positive means slower than speed limit.",
     )
     spawn_parser.add_argument("--ego-z-offset-m", type=float, default=0.4)
@@ -480,6 +480,11 @@ def _cleanup_scenario_role_actors(world: carla.World) -> None:
         LOGGER.info("Cleaned up stale scenario actors before spawn: %s", destroyed)
 
 
+def _adjacent_desired_speed_kmh(speed_diff_percent: float) -> float:
+    faster_pct = max(0.0, -float(speed_diff_percent))
+    return max(80.0, min(110.0, 70.0 + faster_pct * 0.25))
+
+
 def _enable_adjacent_autopilot(
     *,
     vehicle: carla.Vehicle | None,
@@ -505,7 +510,14 @@ def _enable_adjacent_autopilot(
         except (AttributeError, RuntimeError):
             LOGGER.warning("Failed to set %s for adjacent actor id=%s", action_name, int(vehicle.id))
     try:
-        traffic_manager.set_desired_speed(vehicle, 28.0)
+        desired_speed_kmh = _adjacent_desired_speed_kmh(float(speed_diff_percent))
+        traffic_manager.set_desired_speed(vehicle, desired_speed_kmh)
+        LOGGER.info(
+            "Adjacent NPC id=%s autopilot speed_diff=%.1f%% desired_speed=%.1f km/h",
+            int(vehicle.id),
+            float(speed_diff_percent),
+            desired_speed_kmh,
+        )
     except (AttributeError, RuntimeError):
         LOGGER.debug("Traffic Manager set_desired_speed unavailable for adjacent actor id=%s", int(vehicle.id))
     try:

@@ -124,7 +124,7 @@ def _resolve_case_options(args: argparse.Namespace, spec: Dict[str, Any]) -> Dic
         "adjacent_front_distance_m": _case_float(args, spec, "adjacent_front_distance_m", 0.0),
         "adjacent_rear_distance_m": _case_float(args, spec, "adjacent_rear_distance_m", 0.0),
         "moving_adjacent_npcs": bool(args.moving_adjacent_npcs or spec.get("moving_adjacent_npcs", False)),
-        "adjacent_speed_diff_percent": _case_float(args, spec, "adjacent_speed_diff_percent", -20.0),
+        "adjacent_speed_diff_percent": _case_float(args, spec, "adjacent_speed_diff_percent", -80.0),
         "route_distance_m": _case_float(args, spec, "route_distance_m", 120.0),
     }
 
@@ -375,7 +375,7 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_front_distance_m": 38.0,
             "adjacent_rear_distance_m": 22.0,
             "moving_adjacent_npcs": True,
-            "adjacent_speed_diff_percent": -20.0,
+            "adjacent_speed_diff_percent": -80.0,
             "route_distance_m": 60.0,
         },
         "pedestrian_cutout_right": {
@@ -414,7 +414,7 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_front_distance_m": 38.0,
             "adjacent_rear_distance_m": 22.0,
             "moving_adjacent_npcs": True,
-            "adjacent_speed_diff_percent": -20.0,
+            "adjacent_speed_diff_percent": -80.0,
             "route_distance_m": 60.0,
         },
         "stop_follow": {
