@@ -23,6 +23,12 @@ def _camera_transform_for_mode(carla_module: Any, mode: str) -> tuple[Any, Any]:
             carla_module.Rotation(pitch=-90.0),
         )
         return transform, attachment_type
+    if mode == "topdown_wide":
+        transform = carla_module.Transform(
+            carla_module.Location(z=55.0),
+            carla_module.Rotation(pitch=-90.0),
+        )
+        return transform, attachment_type
 
     spring_arm = getattr(carla_module.AttachmentType, "SpringArmGhost", attachment_type)
     transform = carla_module.Transform(

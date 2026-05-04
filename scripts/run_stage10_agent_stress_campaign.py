@@ -69,7 +69,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--radar-ablation", default="zero_bev", choices=["none", "zero_bev"])
     parser.add_argument("--record-mp4", action="store_true",
                         help="Record each Stage10 stress run to MP4")
-    parser.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown"), default="chase")
+    parser.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown", "topdown_wide"), default="chase")
     parser.add_argument("--recording-width", type=int, default=1280)
     parser.add_argument("--recording-height", type=int, default=720)
     parser.add_argument("--recording-fov", type=float, default=100.0)

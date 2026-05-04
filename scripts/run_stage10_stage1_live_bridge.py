@@ -131,7 +131,7 @@ def _parse_args() -> argparse.Namespace:
                    help="Record the Stage10 live CARLA run to an MP4 attached to the ego vehicle")
     p.add_argument("--recording-path", default=None,
                    help="Optional MP4 output path. Defaults to <log-dir>/video/stage10_live.mp4")
-    p.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown"), default="chase")
+    p.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown", "topdown_wide"), default="chase")
     p.add_argument("--recording-width", type=int, default=1280)
     p.add_argument("--recording-height", type=int, default=720)
     p.add_argument("--recording-fov", type=float, default=100.0)
@@ -342,6 +342,42 @@ def _moving_adjacent_npcs_enabled(scenario_manifest: Optional[Dict[str, Any]]) -
         return False
     placements = scenario_manifest.get("placements") or {}
     return bool(placements.get("moving_adjacent_npcs", False))
+
+
+def _draw_scenario_actor_labels(world: Any, scenario_manifest: Optional[Dict[str, Any]], *, life_time_s: float) -> None:
+    if world is None or not scenario_manifest:
+        return
+    try:
+        import carla  # type: ignore
+    except ImportError:
+        return
+
+    label_specs = [
+        ("ego_actor_id", "EGO", carla.Color(40, 240, 80)),
+        ("blocker_actor_id", "BLOCKER", carla.Color(255, 60, 60)),
+        ("adjacent_front_actor_id", "FRONT", carla.Color(70, 160, 255)),
+        ("adjacent_rear_actor_id", "REAR", carla.Color(255, 210, 40)),
+    ]
+    for key, label, color in label_specs:
+        actor_id = int(scenario_manifest.get(key, 0) or 0)
+        if actor_id <= 0:
+            continue
+        actor = world.get_actor(actor_id)
+        if actor is None:
+            continue
+        try:
+            location = actor.get_location()
+            location.z += 2.2
+            world.debug.draw_string(
+                location,
+                label,
+                draw_shadow=True,
+                color=color,
+                life_time=max(0.05, float(life_time_s)),
+                persistent_lines=False,
+            )
+        except RuntimeError:
+            continue
 
 
 def _resolve_attach_actor_id(
@@ -1168,6 +1204,7 @@ def run(args: argparse.Namespace) -> int:
     video_recorder = None
     world = None
     traffic_manager = None
+    scenario_manifest: Optional[Dict[str, Any]] = None
     agent_preferred_lane = "current"
     ego_spawned_by_stage10 = False
     if args.samples_root:
@@ -1725,6 +1762,11 @@ def run(args: argparse.Namespace) -> int:
                     LOGGER.debug("Compare-mode error frame=%d: %s", frame_idx, exc)
 
             if video_recorder is not None:
+                _draw_scenario_actor_labels(
+                    world,
+                    scenario_manifest,
+                    life_time_s=max(float(args.delta_t) * 2.0, 0.15),
+                )
                 min_ttc_s = float(
                     ws_builder._prev_detections and
                     _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0

@@ -154,9 +154,9 @@ class RealMPCAdapter:
             # For keep_lane intents, target offset = 0 (track lane centre).
             offset = 0.0
             if "right" in intent:
-                offset = -min(lateral_bound_m, 3.5)
-            elif "left" in intent:
                 offset = min(lateral_bound_m, 3.5)
+            elif "left" in intent:
+                offset = -min(lateral_bound_m, 3.5)
 
             result = self._lat_qp(
                 target_offset_m=offset,
@@ -205,9 +205,9 @@ class RealMPCAdapter:
         current_lateral_error_m: float,
     ) -> float:
         if "right" in intent:
-            direction = -1.0
-        elif "left" in intent:
             direction = 1.0
+        elif "left" in intent:
+            direction = -1.0
         else:
             return _clamp(steer, -1.0, 1.0)
 
