@@ -25,6 +25,8 @@ class CorridorCandidate:
     lane_change: str
     adjacent_side: str
     adjacent_lane_id: int
+    adjacent_lane_marking: str
+    adjacent_lane_change_allowed: bool
     forward_non_junction_length_m: float
     junction_distance_m: float | None
 
@@ -153,7 +155,36 @@ def _same_direction(reference: carla.Waypoint, candidate: carla.Waypoint) -> boo
     return bool(ref_x * cand_x + ref_y * cand_y > 0.5)
 
 
+def _carla_enum_name(value: Any) -> str:
+    return str(value).split(".")[-1]
+
+
+def _lane_change_name(waypoint: carla.Waypoint) -> str:
+    return _carla_enum_name(getattr(waypoint, "lane_change", "unknown"))
+
+
+def _lane_marking_type_name(waypoint: carla.Waypoint, side: str) -> str:
+    marking = waypoint.left_lane_marking if side == "left" else waypoint.right_lane_marking
+    return _carla_enum_name(getattr(marking, "type", "unknown"))
+
+
+def _lane_change_enum_allows(waypoint: carla.Waypoint, side: str) -> bool:
+    lane_change = _lane_change_name(waypoint).lower()
+    return bool("both" in lane_change or side.lower() in lane_change)
+
+
+def _lane_marking_allows_lane_change(waypoint: carla.Waypoint, side: str) -> bool:
+    marking_type = _lane_marking_type_name(waypoint, side).lower()
+    return bool("broken" in marking_type and "solid" not in marking_type)
+
+
+def _lane_change_allowed(waypoint: carla.Waypoint, side: str) -> bool:
+    return bool(_lane_change_enum_allows(waypoint, side) and _lane_marking_allows_lane_change(waypoint, side))
+
+
 def _adjacent_lane(waypoint: carla.Waypoint, side: str) -> carla.Waypoint | None:
+    if not _lane_change_allowed(waypoint, side):
+        return None
     candidate = waypoint.get_left_lane() if side == "left" else waypoint.get_right_lane()
     if candidate is None:
         return None
@@ -266,6 +297,8 @@ def find_corridor_candidates(
                 lane_change=str(waypoint.lane_change),
                 adjacent_side=str(chosen_side),
                 adjacent_lane_id=int(adjacent.lane_id),
+                adjacent_lane_marking=_lane_marking_type_name(waypoint, str(chosen_side)),
+                adjacent_lane_change_allowed=_lane_change_allowed(waypoint, str(chosen_side)),
                 forward_non_junction_length_m=float(forward_length),
                 junction_distance_m=_distance_to_junction(waypoint, float(sample_distance_m)),
             )
@@ -531,7 +564,12 @@ def command_spawn(args: argparse.Namespace) -> int:
         raise RuntimeError("Chosen ego waypoint lies inside a junction. Pick another corridor waypoint.")
     adjacent_wp = _adjacent_lane(ego_wp, str(args.adjacent_side))
     if adjacent_wp is None:
-        raise RuntimeError(f"No same-direction {args.adjacent_side} driving lane adjacent to ego waypoint.")
+        marking = _lane_marking_type_name(ego_wp, str(args.adjacent_side))
+        lane_change = _lane_change_name(ego_wp)
+        raise RuntimeError(
+            f"No legal dashed-line same-direction {args.adjacent_side} driving lane adjacent to ego waypoint "
+            f"(marking={marking}, lane_change={lane_change})."
+        )
 
     ego_transform = carla.Transform(
         carla.Location(
@@ -701,6 +739,8 @@ def command_spawn(args: argparse.Namespace) -> int:
             "lane_width_m": float(ego_wp.lane_width),
             "lane_change": str(ego_wp.lane_change),
             "adjacent_lane_id": int(adjacent_wp.lane_id),
+            "adjacent_lane_marking": _lane_marking_type_name(ego_wp, str(args.adjacent_side)),
+            "adjacent_lane_change_allowed": _lane_change_allowed(ego_wp, str(args.adjacent_side)),
             "junction_distance_m": _distance_to_junction(ego_wp, float(args.sample_distance_m)),
             "ego_transform": {
                 "location": {

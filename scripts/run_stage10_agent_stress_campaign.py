@@ -56,7 +56,7 @@ def _parse_args() -> argparse.Namespace:
                         help="Cap live LiDAR points before BEVFusion inference; 0 keeps all points")
     parser.add_argument("--adapter-radar-max-points", type=int, default=2500,
                         help="Cap live radar points before BEVFusion inference")
-    parser.add_argument("--route-distance-m", type=float, default=120.0)
+    parser.add_argument("--route-distance-m", type=float, default=None)
     parser.add_argument("--agent-mode", default="compare", choices=["stub", "api", "compare"])
     parser.add_argument("--agent-control-mode", default="shadow", choices=["baseline", "shadow", "assist"])
     parser.add_argument("--agent-trigger-mode", default="risk_or_event",
@@ -79,15 +79,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--ego-autopilot", action="store_true",
                         help="Enable CARLA Traffic Manager autopilot on the attached ego. Leave off for clean closed-loop A/B control.")
     parser.add_argument("--npc-handbrake", action="store_true", default=True)
-    parser.add_argument("--blocker-distance-m", type=float, default=24.0)
-    parser.add_argument("--adjacent-distance-m", type=float, default=42.0)
-    parser.add_argument("--adjacent-position", choices=["ahead", "behind", "both"], default="ahead",
+    parser.add_argument("--blocker-distance-m", type=float, default=None)
+    parser.add_argument("--adjacent-distance-m", type=float, default=None)
+    parser.add_argument("--adjacent-position", choices=["ahead", "behind", "both", "none"], default=None,
                         help="Place adjacent-lane NPC(s) ahead, behind, or both around ego.")
-    parser.add_argument("--adjacent-front-distance-m", type=float, default=0.0)
-    parser.add_argument("--adjacent-rear-distance-m", type=float, default=0.0)
+    parser.add_argument("--adjacent-front-distance-m", type=float, default=None)
+    parser.add_argument("--adjacent-rear-distance-m", type=float, default=None)
     parser.add_argument("--moving-adjacent-npcs", action="store_true",
                         help="Let adjacent-lane NPCs move with Traffic Manager autopilot.")
-    parser.add_argument("--adjacent-speed-diff-percent", type=float, default=50.0,
+    parser.add_argument("--adjacent-speed-diff-percent", type=float, default=None,
                         help="Traffic Manager speed difference for moving adjacent NPCs; positive means slower.")
     parser.add_argument("--spawn-probe-top-k", type=int, default=8,
                         help="Number of corridor candidates to probe for each deterministic spawn case")
@@ -103,6 +103,30 @@ def _run_command(command: List[str], *, label: str, check: bool = True) -> subpr
     result = subprocess.run(command, check=check, cwd=str(PROJECT_ROOT))
     print(f"[stress-campaign] {label} finished in {time.monotonic() - t0:.1f}s")
     return result
+
+
+def _case_option(args: argparse.Namespace, spec: Dict[str, Any], key: str, default: Any) -> Any:
+    cli_value = getattr(args, key, None)
+    if cli_value is not None:
+        return cli_value
+    return spec.get(key, default)
+
+
+def _case_float(args: argparse.Namespace, spec: Dict[str, Any], key: str, default: float) -> float:
+    return float(_case_option(args, spec, key, default))
+
+
+def _resolve_case_options(args: argparse.Namespace, spec: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "blocker_distance_m": _case_float(args, spec, "blocker_distance_m", 24.0),
+        "adjacent_distance_m": _case_float(args, spec, "adjacent_distance_m", 42.0),
+        "adjacent_position": str(_case_option(args, spec, "adjacent_position", "ahead")),
+        "adjacent_front_distance_m": _case_float(args, spec, "adjacent_front_distance_m", 0.0),
+        "adjacent_rear_distance_m": _case_float(args, spec, "adjacent_rear_distance_m", 0.0),
+        "moving_adjacent_npcs": bool(args.moving_adjacent_npcs or spec.get("moving_adjacent_npcs", False)),
+        "adjacent_speed_diff_percent": _case_float(args, spec, "adjacent_speed_diff_percent", 50.0),
+        "route_distance_m": _case_float(args, spec, "route_distance_m", 120.0),
+    }
 
 
 def _build_summary_payload(
@@ -222,6 +246,7 @@ def _spawn_with_probe_retry(
     if not isinstance(candidates, list) or not candidates:
         raise RuntimeError(f"No spawn candidates found for {run_id}")
 
+    case_options = _resolve_case_options(args, spec)
     max_candidates = max(1, min(int(args.spawn_max_candidates), len(candidates)))
     last_error: str | None = None
     for rank in range(max_candidates):
@@ -241,12 +266,12 @@ def _spawn_with_probe_retry(
             "--section-id", str(int(candidate["section_id"])),
             "--lane-id", str(int(candidate["lane_id"])),
             "--s", str(float(candidate["s"])),
-            "--blocker-distance-m", str(float(spec.get("blocker_distance_m", args.blocker_distance_m))),
-            "--adjacent-distance-m", str(float(spec.get("adjacent_distance_m", args.adjacent_distance_m))),
-            "--adjacent-position", str(spec.get("adjacent_position", args.adjacent_position)),
-            "--adjacent-front-distance-m", str(float(spec.get("adjacent_front_distance_m", args.adjacent_front_distance_m))),
-            "--adjacent-rear-distance-m", str(float(spec.get("adjacent_rear_distance_m", args.adjacent_rear_distance_m))),
-            "--adjacent-speed-diff-percent", str(float(spec.get("adjacent_speed_diff_percent", args.adjacent_speed_diff_percent))),
+            "--blocker-distance-m", str(float(case_options["blocker_distance_m"])),
+            "--adjacent-distance-m", str(float(case_options["adjacent_distance_m"])),
+            "--adjacent-position", str(case_options["adjacent_position"]),
+            "--adjacent-front-distance-m", str(float(case_options["adjacent_front_distance_m"])),
+            "--adjacent-rear-distance-m", str(float(case_options["adjacent_rear_distance_m"])),
+            "--adjacent-speed-diff-percent", str(float(case_options["adjacent_speed_diff_percent"])),
             "--output-manifest", str(manifest_path),
         ]
         if "blocker_kind" in spec:
@@ -257,7 +282,7 @@ def _spawn_with_probe_retry(
             spawn_cmd.extend(["--pedestrian-cross-speed-mps", str(float(spec["pedestrian_cross_speed_mps"]))])
         if "pedestrian_cross_lateral_m" in spec:
             spawn_cmd.extend(["--pedestrian-cross-lateral-m", str(float(spec["pedestrian_cross_lateral_m"]))])
-        if bool(spec.get("moving_adjacent_npcs", args.moving_adjacent_npcs)):
+        if bool(case_options["moving_adjacent_npcs"]):
             spawn_cmd.append("--moving-adjacent-npcs")
         if bool(args.npc_handbrake):
             spawn_cmd.append("--npc-handbrake")
@@ -329,13 +354,13 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
         "blocked_gap_right": {
             "adjacent_side": "right",
             "case_label": "blocked_lane_gap_right",
-            "blocker_distance_m": 10.0,
-            "adjacent_distance_m": 65.0,
+            "blocker_distance_m": 18.0,
+            "adjacent_distance_m": 38.0,
             "adjacent_position": "both",
-            "adjacent_front_distance_m": 65.0,
-            "adjacent_rear_distance_m": 35.0,
+            "adjacent_front_distance_m": 38.0,
+            "adjacent_rear_distance_m": 22.0,
             "moving_adjacent_npcs": True,
-            "adjacent_speed_diff_percent": 50.0,
+            "adjacent_speed_diff_percent": 30.0,
             "route_distance_m": 60.0,
         },
         "pedestrian_cutout_right": {
@@ -368,13 +393,13 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
         "blocked_gap_left": {
             "adjacent_side": "left",
             "case_label": "blocked_lane_gap_left",
-            "blocker_distance_m": 10.0,
-            "adjacent_distance_m": 65.0,
+            "blocker_distance_m": 18.0,
+            "adjacent_distance_m": 38.0,
             "adjacent_position": "both",
-            "adjacent_front_distance_m": 65.0,
-            "adjacent_rear_distance_m": 35.0,
+            "adjacent_front_distance_m": 38.0,
+            "adjacent_rear_distance_m": 22.0,
             "moving_adjacent_npcs": True,
-            "adjacent_speed_diff_percent": 50.0,
+            "adjacent_speed_diff_percent": 30.0,
             "route_distance_m": 60.0,
         },
         "stop_follow": {
@@ -441,6 +466,7 @@ def main() -> int:
             manifest_path = output_root / f"{run_id}_manifest.json"
             stage10_output_root = output_root / run_id
             stage10_log_dir = report_root / run_id
+            case_options = _resolve_case_options(args, spec)
 
             stage10_cmd = [
                 python_exe,
@@ -457,7 +483,7 @@ def main() -> int:
                 "--log-dir", str(stage10_log_dir),
                 "--scenario-manifest", str(manifest_path),
                 "--map", str(args.map),
-                "--route-distance-m", str(float(spec.get("route_distance_m", args.route_distance_m))),
+                "--route-distance-m", str(float(case_options["route_distance_m"])),
                 "--max-frames", str(args.max_frames),
                 "--delta-t", str(args.delta_t),
                 "--rig-profile", str(args.rig_profile),
@@ -505,14 +531,14 @@ def main() -> int:
                 "stage10_log_dir": str(stage10_log_dir),
                 "stage10_output_root": str(stage10_output_root),
                 "blocker_kind": str(spec.get("blocker_kind", "vehicle")),
-                "blocker_distance_m": float(spec.get("blocker_distance_m", args.blocker_distance_m)),
-                "adjacent_distance_m": float(spec.get("adjacent_distance_m", args.adjacent_distance_m)),
-                "adjacent_position": str(spec.get("adjacent_position", args.adjacent_position)),
-                "adjacent_front_distance_m": float(spec.get("adjacent_front_distance_m", args.adjacent_front_distance_m)),
-                "adjacent_rear_distance_m": float(spec.get("adjacent_rear_distance_m", args.adjacent_rear_distance_m)),
-                "moving_adjacent_npcs": bool(spec.get("moving_adjacent_npcs", args.moving_adjacent_npcs)),
-                "adjacent_speed_diff_percent": float(spec.get("adjacent_speed_diff_percent", args.adjacent_speed_diff_percent)),
-                "route_distance_m": float(spec.get("route_distance_m", args.route_distance_m)),
+                "blocker_distance_m": float(case_options["blocker_distance_m"]),
+                "adjacent_distance_m": float(case_options["adjacent_distance_m"]),
+                "adjacent_position": str(case_options["adjacent_position"]),
+                "adjacent_front_distance_m": float(case_options["adjacent_front_distance_m"]),
+                "adjacent_rear_distance_m": float(case_options["adjacent_rear_distance_m"]),
+                "moving_adjacent_npcs": bool(case_options["moving_adjacent_npcs"]),
+                "adjacent_speed_diff_percent": float(case_options["adjacent_speed_diff_percent"]),
+                "route_distance_m": float(case_options["route_distance_m"]),
                 "status": "pending",
                 "started_at_utc": _utc_now_iso(),
             }

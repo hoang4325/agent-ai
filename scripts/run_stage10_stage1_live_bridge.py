@@ -293,6 +293,7 @@ def _stage10_overlay_lines(
     agent_mode: str,
     agent_control_mode: str,
     min_ttc_s: float,
+    lane_change_rule: str = "",
 ) -> List[str]:
     route_pct = route_info.get("route_completion_pct")
     route_label = "n/a" if route_pct is None else f"{float(route_pct):.1f}%"
@@ -305,7 +306,7 @@ def _stage10_overlay_lines(
             f"speed={float(ego_tel.ego_v_mps):.2f} mps dets={int(det_count)} "
             f"ttc={float(min_ttc_s):.1f}s route={route_label}"
         ),
-        f"lane={ego_tel.ego_lane_id} control={control_source}",
+        f"lane={ego_tel.ego_lane_id} change={lane_change_rule or 'n/a'} control={control_source}",
     ]
 
 
@@ -325,14 +326,22 @@ def _agent_preferred_lane_from_manifest(scenario_manifest: Optional[Dict[str, An
     if side not in {"left", "right"}:
         return "current"
 
+    corridor = scenario_manifest.get("corridor") or {}
+    if corridor.get("adjacent_lane_change_allowed") is False:
+        return "current"
+
     placements = scenario_manifest.get("placements") or {}
     try:
         blocker_distance_m = float(placements.get("blocker_distance_m", 999.0))
         adjacent_distance_m = float(placements.get("adjacent_distance_m", 0.0))
+        adjacent_front_distance_m = float(placements.get("adjacent_front_distance_m", adjacent_distance_m))
+        adjacent_rear_distance_m = float(placements.get("adjacent_rear_distance_m", 999.0))
     except (TypeError, ValueError):
         return "current"
 
-    if blocker_distance_m <= 12.5 and adjacent_distance_m >= 30.0:
+    front_clear = max(adjacent_distance_m, adjacent_front_distance_m)
+    rear_clear = adjacent_rear_distance_m <= 0.0 or adjacent_rear_distance_m >= 15.0
+    if blocker_distance_m <= 25.0 and front_clear >= 25.0 and rear_clear:
         return side
     return "current"
 
@@ -342,6 +351,71 @@ def _moving_adjacent_npcs_enabled(scenario_manifest: Optional[Dict[str, Any]]) -
         return False
     placements = scenario_manifest.get("placements") or {}
     return bool(placements.get("moving_adjacent_npcs", False))
+
+
+def _carla_enum_name(value: Any) -> str:
+    return str(value).split(".")[-1]
+
+
+def _waypoint_forward_xy(waypoint: Any) -> Tuple[float, float]:
+    vector = waypoint.transform.get_forward_vector()
+    norm = float(np.hypot(float(vector.x), float(vector.y)))
+    if norm <= 1e-6:
+        return (1.0, 0.0)
+    return (float(vector.x) / norm, float(vector.y) / norm)
+
+
+def _same_direction_waypoints(reference: Any, candidate: Any) -> bool:
+    ref_x, ref_y = _waypoint_forward_xy(reference)
+    cand_x, cand_y = _waypoint_forward_xy(candidate)
+    return bool(ref_x * cand_x + ref_y * cand_y > 0.5)
+
+
+def _lane_marking_type_name(waypoint: Any, side: str) -> str:
+    marking = waypoint.left_lane_marking if side == "left" else waypoint.right_lane_marking
+    return _carla_enum_name(getattr(marking, "type", "unknown"))
+
+
+def _lane_change_enum_allows(waypoint: Any, side: str) -> bool:
+    lane_change = _carla_enum_name(getattr(waypoint, "lane_change", "unknown")).lower()
+    return bool("both" in lane_change or side.lower() in lane_change)
+
+
+def _lane_marking_allows_lane_change(waypoint: Any, side: str) -> bool:
+    marking_type = _lane_marking_type_name(waypoint, side).lower()
+    return bool("broken" in marking_type and "solid" not in marking_type)
+
+
+def _current_lane_change_permission(carla_map: Any, ego: Any, side: str) -> Tuple[bool, str]:
+    if side not in {"left", "right"}:
+        return False, "current:no_requested_lane"
+    if carla_map is None or ego is None:
+        return False, f"{side}:map_or_ego_unavailable"
+
+    try:
+        waypoint = carla_map.get_waypoint(ego.get_location(), project_to_road=True)
+    except RuntimeError as exc:
+        return False, f"{side}:waypoint_error:{exc}"
+    if waypoint is None:
+        return False, f"{side}:waypoint_unavailable"
+    if bool(getattr(waypoint, "is_junction", False)):
+        return False, f"{side}:junction"
+
+    adjacent = waypoint.get_left_lane() if side == "left" else waypoint.get_right_lane()
+    if adjacent is None:
+        return False, f"{side}:no_adjacent_lane"
+    if "driving" not in _carla_enum_name(getattr(adjacent, "lane_type", "unknown")).lower():
+        return False, f"{side}:adjacent_not_driving"
+    if not _same_direction_waypoints(waypoint, adjacent):
+        return False, f"{side}:adjacent_opposite_direction"
+
+    marking = _lane_marking_type_name(waypoint, side)
+    lane_change = _carla_enum_name(getattr(waypoint, "lane_change", "unknown"))
+    enum_allows = _lane_change_enum_allows(waypoint, side)
+    marking_allows = _lane_marking_allows_lane_change(waypoint, side)
+    allowed = bool(enum_allows and marking_allows)
+    status = "ok" if allowed else "blocked"
+    return allowed, f"{side}:{marking}:lane_change={lane_change}:{status}"
 
 
 def _draw_scenario_actor_labels(world: Any, scenario_manifest: Optional[Dict[str, Any]], *, life_time_s: float) -> None:
@@ -1413,11 +1487,23 @@ def run(args: argparse.Namespace) -> int:
             # ── D. WorldState ──────────────────────────────────────────────
             world_state = ws_builder.build(det_list, ego_tel)
             if world_state is not None:
+                lane_change_allowed = False
+                lane_change_rule = "not_requested"
+                if agent_preferred_lane in {"left", "right"}:
+                    lane_change_allowed, lane_change_rule = _current_lane_change_permission(
+                        carla_map,
+                        ego,
+                        agent_preferred_lane,
+                    )
                 setattr(world_state, "agent_preferred_lane", agent_preferred_lane)
+                setattr(world_state, "lane_change_permission", lane_change_allowed)
+                setattr(world_state, "lane_change_rule", lane_change_rule)
                 setattr(
                     world_state,
                     "route_conflict_flags",
-                    ["blocked_clear_adjacent_lane"] if agent_preferred_lane in {"left", "right"} else [],
+                    ["blocked_clear_adjacent_lane"]
+                    if agent_preferred_lane in {"left", "right"} and lane_change_allowed
+                    else [],
                 )
             route_info = (
                 route_tracker.update(ego_tel.ego_location_xyz)
@@ -1505,6 +1591,8 @@ def run(args: argparse.Namespace) -> int:
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
                     "active_assist_maneuver": active_assist_intent,
+                    "lane_change_permission": bool(getattr(world_state, "lane_change_permission", False)),
+                    "lane_change_rule": str(getattr(world_state, "lane_change_rule", "unknown")),
                 }
                 if _assist_lane_transition_completed(
                     world_state=world_state,
@@ -1783,6 +1871,7 @@ def run(args: argparse.Namespace) -> int:
                         agent_mode=str(args.agent_mode),
                         agent_control_mode=str(args.agent_control_mode),
                         min_ttc_s=min_ttc_s,
+                        lane_change_rule=str(getattr(world_state, "lane_change_rule", "unknown")) if world_state is not None else "unknown",
                     ),
                 )
                 if not wrote_video:
