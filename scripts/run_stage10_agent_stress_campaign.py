@@ -124,7 +124,7 @@ def _resolve_case_options(args: argparse.Namespace, spec: Dict[str, Any]) -> Dic
         "adjacent_front_distance_m": _case_float(args, spec, "adjacent_front_distance_m", 0.0),
         "adjacent_rear_distance_m": _case_float(args, spec, "adjacent_rear_distance_m", 0.0),
         "moving_adjacent_npcs": bool(args.moving_adjacent_npcs or spec.get("moving_adjacent_npcs", False)),
-        "adjacent_speed_diff_percent": _case_float(args, spec, "adjacent_speed_diff_percent", 50.0),
+        "adjacent_speed_diff_percent": _case_float(args, spec, "adjacent_speed_diff_percent", -20.0),
         "route_distance_m": _case_float(args, spec, "route_distance_m", 120.0),
     }
 
@@ -273,6 +273,7 @@ def _spawn_with_probe_retry(
             "--adjacent-rear-distance-m", str(float(case_options["adjacent_rear_distance_m"])),
             "--adjacent-speed-diff-percent", str(float(case_options["adjacent_speed_diff_percent"])),
             "--output-manifest", str(manifest_path),
+            "--cleanup-scenario-actors",
         ]
         if "blocker_kind" in spec:
             spawn_cmd.extend(["--blocker-kind", str(spec["blocker_kind"])])
@@ -300,6 +301,20 @@ def _spawn_with_probe_retry(
             }
 
         last_error = f"spawn returncode={result.returncode}"
+        if manifest_path.exists():
+            cleanup_cmd = [
+                python_exe,
+                str(PROJECT_ROOT / "scripts" / "stage3_multilane_scenario.py"),
+                "--host", str(args.carla_host),
+                "--port", str(args.carla_port),
+                "destroy",
+                "--manifest", str(manifest_path),
+            ]
+            _run_command(cleanup_cmd, label=f"cleanup failed spawn {run_id} candidate={rank + 1}", check=False)
+            try:
+                manifest_path.unlink()
+            except OSError:
+                pass
         print(f"[stress-campaign] candidate {rank + 1} failed for {run_id} -> {last_error}")
         time.sleep(1.0)
 
@@ -360,7 +375,7 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_front_distance_m": 38.0,
             "adjacent_rear_distance_m": 22.0,
             "moving_adjacent_npcs": True,
-            "adjacent_speed_diff_percent": 30.0,
+            "adjacent_speed_diff_percent": -20.0,
             "route_distance_m": 60.0,
         },
         "pedestrian_cutout_right": {
@@ -399,7 +414,7 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_front_distance_m": 38.0,
             "adjacent_rear_distance_m": 22.0,
             "moving_adjacent_npcs": True,
-            "adjacent_speed_diff_percent": 30.0,
+            "adjacent_speed_diff_percent": -20.0,
             "route_distance_m": 60.0,
         },
         "stop_follow": {

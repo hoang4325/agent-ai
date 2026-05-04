@@ -110,6 +110,11 @@ def parse_args() -> argparse.Namespace:
     spawn_parser.add_argument("--ego-z-offset-m", type=float, default=0.4)
     spawn_parser.add_argument("--npc-handbrake", action="store_true")
     spawn_parser.add_argument("--output-manifest", required=True)
+    spawn_parser.add_argument(
+        "--cleanup-scenario-actors",
+        action="store_true",
+        help="Destroy stale Stage3/Stage10 scenario vehicles before spawning a fresh case.",
+    )
 
     destroy_parser = subparsers.add_parser("destroy", help="Destroy actors from a previous scenario manifest.")
     destroy_parser.add_argument("--manifest", required=True)
@@ -448,6 +453,33 @@ def _parking_brake(vehicle: carla.Vehicle) -> None:
     vehicle.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0, hand_brake=True))
 
 
+def _release_parking_brake(vehicle: carla.Vehicle) -> None:
+    vehicle.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0, hand_brake=False))
+
+
+_SCENARIO_ROLE_NAMES = {
+    "hero",
+    "stage3_blocker",
+    "stage3_adjacent_front",
+    "stage3_adjacent_rear",
+}
+
+
+def _cleanup_scenario_role_actors(world: carla.World) -> None:
+    destroyed: list[int] = []
+    for actor in list(world.get_actors()):
+        role_name = str(actor.attributes.get("role_name", ""))
+        if role_name not in _SCENARIO_ROLE_NAMES:
+            continue
+        try:
+            actor.destroy()
+            destroyed.append(int(actor.id))
+        except RuntimeError:
+            LOGGER.warning("Failed to cleanup stale scenario actor id=%s role=%s", actor.id, role_name)
+    if destroyed:
+        LOGGER.info("Cleaned up stale scenario actors before spawn: %s", destroyed)
+
+
 def _enable_adjacent_autopilot(
     *,
     vehicle: carla.Vehicle | None,
@@ -457,6 +489,7 @@ def _enable_adjacent_autopilot(
 ) -> None:
     if vehicle is None:
         return
+    _release_parking_brake(vehicle)
     vehicle.set_autopilot(True, int(tm_port))
     try:
         traffic_manager.auto_lane_change(vehicle, False)
@@ -466,6 +499,15 @@ def _enable_adjacent_autopilot(
         traffic_manager.vehicle_percentage_speed_difference(vehicle, float(speed_diff_percent))
     except RuntimeError:
         LOGGER.warning("Failed to set speed difference for adjacent actor id=%s", int(vehicle.id))
+    for action_name in ("ignore_lights_percentage", "ignore_signs_percentage"):
+        try:
+            getattr(traffic_manager, action_name)(vehicle, 100.0)
+        except (AttributeError, RuntimeError):
+            LOGGER.warning("Failed to set %s for adjacent actor id=%s", action_name, int(vehicle.id))
+    try:
+        traffic_manager.set_desired_speed(vehicle, 28.0)
+    except (AttributeError, RuntimeError):
+        LOGGER.debug("Traffic Manager set_desired_speed unavailable for adjacent actor id=%s", int(vehicle.id))
     try:
         traffic_manager.distance_to_leading_vehicle(vehicle, 8.0)
     except RuntimeError:
@@ -530,6 +572,8 @@ def command_spawn(args: argparse.Namespace) -> int:
     client, world = connect_world(host=args.host, port=args.port, timeout_s=args.timeout_s, town=args.town)
     traffic_manager = client.get_trafficmanager(int(args.tm_port))
     traffic_manager.set_synchronous_mode(bool(args.moving_adjacent_npcs))
+    if bool(args.cleanup_scenario_actors):
+        _cleanup_scenario_role_actors(world)
 
     if args.road_id is None or args.lane_id is None:
         candidates = find_corridor_candidates(

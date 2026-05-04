@@ -346,6 +346,14 @@ def _agent_preferred_lane_from_manifest(scenario_manifest: Optional[Dict[str, An
     return "current"
 
 
+def _agent_target_lane_id_from_manifest(scenario_manifest: Optional[Dict[str, Any]]) -> str:
+    if not scenario_manifest:
+        return ""
+    corridor = scenario_manifest.get("corridor") or {}
+    lane_id = corridor.get("adjacent_lane_id")
+    return "" if lane_id is None else str(lane_id)
+
+
 def _moving_adjacent_npcs_enabled(scenario_manifest: Optional[Dict[str, Any]]) -> bool:
     if not scenario_manifest:
         return False
@@ -386,7 +394,13 @@ def _lane_marking_allows_lane_change(waypoint: Any, side: str) -> bool:
     return bool("broken" in marking_type and "solid" not in marking_type)
 
 
-def _current_lane_change_permission(carla_map: Any, ego: Any, side: str) -> Tuple[bool, str]:
+def _current_lane_change_permission(
+    carla_map: Any,
+    ego: Any,
+    side: str,
+    *,
+    target_lane_id: str = "",
+) -> Tuple[bool, str]:
     if side not in {"left", "right"}:
         return False, "current:no_requested_lane"
     if carla_map is None or ego is None:
@@ -400,6 +414,9 @@ def _current_lane_change_permission(carla_map: Any, ego: Any, side: str) -> Tupl
         return False, f"{side}:waypoint_unavailable"
     if bool(getattr(waypoint, "is_junction", False)):
         return False, f"{side}:junction"
+    current_lane_id = str(getattr(waypoint, "lane_id", "") or "")
+    if target_lane_id and current_lane_id == str(target_lane_id):
+        return True, f"{side}:target_lane_reached"
 
     adjacent = waypoint.get_left_lane() if side == "left" else waypoint.get_right_lane()
     if adjacent is None:
@@ -988,7 +1005,7 @@ def _trajectory_request_from_agent_intent(
 
 def _assist_hold_frames(args: argparse.Namespace) -> int:
     delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
-    return max(4, min(12, int(round(1.0 / delta_t))))
+    return max(12, min(35, int(round(3.0 / delta_t))))
 
 
 def _assist_commit_promotion_frames(args: argparse.Namespace) -> int:
@@ -1062,7 +1079,13 @@ def _assist_lane_transition_completed(
     if not origin_lane_id:
         return False
     current_lane_id = str(getattr(world_state, "ego_lane_id", "") or "")
-    return bool(current_lane_id) and current_lane_id != origin_lane_id
+    target_lane_id = str(active_metadata.get("target_lane_id") or "")
+    if target_lane_id and current_lane_id != target_lane_id:
+        return False
+    if not target_lane_id and current_lane_id == origin_lane_id:
+        return False
+    lateral_error_m = abs(float(getattr(world_state, "ego_lateral_error_m", 99.0)))
+    return bool(current_lane_id) and lateral_error_m <= 0.55
 
 
 def _can_continue_active_assist(
@@ -1079,7 +1102,7 @@ def _can_continue_active_assist(
     active_intent = str(getattr(active_request, "tactical_intent", ""))
     if active_intent not in _ASSIST_LANE_CHANGE_INTENTS:
         return False
-    if baseline_intent != "stop_before_obstacle":
+    if baseline_intent not in {"stop_before_obstacle", "follow", "keep_lane"}:
         return False
     if float(min_ttc_s) < max(1.5, float(args.agent_risk_ttc_threshold) - 0.25):
         return False
@@ -1280,6 +1303,7 @@ def run(args: argparse.Namespace) -> int:
     traffic_manager = None
     scenario_manifest: Optional[Dict[str, Any]] = None
     agent_preferred_lane = "current"
+    agent_target_lane_id = ""
     ego_spawned_by_stage10 = False
     if args.samples_root:
         sensor_source = FolderWatcherSync(args.samples_root, args.max_frames)
@@ -1291,6 +1315,7 @@ def run(args: argparse.Namespace) -> int:
         scenario_manifest = _load_scenario_manifest(args.scenario_manifest)
         args.map = _resolve_target_map(args, scenario_manifest)
         agent_preferred_lane = _agent_preferred_lane_from_manifest(scenario_manifest)
+        agent_target_lane_id = _agent_target_lane_id_from_manifest(scenario_manifest)
         client, world = _connect_carla(args.carla_host, args.carla_port)
         world = _load_map_if_needed(client, world, args.map)
         if _moving_adjacent_npcs_enabled(scenario_manifest):
@@ -1313,7 +1338,11 @@ def run(args: argparse.Namespace) -> int:
             float(args.success_rc_threshold) * 100.0,
         )
         LOGGER.info("Stage10 ego source=%s actor_id=%s", ego_source, getattr(ego, "id", "unknown"))
-        LOGGER.info("Stage10 Agent route hint: preferred_lane=%s", agent_preferred_lane)
+        LOGGER.info(
+            "Stage10 Agent route hint: preferred_lane=%s target_lane_id=%s",
+            agent_preferred_lane,
+            agent_target_lane_id or "unknown",
+        )
         collision_monitor = CollisionMonitor(
             world,
             ego,
@@ -1487,22 +1516,33 @@ def run(args: argparse.Namespace) -> int:
             # ── D. WorldState ──────────────────────────────────────────────
             world_state = ws_builder.build(det_list, ego_tel)
             if world_state is not None:
+                transition_stable = _assist_lane_transition_completed(
+                    world_state=world_state,
+                    active_metadata=active_assist_metadata,
+                )
+                if transition_stable:
+                    assist_lane_change_completed = True
+                preferred_lane_for_frame = (
+                    "current" if assist_lane_change_completed else agent_preferred_lane
+                )
                 lane_change_allowed = False
                 lane_change_rule = "not_requested"
-                if agent_preferred_lane in {"left", "right"}:
+                if preferred_lane_for_frame in {"left", "right"}:
                     lane_change_allowed, lane_change_rule = _current_lane_change_permission(
                         carla_map,
                         ego,
-                        agent_preferred_lane,
+                        preferred_lane_for_frame,
+                        target_lane_id=agent_target_lane_id,
                     )
-                setattr(world_state, "agent_preferred_lane", agent_preferred_lane)
+                setattr(world_state, "agent_preferred_lane", preferred_lane_for_frame)
+                setattr(world_state, "agent_target_lane_id", agent_target_lane_id)
                 setattr(world_state, "lane_change_permission", lane_change_allowed)
                 setattr(world_state, "lane_change_rule", lane_change_rule)
                 setattr(
                     world_state,
                     "route_conflict_flags",
                     ["blocked_clear_adjacent_lane"]
-                    if agent_preferred_lane in {"left", "right"} and lane_change_allowed
+                    if preferred_lane_for_frame in {"left", "right"} and lane_change_allowed
                     else [],
                 )
             route_info = (
@@ -1591,6 +1631,7 @@ def run(args: argparse.Namespace) -> int:
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
                     "active_assist_maneuver": active_assist_intent,
+                    "agent_target_lane_id": agent_target_lane_id,
                     "lane_change_permission": bool(getattr(world_state, "lane_change_permission", False)),
                     "lane_change_rule": str(getattr(world_state, "lane_change_rule", "unknown")),
                 }
@@ -1672,6 +1713,7 @@ def run(args: argparse.Namespace) -> int:
                             "agent_reason_tags": list(getattr(intent_record, "reason_tags", []) or [])
                             if intent_record is not None else [],
                             "origin_lane_id": str(getattr(world_state, "ego_lane_id", "") or ""),
+                            "target_lane_id": str(agent_target_lane_id or ""),
                         }
                         active_assist_intent = _retune_active_assist_request(
                             request=active_assist_request,
