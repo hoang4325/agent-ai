@@ -69,13 +69,18 @@ def parse_args() -> argparse.Namespace:
     spawn_parser.add_argument("--ego-filter", default="vehicle.lincoln.mkz_2020")
     spawn_parser.add_argument("--blocker-filter", default="vehicle.tesla.model3")
     spawn_parser.add_argument("--adjacent-filter", default="vehicle.audi.tt")
+    spawn_parser.add_argument("--blocker-kind", choices=("vehicle", "pedestrian"), default="vehicle")
+    spawn_parser.add_argument("--walker-filter", default="walker.pedestrian.*")
+    spawn_parser.add_argument("--pedestrian-start-side", choices=("left", "right"), default="left")
+    spawn_parser.add_argument("--pedestrian-cross-speed-mps", type=float, default=2.5)
+    spawn_parser.add_argument("--pedestrian-cross-lateral-m", type=float, default=5.0)
     spawn_parser.add_argument("--blocker-distance-m", type=float, default=24.0)
     spawn_parser.add_argument("--adjacent-distance-m", type=float, default=42.0)
     spawn_parser.add_argument(
         "--adjacent-position",
-        choices=("ahead", "behind", "both"),
+        choices=("ahead", "behind", "both", "none"),
         default="ahead",
-        help="Place adjacent-lane actor(s) ahead, behind, or both around ego.",
+        help="Place adjacent-lane actor(s) ahead, behind, both around ego, or none for a clear adjacent lane.",
     )
     spawn_parser.add_argument(
         "--adjacent-front-distance-m",
@@ -357,6 +362,16 @@ def _vehicle_blueprint(world: carla.World, pattern: str, role_name: str) -> carl
     return blueprint
 
 
+def _walker_blueprint(world: carla.World, pattern: str) -> carla.ActorBlueprint:
+    blueprints = world.get_blueprint_library().filter(str(pattern))
+    if not blueprints:
+        raise RuntimeError(f"No walker blueprint matches {pattern}")
+    blueprint = blueprints[0]
+    if blueprint.has_attribute("is_invincible"):
+        blueprint.set_attribute("is_invincible", "false")
+    return blueprint
+
+
 def _spawn_vehicle(world: carla.World, blueprint: carla.ActorBlueprint, transform: carla.Transform) -> carla.Vehicle:
     actor = world.try_spawn_actor(blueprint, transform)
     if actor is None:
@@ -365,6 +380,35 @@ def _spawn_vehicle(world: carla.World, blueprint: carla.ActorBlueprint, transfor
             f"({transform.location.x:.2f}, {transform.location.y:.2f}, {transform.location.z:.2f})"
         )
     return actor  # type: ignore[return-value]
+
+
+def _spawn_walker(
+    world: carla.World,
+    *,
+    blueprint: carla.ActorBlueprint,
+    transform: carla.Transform,
+    destination: carla.Location,
+    speed_mps: float,
+) -> tuple[carla.Walker, carla.Actor | None]:
+    walker = world.try_spawn_actor(blueprint, transform)
+    if walker is None:
+        raise RuntimeError(
+            f"Failed to spawn walker {blueprint.id} at "
+            f"({transform.location.x:.2f}, {transform.location.y:.2f}, {transform.location.z:.2f})"
+        )
+    controller = None
+    try:
+        controller_bp = world.get_blueprint_library().find("controller.ai.walker")
+        controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
+        controller.start()
+        controller.go_to_location(destination)
+        controller.set_max_speed(max(0.1, float(speed_mps)))
+    except Exception:
+        if controller is not None:
+            controller.destroy()
+        walker.destroy()
+        raise
+    return walker, controller
 
 
 def _parking_brake(vehicle: carla.Vehicle) -> None:
@@ -397,6 +441,25 @@ def _enable_adjacent_autopilot(
 
 def _actor_id_or_zero(actor: carla.Actor | None) -> int:
     return int(actor.id) if actor is not None else 0
+
+
+def _right_xy_from_yaw(yaw_deg: float) -> tuple[float, float]:
+    yaw_rad = math.radians(float(yaw_deg))
+    return (math.sin(yaw_rad), -math.cos(yaw_rad))
+
+
+def _offset_location(
+    base: carla.Location,
+    right_xy: tuple[float, float],
+    lateral_m: float,
+    *,
+    z_offset_m: float = 0.0,
+) -> carla.Location:
+    return carla.Location(
+        x=float(base.x) + float(right_xy[0]) * float(lateral_m),
+        y=float(base.y) + float(right_xy[1]) * float(lateral_m),
+        z=float(base.z) + float(z_offset_m),
+    )
 
 
 def command_probe(args: argparse.Namespace) -> int:
@@ -494,24 +557,54 @@ def command_spawn(args: argparse.Namespace) -> int:
     adjacent_rear_wp = _retreat_along_lane(adjacent_wp, adjacent_rear_distance_m)
 
     spawned_actors: list[carla.Actor] = []
+    spawned_controllers: list[carla.Actor] = []
+    blocker: carla.Actor | None = None
+    blocker_controller: carla.Actor | None = None
     adjacent_vehicle: carla.Vehicle | None = None
     adjacent_front_vehicle: carla.Vehicle | None = None
     adjacent_rear_vehicle: carla.Vehicle | None = None
     try:
         ego = _spawn_vehicle(world, _vehicle_blueprint(world, args.ego_filter, "hero"), ego_transform)
         spawned_actors.append(ego)
-        blocker = _spawn_vehicle(
-            world,
-            _vehicle_blueprint(world, args.blocker_filter, "stage3_blocker"),
-            carla.Transform(
-                carla.Location(
-                    x=float(blocker_wp.transform.location.x),
-                    y=float(blocker_wp.transform.location.y),
-                    z=float(blocker_wp.transform.location.z + float(args.ego_z_offset_m)),
+        if str(args.blocker_kind) == "pedestrian":
+            right_xy = _right_xy_from_yaw(float(blocker_wp.transform.rotation.yaw))
+            start_sign = -1.0 if str(args.pedestrian_start_side) == "left" else 1.0
+            cross_lateral_m = abs(float(args.pedestrian_cross_lateral_m))
+            start_location = _offset_location(
+                blocker_wp.transform.location,
+                right_xy,
+                start_sign * cross_lateral_m,
+                z_offset_m=0.1,
+            )
+            destination = _offset_location(
+                blocker_wp.transform.location,
+                right_xy,
+                -start_sign * cross_lateral_m,
+                z_offset_m=0.1,
+            )
+            cross_yaw = float(blocker_wp.transform.rotation.yaw) + (90.0 if start_sign < 0 else -90.0)
+            blocker, blocker_controller = _spawn_walker(
+                world,
+                blueprint=_walker_blueprint(world, args.walker_filter),
+                transform=carla.Transform(start_location, carla.Rotation(yaw=cross_yaw)),
+                destination=destination,
+                speed_mps=float(args.pedestrian_cross_speed_mps),
+            )
+            if blocker_controller is not None:
+                spawned_controllers.append(blocker_controller)
+        else:
+            blocker = _spawn_vehicle(
+                world,
+                _vehicle_blueprint(world, args.blocker_filter, "stage3_blocker"),
+                carla.Transform(
+                    carla.Location(
+                        x=float(blocker_wp.transform.location.x),
+                        y=float(blocker_wp.transform.location.y),
+                        z=float(blocker_wp.transform.location.z + float(args.ego_z_offset_m)),
+                    ),
+                    blocker_wp.transform.rotation,
                 ),
-                blocker_wp.transform.rotation,
-            ),
-        )
+            )
         spawned_actors.append(blocker)
         if adjacent_position in {"ahead", "both"}:
             adjacent_front_vehicle = _spawn_vehicle(
@@ -542,9 +635,14 @@ def command_spawn(args: argparse.Namespace) -> int:
             )
             spawned_actors.append(adjacent_rear_vehicle)
         adjacent_vehicle = adjacent_front_vehicle or adjacent_rear_vehicle
-        if adjacent_vehicle is None:
+        if adjacent_vehicle is None and adjacent_position != "none":
             raise RuntimeError(f"No adjacent-lane actor spawned for adjacent_position={adjacent_position}")
     except Exception:
+        for controller in reversed(spawned_controllers):
+            try:
+                controller.destroy()
+            except RuntimeError:
+                LOGGER.warning("Failed to destroy partially spawned controller id=%s", getattr(controller, "id", "unknown"))
         for actor in reversed(spawned_actors):
             try:
                 actor.destroy()
@@ -566,7 +664,8 @@ def command_spawn(args: argparse.Namespace) -> int:
         )
 
     if args.npc_handbrake:
-        _parking_brake(blocker)
+        if isinstance(blocker, carla.Vehicle):
+            _parking_brake(blocker)
         if adjacent_front_vehicle is not None and not bool(args.moving_adjacent_npcs):
             _parking_brake(adjacent_front_vehicle)
         if adjacent_rear_vehicle is not None and not bool(args.moving_adjacent_npcs):
@@ -578,8 +677,10 @@ def command_spawn(args: argparse.Namespace) -> int:
         "port": int(args.port),
         "tm_port": int(args.tm_port),
         "ego_actor_id": int(ego.id),
-        "blocker_actor_id": int(blocker.id),
-        "adjacent_actor_id": int(adjacent_vehicle.id),
+        "blocker_actor_id": int(blocker.id if blocker is not None else 0),
+        "blocker_kind": str(args.blocker_kind),
+        "walker_controller_actor_id": _actor_id_or_zero(blocker_controller),
+        "adjacent_actor_id": _actor_id_or_zero(adjacent_vehicle),
         "adjacent_front_actor_id": _actor_id_or_zero(adjacent_front_vehicle),
         "adjacent_rear_actor_id": _actor_id_or_zero(adjacent_rear_vehicle),
         "adjacent_actor_ids": [
@@ -622,6 +723,9 @@ def command_spawn(args: argparse.Namespace) -> int:
             "adjacent_rear_distance_m": adjacent_rear_distance_m,
             "moving_adjacent_npcs": bool(args.moving_adjacent_npcs),
             "adjacent_speed_diff_percent": float(args.adjacent_speed_diff_percent),
+            "pedestrian_start_side": str(args.pedestrian_start_side),
+            "pedestrian_cross_speed_mps": float(args.pedestrian_cross_speed_mps),
+            "pedestrian_cross_lateral_m": float(args.pedestrian_cross_lateral_m),
         },
     }
     output_manifest = Path(args.output_manifest)
@@ -657,7 +761,7 @@ def command_spawn(args: argparse.Namespace) -> int:
     LOGGER.info(
         "Spawned scenario ego=%d blocker=%d adjacent_front=%d adjacent_rear=%d road=%d lane=%d side=%s manifest=%s",
         ego.id,
-        blocker.id,
+        blocker.id if blocker is not None else 0,
         _actor_id_or_zero(adjacent_front_vehicle),
         _actor_id_or_zero(adjacent_rear_vehicle),
         ego_wp.road_id,
@@ -673,7 +777,14 @@ def command_destroy(args: argparse.Namespace) -> int:
     client, world = connect_world(host=args.host, port=args.port, timeout_s=args.timeout_s, town=None)
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
     actor_ids = []
-    for key in ["ego_actor_id", "blocker_actor_id", "adjacent_actor_id", "adjacent_front_actor_id", "adjacent_rear_actor_id"]:
+    for key in [
+        "ego_actor_id",
+        "blocker_actor_id",
+        "walker_controller_actor_id",
+        "adjacent_actor_id",
+        "adjacent_front_actor_id",
+        "adjacent_rear_actor_id",
+    ]:
         actor_id = int(manifest.get(key, 0) or 0)
         if actor_id > 0 and actor_id not in actor_ids:
             actor_ids.append(actor_id)

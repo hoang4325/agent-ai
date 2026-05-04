@@ -28,6 +28,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--bev-repo", required=True)
     parser.add_argument("--bev-config", required=True)
     parser.add_argument("--bev-ckpt", required=True)
+    parser.add_argument("--device", default="cuda",
+                        help="Torch device passed to Stage10 BEVFusion bridge")
     parser.add_argument("--map", default="Town10HD_Opt")
     parser.add_argument("--cases", default="full",
                         help=(
@@ -39,6 +41,21 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--run-tag", default="",
                         help="Optional tag inserted into run folder names, useful for A/B runs")
     parser.add_argument("--max-frames", type=int, default=300)
+    parser.add_argument("--delta-t", type=float, default=0.1,
+                        help="Simulation step passed to Stage10 bridge")
+    parser.add_argument("--rig-profile", default="default",
+                        choices=["default", "low_memory_shadow"],
+                        help="Sensor rig quality preset passed to Stage10 bridge")
+    parser.add_argument("--image-width", type=int, default=1600,
+                        help="Camera sensor width passed to Stage10 bridge")
+    parser.add_argument("--image-height", type=int, default=900,
+                        help="Camera sensor height passed to Stage10 bridge")
+    parser.add_argument("--score-thresh", type=float, default=0.35,
+                        help="Detection score threshold passed to Stage10 bridge")
+    parser.add_argument("--adapter-lidar-max-points", type=int, default=0,
+                        help="Cap live LiDAR points before BEVFusion inference; 0 keeps all points")
+    parser.add_argument("--adapter-radar-max-points", type=int, default=2500,
+                        help="Cap live radar points before BEVFusion inference")
     parser.add_argument("--route-distance-m", type=float, default=120.0)
     parser.add_argument("--agent-mode", default="compare", choices=["stub", "api", "compare"])
     parser.add_argument("--agent-control-mode", default="shadow", choices=["baseline", "shadow", "assist"])
@@ -232,6 +249,14 @@ def _spawn_with_probe_retry(
             "--adjacent-speed-diff-percent", str(float(spec.get("adjacent_speed_diff_percent", args.adjacent_speed_diff_percent))),
             "--output-manifest", str(manifest_path),
         ]
+        if "blocker_kind" in spec:
+            spawn_cmd.extend(["--blocker-kind", str(spec["blocker_kind"])])
+        if "pedestrian_start_side" in spec:
+            spawn_cmd.extend(["--pedestrian-start-side", str(spec["pedestrian_start_side"])])
+        if "pedestrian_cross_speed_mps" in spec:
+            spawn_cmd.extend(["--pedestrian-cross-speed-mps", str(float(spec["pedestrian_cross_speed_mps"]))])
+        if "pedestrian_cross_lateral_m" in spec:
+            spawn_cmd.extend(["--pedestrian-cross-lateral-m", str(float(spec["pedestrian_cross_lateral_m"]))])
         if bool(spec.get("moving_adjacent_npcs", args.moving_adjacent_npcs)):
             spawn_cmd.append("--moving-adjacent-npcs")
         if bool(args.npc_handbrake):
@@ -313,6 +338,18 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
             "adjacent_speed_diff_percent": 50.0,
             "route_distance_m": 60.0,
         },
+        "pedestrian_cutout_right": {
+            "adjacent_side": "right",
+            "case_label": "pedestrian_cutout_right",
+            "blocker_kind": "pedestrian",
+            "blocker_distance_m": 10.0,
+            "adjacent_distance_m": 60.0,
+            "adjacent_position": "none",
+            "pedestrian_start_side": "left",
+            "pedestrian_cross_speed_mps": 2.8,
+            "pedestrian_cross_lateral_m": 5.0,
+            "route_distance_m": 60.0,
+        },
         "blocked_clear_left": {
             "adjacent_side": "left",
             "case_label": "blocked_lane_clear_left",
@@ -361,6 +398,7 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
         "ab_blocked_clear": ["blocked_clear_right", "blocked_clear_left"],
         "ab_blocked_clear_rear": ["blocked_clear_right_rear", "blocked_clear_left_rear"],
         "ab_blocked_gap": ["blocked_gap_right", "blocked_gap_left"],
+        "pedestrian_cutout": ["pedestrian_cutout_right"],
     }
 
     expanded: List[str] = []
@@ -414,12 +452,20 @@ def main() -> int:
                 "--bev-repo", str(args.bev_repo),
                 "--bev-config", str(args.bev_config),
                 "--bev-ckpt", str(args.bev_ckpt),
+                "--device", str(args.device),
                 "--output-root", str(stage10_output_root),
                 "--log-dir", str(stage10_log_dir),
                 "--scenario-manifest", str(manifest_path),
                 "--map", str(args.map),
                 "--route-distance-m", str(float(spec.get("route_distance_m", args.route_distance_m))),
                 "--max-frames", str(args.max_frames),
+                "--delta-t", str(args.delta_t),
+                "--rig-profile", str(args.rig_profile),
+                "--image-width", str(args.image_width),
+                "--image-height", str(args.image_height),
+                "--score-thresh", str(args.score_thresh),
+                "--adapter-lidar-max-points", str(args.adapter_lidar_max_points),
+                "--adapter-radar-max-points", str(args.adapter_radar_max_points),
                 "--agent-mode", str(args.agent_mode),
                 "--agent-control-mode", str(args.agent_control_mode),
                 "--agent-trigger-mode", str(args.agent_trigger_mode),
@@ -458,6 +504,7 @@ def main() -> int:
                 "manifest_path": str(manifest_path),
                 "stage10_log_dir": str(stage10_log_dir),
                 "stage10_output_root": str(stage10_output_root),
+                "blocker_kind": str(spec.get("blocker_kind", "vehicle")),
                 "blocker_distance_m": float(spec.get("blocker_distance_m", args.blocker_distance_m)),
                 "adjacent_distance_m": float(spec.get("adjacent_distance_m", args.adjacent_distance_m)),
                 "adjacent_position": str(spec.get("adjacent_position", args.adjacent_position)),

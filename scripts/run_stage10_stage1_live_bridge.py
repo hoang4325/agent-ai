@@ -84,6 +84,10 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--image-width",  type=int, default=1600)
     p.add_argument("--image-height", type=int, default=900)
     p.add_argument("--score-thresh", type=float, default=0.35)
+    p.add_argument("--adapter-lidar-max-points", type=int, default=0,
+                   help="Cap live LiDAR points before BEVFusion inference; 0 keeps all points")
+    p.add_argument("--adapter-radar-max-points", type=int, default=2500,
+                   help="Cap live radar points before BEVFusion inference")
     p.add_argument("--map",          default="Town01",  help="CARLA map name")
     p.add_argument("--spawn-point",  type=int, default=0, help="Ego spawn-point index")
     p.add_argument("--attach-to-actor-id", type=int, default=None,
@@ -1152,6 +1156,8 @@ def run(args: argparse.Namespace) -> int:
         model, cfg, BoxClass,
         device=args.device,
         score_threshold=args.score_thresh,
+        lidar_max_points=args.adapter_lidar_max_points,
+        radar_max_points=args.adapter_radar_max_points,
     )
     LOGGER.info("BEVFusion ready.")
 
