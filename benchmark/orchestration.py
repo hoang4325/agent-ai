@@ -202,7 +202,11 @@ def execute_case(
         "stage3c_output_dir": str(case_run_dir / "stage3c"),
         "stage4_output_dir": str(case_run_dir / "stage4"),
         "stage1_capture_output_root": str(case_run_dir / "stage1_capture"),
-        "stage4_python_executable": case_spec.get("stage4_python_executable") or pyexe,
+        "stage4_python_executable": (
+            os.environ.get("AGENTAI_STAGE4_PYTHON_EXECUTABLE")
+            or case_spec.get("stage4_python_executable")
+            or pyexe
+        ),
         "carla_pythonapi_root": os.environ.get("CARLA_PYTHONAPI_ROOT", ""),
         "stage1_container_agent_root": os.environ.get("AGENTAI_STAGE1_CONTAINER_AGENT_ROOT", "/workspace/Agent-AI"),
         "stage1_device": os.environ.get("AGENTAI_STAGE1_DEVICE", "cuda"),

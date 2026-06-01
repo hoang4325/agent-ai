@@ -1,375 +1,308 @@
-# CARLA + BEVFusion Stage 1
+# Agent-AI
 
-Workspace này bọc ngoài `D:\Bevfusion-Z` để làm Phase 1 perception mà sửa repo BEVFusion gốc ở mức tối thiểu.
+Agent-AI là workspace nghiên cứu cho hệ thống autonomous driving nhiều tầng. Repo này gom các artifact, mô-đun replay, benchmark, runtime online, và lớp takeover/safety theo từng stage.
 
-## Trạng thái hiện tại
+## Tổng quan
 
-- Phase 1A:
-  - rig 6 camera + 1 lidar + 5 radar đã dump ổn
-  - sync theo frame đã pass
-  - sample layout `images/`, `lidar/`, `radar/`, `meta.json` đã pass
-- Phase 1B:
-  - geometry sanity offline đã có script riêng
-  - adapter active đã bỏ path synthetic nuScenes radar 45D
-  - radar bridge active là minimal `6D = [x, y, z, vx_comp, vy_comp, time_diff]`
-  - checkpoint runtime được patch đúng vào radar input layer đầu tiên bằng semantic slice
-- Phase 1C:
-  - live inference script đã reuse đúng đường `dump -> adapter -> infer`
-  - chỉ infer khi đủ history LiDAR/Radar
-  - output live tách theo session để không lẫn history giữa các lần chạy
-  - hỗ trợ `zero_bev`, `minimal radar`, và compare live
+Repository được tổ chức theo pipeline từ perception đến control:
 
-## Repo facts đã khóa
+1. **Stage 1** — CARLA + BEVFusion perception bridge
+2. **Stage 2** — world-state và tactical context
+3. **Stage 3 / 3B / 3C** — behavior planning, route awareness, replay và coverage
 
-- Config runtime:
-  - `D:\Bevfusion-Z\configs\nuscenes\det\transfusion\secfpn\camera+lidar+radar\swint_v0p075\sefuser_radarbev.yaml`
-- Camera order đúng theo repo:
-  - `CAM_FRONT`, `CAM_FRONT_RIGHT`, `CAM_FRONT_LEFT`, `CAM_BACK`, `CAM_BACK_LEFT`, `CAM_BACK_RIGHT`
-- Test image pipeline:
-  - final size `[256, 704]`
-  - resize `0.48`
-  - normalize mean `[0.485, 0.456, 0.406]`
-  - normalize std `[0.229, 0.224, 0.225]`
-- LiDAR input branch:
-  - adapter xuất `float32[N,5] = [x, y, z, intensity, time_lag]`
-- Radar repo trace:
-  - repo train dùng selected radar schema `45D`
-  - checkpoint xác nhận radar input layer đầu là `[128, 47]`
-  - `47 = 45 selected dims + f_center_x + f_center_y`
+4. **Stage 4** — online runtime, monitoring, shadow execution
+5. **Benchmark** — metric registry, replay corpus, gate, report
+6. **Stage 9** — authority takeover, TOR, human override, safety veto, MRM
 
-## Radar mismatch đã xử lý
+Repo này là workspace nghiên cứu, không phải một ứng dụng đơn lẻ có thể chạy end-to-end ngay từ root.
 
-CARLA radar native chỉ có:
+## Cấu trúc thư mục
 
-- `velocity`
-- `altitude`
-- `azimuth`
-- `depth`
+- [carla_bevfusion_stage1/](carla_bevfusion_stage1) — bridge giữa CARLA sensor dump và BEVFusion runtime
+- [benchmark/](benchmark) — benchmark scaffold, frozen corpus, metrics, gate scripts, reports
+- [stage2/](stage2) — world-state, intent, scene abstraction
 
-Checkpoint nuScenes radar branch mong các field mà CARLA không có trực tiếp:
+- [stage3/](stage3) — behavior planning và route-aware logic
+- [stage3b/](stage3b) — builder cho behavior request và route context
+- [stage3c/](stage3c) — replay runner và artifact-based stage 3c flows
 
-- `rcs`
-- `dyn_prop_*`
-- `ambig_state_*`
-- `invalid_state_*`
-- `pdh0_*`
+- [stage3c_coverage/](stage3c_coverage) — coverage, planner quality, stop tuning
+- [stage4/](stage4) — online orchestrator, runtime, evaluation, monitoring
+- [stage9/](stage9) — authority arbitration, safety, TOR, MRM, evaluation
 
-Bridge active của workspace này không bịa các field đó nữa.
+- [scripts/](scripts) — CLI utilities cho dump, replay, benchmark, runtime
+- [outputs/](outputs) — artifact sinh ra khi chạy thử
+- [tmp/](tmp) — file tạm và helper scripts
 
-Thay vào đó:
+## Stage 1 ngắn gọn
 
-- adapter dựng `x, y, z` từ spherical CARLA radar
-- adapter ước lượng `vx_comp, vy_comp` bằng line-of-sight compensation trong current lidar frame
-- adapter thêm `time_diff`
-- runtime patch giảm radar input layer từ `45 -> 6`
-- runtime slice checkpoint columns:
-  - `x, y, z, vx_comp, vy_comp, time_diff, f_center_x, f_center_y`
+Stage 1 là lớp perception: dump sensor từ CARLA, chuẩn hoá dữ liệu, rồi đưa vào BEVFusion.
 
-Đây là bridge tối thiểu để infer/debug được, nhưng vẫn còn domain gap thật giữa CARLA radar và nuScenes radar.
+Các nhóm file chính:
 
-## Cây file chính
+- `collector.py`, `dumper.py`, `rig.py` — lấy mẫu sensor và đồng bộ frame
+- `adapter.py`, `bevfusion_runtime.py`, `config_loader.py` — bridge dữ liệu vào model
+- `coordinate_utils.py`, `visualization.py` — geometry và debug
 
-```text
-d:\Agent-AI\
-  README.md
-  carla_bevfusion_stage1\
-    adapter.py
-    bevfusion_runtime.py
-    collector.py
-    config_loader.py
-    constants.py
-    coordinate_utils.py
-    dumper.py
-    rig.py
-    visualization.py
-  scripts\
-    geometry_sanity_check.py
-    live_infer.py
-    offline_infer.py
-    print_blueprint_attributes.py
-    run_carla_dump.py
-```
+## Stage 9 ngắn gọn
 
-## Environment
+Stage 9 là phần điều phối quyền lái rõ nhất trong repo. Nó dùng state machine để chuyển giữa baseline, agent, human và MRM.
 
-Cần Python env có:
+Các file lõi:
 
+- [stage9/schemas.py](stage9/schemas.py) — dataclass và enum dùng chung
+- [stage9/authority_state_machine.py](stage9/authority_state_machine.py) — FSM, cooldown, hysteresis
+- [stage9/authority_arbiter.py](stage9/authority_arbiter.py) — vòng lặp điều phối chính
+
+- [stage9/safety_supervisor.py](stage9/safety_supervisor.py) — hard gate và veto
+- [stage9/contract_resolver.py](stage9/contract_resolver.py) — chuyển contract sang trajectory request
+- [stage9/handoff_planner.py](stage9/handoff_planner.py) — blend ở mức reference/objective
+
+- [stage9/baseline_detector.py](stage9/baseline_detector.py) — phát hiện baseline stuck/oscillation/degen
+- [stage9/tor_manager.py](stage9/tor_manager.py) — takeover request escalation
+- [stage9/minimal_risk_maneuver.py](stage9/minimal_risk_maneuver.py) — fallback an toàn
+
+- [stage9/human_override_monitor.py](stage9/human_override_monitor.py) — detect can thiệp người lái
+- [stage9/authority_logger.py](stage9/authority_logger.py) — audit log JSONL
+- [stage9/stage9_evaluator.py](stage9/stage9_evaluator.py) — metric evaluation
+
+- [stage9/scenario_runner.py](stage9/scenario_runner.py) — 12 scenario giả lập T9-001 → T9-012
+
+## Luồng dữ liệu chính
+
+Luồng tổng quát trong Stage 9 là:
+
+`WorldState` → `BaselineDetector` → `SafetySupervisor` → `AuthorityStateMachine` → `ContractResolver` / `HandoffPlanner` → MPC → `ActuatorCommand`
+
+Nguyên tắc quan trọng:
+
+- agent chỉ được quyền tạo maneuver contract bounded
+- blend chỉ thực hiện ở tầng reference/objective, không blend raw actuator
+- human override luôn có ưu tiên cao nhất
+- safety supervisor có quyền veto trước khi grant và trong lúc active
+
+## Dữ liệu và artifact
+
+Các kiểu dữ liệu chính nằm trong [stage9/schemas.py](stage9/schemas.py):
+
+- `WorldState` — snapshot thế giới từ perception/behavior layer
+- `ManeuverContract` — hợp đồng maneuver bounded cho agent
+- `TrajectoryRequest` — đầu vào cho planner/MPC
+
+- `MRCPlan` — minimal risk maneuver plan
+- `ActuatorCommand` — output cuối cùng cho CARLA/MPC
+
+Benchmark và replay dùng nhiều artifact JSON, JSONL, PNG, và frozen corpus để đánh giá ổn định.
+
+## Yêu cầu môi trường
+
+Tùy stage mà cần các dependency khác nhau. Với Stage 1 / Stage 4 / Stage 9, thường cần:
+
+- Python 3.10+ hoặc theo môi trường hiện có của workspace
 - `carla`
 - `torch`
-- `mmcv`
-- `mmdet`
-- `mmdet3d`
+
 - `matplotlib`
 - `Pillow`
+- các package cho benchmark/runtime nếu chạy sâu hơn như `mmcv`, `mmdet`, `mmdet3d`
 
-Shell dùng khi implement đã có `carla`, `torch`, `matplotlib`, `Pillow`; chưa có `mmcv/mmdet/mmdet3d`, nên offline model inference không verify end-to-end được trong shell này.
+Không phải stage nào cũng có thể chạy đầy đủ chỉ từ root repo; nhiều phần phụ thuộc vào CARLA server, artifact session, hoặc repo ngoại vi như BEVFusion.
 
-## Commands
+## Cách dùng repo
 
-### 1. In blueprint attributes của CARLA
+- Muốn hiểu perception: bắt đầu từ [carla_bevfusion_stage1/](carla_bevfusion_stage1)
+- Muốn hiểu benchmark: bắt đầu từ [benchmark/README.md](benchmark/README.md)
+- Muốn hiểu behavior/planning: xem [stage3/](stage3) và [stage3b/](stage3b)
 
-```powershell
-python d:\Agent-AI\scripts\print_blueprint_attributes.py `
-  --host 127.0.0.1 `
-  --port 2000 `
-  --blueprint sensor.other.radar
-```
+- Muốn hiểu runtime online: xem [stage4/](stage4)
+- Muốn hiểu takeover và safety: xem [stage9/authority_arbiter.py](stage9/authority_arbiter.py)
 
-### 2. Dump sample từ CARLA
+## Gợi ý đọc source theo thứ tự
 
-```powershell
-python d:\Agent-AI\scripts\run_carla_dump.py `
-  --host 127.0.0.1 `
-  --port 2000 `
-  --output-root d:\Agent-AI\outputs\samples `
-  --num-samples 30 `
-  --fixed-delta-seconds 0.05 `
-  --image-width 1600 `
-  --image-height 900 `
-  --camera-fov 70 `
-  --autopilot
-```
+1. [README.md](README.md) — tổng quan repo
+2. [stage9/schemas.py](stage9/schemas.py) — hiểu data model trước
+3. [stage9/authority_state_machine.py](stage9/authority_state_machine.py) — hiểu state transition
 
-### 3. Geometry sanity trên sample dump
+4. [stage9/safety_supervisor.py](stage9/safety_supervisor.py) — hiểu gate an toàn
+5. [stage9/authority_arbiter.py](stage9/authority_arbiter.py) — hiểu luồng điều phối chính
+6. [stage9/scenario_runner.py](stage9/scenario_runner.py) — xem các scenario test
 
-```powershell
-python d:\Agent-AI\scripts\geometry_sanity_check.py `
-  --sample-dir d:\Agent-AI\outputs\samples\sample_000000 `
-  --output-dir d:\Agent-AI\outputs\geometry\sample_000000
-```
+## Ghi chú
 
-Output:
+- `outputs/` và `tmp/` chủ yếu là artifact sinh ra khi chạy thử
+- benchmark và replay là phần rất quan trọng của repo, không chỉ là mã phụ trợ
+- Stage 9 hiện là phần code có cấu trúc rõ nhất để nắm logic takeover/safety
 
-- `radar_lidar_topdown.png`
-- `geometry_report.json`
+## Nếu bạn muốn chạy tiếp
 
-### 4. Offline inference baseline `camera + lidar` theo nghĩa zero radar BEV
+Mình có thể làm tiếp một trong các việc sau:
 
-```powershell
-python d:\Agent-AI\scripts\offline_infer.py `
-  --repo-root D:\Bevfusion-Z `
-  --config D:\Bevfusion-Z\configs\nuscenes\det\transfusion\secfpn\camera+lidar+radar\swint_v0p075\sefuser_radarbev.yaml `
-  --checkpoint D:\Data-Train\epoch_8_3sensor.pth `
-  --sample-dir d:\Agent-AI\outputs\samples\sample_000010 `
-  --output-dir d:\Agent-AI\outputs\offline\sample_000010_cam_lidar `
-  --device cuda `
-  --radar-bridge minimal `
-  --radar-ablation zero_bev
-```
+- viết thêm `README` chi tiết cho từng stage
+- thêm mục `Setup` và `Run` theo đúng lệnh của repo
+- rút gọn README thành bản ngắn hơn, chuyên nghiệp hơn cho GitHub
 
-### 5. Offline inference bridge `camera + lidar + minimal radar`
+# Agent-AI
 
-Lệnh này mặc định sẽ chạy:
+Repository này là workspace nghiên cứu cho chuỗi autonomous driving nhiều tầng: perception từ CARLA/BEVFusion, benchmark đánh giá, các lớp behavior/planning, runtime online, và Stage 9 takeover/authority protocol.
 
-- baseline `zero_bev`
-- bridge `minimal`
-- ghi thêm `comparison.json` và `bev_comparison.png`
+## Mục tiêu của repo
 
-```powershell
-python d:\Agent-AI\scripts\offline_infer.py `
-  --repo-root D:\Bevfusion-Z `
-  --config D:\Bevfusion-Z\configs\nuscenes\det\transfusion\secfpn\camera+lidar+radar\swint_v0p075\sefuser_radarbev.yaml `
-  --checkpoint D:\Data-Train\epoch_8_3sensor.pth `
-  --sample-dir d:\Agent-AI\outputs\samples\sample_000010 `
-  --output-dir d:\Agent-AI\outputs\offline\sample_000010_trimodal `
-  --device cuda `
-  --radar-bridge minimal `
-  --radar-ablation none
-```
+- tạo và kiểm tra artifact cho pipeline lái xe tự hành theo từng stage
+- giữ các mô-đun mô phỏng, replay, benchmark và online runtime tách rõ nhau
+- mô tả quyền lực theo tầng: baseline, agent, safety, human override, và minimal risk maneuver
 
-### 6. Live inference baseline `camera + lidar` theo nghĩa zero radar BEV
+## Cấu trúc chính
 
-Script live mới sẽ:
+- [carla_bevfusion_stage1/](carla_bevfusion_stage1) — Stage 1 perception bridge cho CARLA + BEVFusion
+  - `collector.py`, `dumper.py`, `rig.py` xử lý lấy mẫu sensor
+  - `adapter.py`, `bevfusion_runtime.py`, `config_loader.py` xử lý bridge vào model
+  - `coordinate_utils.py`, `visualization.py` hỗ trợ geometry và debug
+- [benchmark/](benchmark) — scaffold benchmark, metric registry, frozen corpus, gate scripts, reports
+- [stage2/](stage2) — lớp world-state / intent / scene abstraction
+- [stage3/](stage3) — behavior planning và route-aware logic
+- [stage3b/](stage3b) — builder cho behavior request và route context
+- [stage3c/](stage3c) và [stage3c_coverage/](stage3c_coverage) — replay, coverage và kiểm thử theo artifact
+- [stage4/](stage4) — online runtime, shadow runtime, evaluation và monitoring
+- [stage9/](stage9) — authority takeover, TOR, safety veto, MRM và evaluator
+- [scripts/](scripts) — CLI cho dump, replay, benchmark và runtime utilities
 
-- tạo session output riêng trong `--output-root`
-- dump mọi sample ra `samples/`
-- chỉ bắt đầu infer khi đủ history
-- ghi `live_summary.jsonl` để debug theo frame
+## Stage 9 là gì
 
-```powershell
-python d:\Agent-AI\scripts\live_infer.py `
-  --host 127.0.0.1 `
-  --port 2000 `
-  --tm-port 8000 `
-  --repo-root D:\Bevfusion-Z `
-  --config D:\Bevfusion-Z\configs\nuscenes\det\transfusion\secfpn\camera+lidar+radar\swint_v0p075\sefuser_radarbev.yaml `
-  --checkpoint D:\Data-Train\epoch_8_3sensor.pth `
-  --output-root d:\Agent-AI\outputs\live `
-  --num-samples 30 `
-  --device cuda `
-  --radar-bridge minimal `
-  --radar-ablation zero_bev
-```
+Stage 9 là phần source code rõ nhất trong repo này: một state machine 9 trạng thái để điều phối quyền lái giữa baseline, agent, human và MRM.
 
-### 7. Live inference trimodal `camera + lidar + minimal radar`
+Các file lõi:
 
-```powershell
-python d:\Agent-AI\scripts\live_infer.py `
-  --host 127.0.0.1 `
-  --port 2000 `
-  --tm-port 8000 `
-  --repo-root D:\Bevfusion-Z `
-  --config D:\Bevfusion-Z\configs\nuscenes\det\transfusion\secfpn\camera+lidar+radar\swint_v0p075\sefuser_radarbev.yaml `
-  --checkpoint D:\Data-Train\epoch_8_3sensor.pth `
-  --output-root d:\Agent-AI\outputs\live `
-  --num-samples 30 `
-  --device cuda `
-  --radar-bridge minimal `
-  --radar-ablation none
-```
+- [stage9/schemas.py](stage9/schemas.py) — dataclass và enum dùng chung
+- [stage9/authority_state_machine.py](stage9/authority_state_machine.py) — FSM và cooldown/hysteresis
+- [stage9/authority_arbiter.py](stage9/authority_arbiter.py) — vòng lặp điều phối chính
+- [stage9/safety_supervisor.py](stage9/safety_supervisor.py) — hard gate và veto
+- [stage9/contract_resolver.py](stage9/contract_resolver.py) — đổi ManeuverContract sang TrajectoryRequest
+- [stage9/handoff_planner.py](stage9/handoff_planner.py) — blend ở mức reference/objective
+- [stage9/baseline_detector.py](stage9/baseline_detector.py) — phát hiện baseline bị kẹt / oscillation / degeneracy
+- [stage9/tor_manager.py](stage9/tor_manager.py) — Takeover Request escalation
+- [stage9/minimal_risk_maneuver.py](stage9/minimal_risk_maneuver.py) — fallback an toàn
+- [stage9/human_override_monitor.py](stage9/human_override_monitor.py) — phát hiện can thiệp từ người lái
+- [stage9/authority_logger.py](stage9/authority_logger.py) — audit log JSONL
+- [stage9/stage9_evaluator.py](stage9/stage9_evaluator.py) — tính TSR, SRR, GRR, AOI, SGC, OGV, MRM
+- [stage9/scenario_runner.py](stage9/scenario_runner.py) — 12 scenario giả lập T9-001 → T9-012
 
-### 8. Live compare `zero_bev` vs `minimal radar`
+## Luồng chạy Stage 9
 
-Mỗi frame infer-ready sẽ ghi:
+1. `WorldState` đi vào [authority_arbiter.py](stage9/authority_arbiter.py)
+2. [baseline_detector.py](stage9/baseline_detector.py) quyết định baseline có bị kẹt không
+3. [safety_supervisor.py](stage9/safety_supervisor.py) kiểm tra gate, freshness, ODD, TTC và confidence
+4. [authority_state_machine.py](stage9/authority_state_machine.py) giữ state và cooldown
+5. [contract_resolver.py](stage9/contract_resolver.py) và [handoff_planner.py](stage9/handoff_planner.py) chỉ blend ở mức trajectory reference
+6. MPC xuất actuator command; agent không bao giờ tạo L3 command trực tiếp
+7. [authority_logger.py](stage9/authority_logger.py) ghi audit JSONL để [stage9_evaluator.py](stage9/stage9_evaluator.py) chấm điểm
 
-- `baseline_zero_bev\...`
-- `bridge_minimal\...`
-- `comparison.json`
-- `bev_comparison.png`
+## Dạng dữ liệu chính
 
-```powershell
-python d:\Agent-AI\scripts\live_infer.py `
-  --host 127.0.0.1 `
-  --port 2000 `
-  --tm-port 8000 `
-  --repo-root D:\Bevfusion-Z `
-  --config D:\Bevfusion-Z\configs\nuscenes\det\transfusion\secfpn\camera+lidar+radar\swint_v0p075\sefuser_radarbev.yaml `
-  --checkpoint D:\Data-Train\epoch_8_3sensor.pth `
-  --output-root d:\Agent-AI\outputs\live `
-  --num-samples 30 `
-  --device cuda `
-  --radar-bridge minimal `
-  --radar-ablation none `
-  --compare-zero-radar
-```
+- `WorldState` — snapshot thế giới từ perception/behavior layer
+- `ManeuverContract` — hợp đồng maneuver bounded cho agent
+- `TrajectoryRequest` — đầu vào tầng trajectory/MPC
+- `MRCPlan` — kế hoạch minimal risk maneuver
+- `ActuatorCommand` — output cuối cùng cho CARLA/MPC
 
-### 9. Hybrid live workflow khi container va CARLA server khac version API
+## Benchmark
 
-Case da gap tren may nay:
+Thư mục [benchmark/](benchmark) không phải code runtime lái xe, mà là scaffold đánh giá:
+# Agent-AI
 
-- container Python API `carla == 0.9.16`
-- simulator host `CARLA == 0.9.15`
+Agent-AI là hệ thống nghiên cứu autonomous driving nhiều tầng mà tôi đã xây dựng để nối perception, benchmark, planning, runtime online, và takeover/safety thành một pipeline thống nhất.
 
-Direct capture mode trong container co the crash native. Khi gap case nay, dung workflow:
+## Hệ thống tôi đã xây dựng
 
-- host/Windows dump live samples bang `run_carla_dump.py`
-- container chi watch `samples-root` va chay infer
+Hệ thống này không phải một ứng dụng đơn lẻ, mà là một kiến trúc theo stage:
 
-Host dump:
+1. **Perception layer** — lấy dữ liệu từ CARLA, chuẩn hoá sensor dump, và đẩy vào BEVFusion.
+2. **World-model layer** — chuyển output perception thành world state và tactical context.
+3. **Behavior layer** — sinh behavior request, route-aware logic, và replay/coverage artifact.
+4. **Runtime layer** — chạy online orchestration, monitoring, shadow execution, và evaluation.
+5. **Benchmark layer** — materialize frozen corpus, chạy metric, và so sánh artifact giữa các lần replay.
+6. **Authority layer** — điều phối quyền lái giữa baseline, agent, human override, TOR, và minimal risk maneuver.
 
-```powershell
-python d:\Agent-AI\scripts\run_carla_dump.py `
-  --host 127.0.0.1 `
-  --port 2000 `
-  --output-root d:\Agent-AI\outputs\live_bridge_samples `
-  --num-samples 200 `
-  --fixed-delta-seconds 0.05 `
-  --image-width 1600 `
-  --image-height 900 `
-  --camera-fov 70 `
-  --autopilot
-```
+## Mục tiêu thiết kế
 
-Container watch infer baseline:
+- giữ các stage tách biệt nhưng nối với nhau bằng artifact và schema rõ ràng
+- cho phép replay, benchmark, và online runtime dùng cùng một ngôn ngữ dữ liệu
+- đảm bảo agent chỉ được quyền ở mức maneuver bounded, không chạm trực tiếp vào actuator layer
+- có safety veto, takeover request, human override, và fallback an toàn khi hệ thống không còn đáng tin
 
-```bash
-python /workspace/Agent-AI/scripts/live_infer.py \
-  --samples-root /workspace/Agent-AI/outputs/live_bridge_samples \
-  --repo-root /workspace/Bevfusion-Z \
-  --config /workspace/Bevfusion-Z/configs/nuscenes/det/transfusion/secfpn/camera+lidar+radar/swint_v0p075/sefuser_radarbev.yaml \
-  --checkpoint /workspace/Data-Train/epoch_8_3sensor.pth \
-  --output-root /workspace/Agent-AI/outputs/live_watch \
-  --num-samples 30 \
-  --device cuda \
-  --radar-bridge minimal \
-  --radar-ablation zero_bev
-```
+## Các phần chính của hệ thống
 
-Container watch infer compare:
+### Stage 1 — Perception bridge
 
-```bash
-python /workspace/Agent-AI/scripts/live_infer.py \
-  --samples-root /workspace/Agent-AI/outputs/live_bridge_samples \
-  --repo-root /workspace/Bevfusion-Z \
-  --config /workspace/Bevfusion-Z/configs/nuscenes/det/transfusion/secfpn/camera+lidar+radar/swint_v0p075/sefuser_radarbev.yaml \
-  --checkpoint /workspace/Data-Train/epoch_8_3sensor.pth \
-  --output-root /workspace/Agent-AI/outputs/live_watch_compare \
-  --num-samples 30 \
-  --device cuda \
-  --radar-bridge minimal \
-  --radar-ablation none \
-  --compare-zero-radar
-```
+Phần này xử lý sensor từ CARLA và map chúng vào pipeline BEVFusion. Nó gồm các thành phần lấy mẫu, đồng bộ frame, chuyển đổi toạ độ, dựng input cho model, và xuất artifact để debug geometry.
 
-Watch mode cua `live_infer.py`:
+### Stage 2–4 — World model, behavior, runtime
 
-- khong import `carla`
-- poll thu muc `--samples-root`
-- chi infer khi sample dump da day du file
-- van giu history gate nhu offline/live capture mode
-- ghi `session_manifest.json`, `session_summary.json`, `live_summary.jsonl`
+Các stage này biến perception output thành world state, tactical context, behavior request, rồi chạy replay hoặc runtime online để theo dõi chất lượng và độ ổn định của hệ thống.
 
-## Output debug
+### Benchmark
 
-Geometry:
+Benchmark đóng vai trò chuẩn hoá đánh giá bằng frozen corpus, metric registry, scenario replay, và gate report. Đây là lớp xác nhận hệ thống hoạt động đúng theo artifact chứ không chỉ theo cảm tính.
 
-- `radar_lidar_topdown.png`
-- `geometry_report.json`
+### Stage 9 — Authority and safety
 
-Offline inference single-run:
+Stage 9 là lớp điều phối quyền lực trong hệ thống. Nó dùng state machine để chuyển giữa:
 
-- `bev_debug.png`
-- `camera_overlays\*.png`
-- `predictions.json`
-- `adapter_report.json`
+- baseline control
+- agent requesting authority
+- supervised execution
+- agent active bounded
+- authority revoke pending
+- TOR active
+- human control active
+- minimal risk maneuver
+- safe stop
 
-Offline inference compare mode:
+Stage này có các thành phần chính:
 
-- `baseline_zero_bev\...`
-- `bridge_minimal\...`
-- `comparison.json`
-- `bev_comparison.png`
+- state machine để giữ trạng thái và cooldown
+- safety supervisor để kiểm tra freshness, ODD, TTC, confidence, và preview feasibility
+- contract resolver để chuyển maneuver contract sang trajectory request
+- handoff planner để blend ở mức reference/objective, không blend actuator
+- TOR manager để xử lý takeover request và timeout
+- MRM executor để đưa xe về trạng thái an toàn
+- logger và evaluator để audit và chấm metric
 
-Live inference session:
+## Luồng hệ thống
 
-- `session_manifest.json`
-- `session_summary.json`
-- `live_summary.jsonl`
-- `samples\sample_xxxxxx\...`
-- `inference\sample_xxxxxx\...`
+Luồng tổng quát của hệ thống là:
 
-## Debug checklist
+`sensor dump` → `perception` → `world state` → `behavior request` → `authority/safety decision` → `trajectory request` → `MPC` → `actuator command`
 
-### Frame mismatch
+Điểm quan trọng nhất là agent không được đi thẳng từ perception sang actuator. Mọi quyền của agent đều bị chặn ở tầng hợp đồng bounded và tầng an toàn.
 
-- check log từ `run_carla_dump.py`
-- tất cả 12 sensor phải cùng `frame`
-- giữ `synchronous mode`
-- giữ `sensor_tick == fixed_delta_seconds`
+## Dữ liệu trung tâm
 
-### Camera rỗng hoặc đen
+Hệ thống này xoay quanh một bộ schema rõ ràng:
 
-- check `meta.json -> frame_log -> CAM_* -> mean_rgb`
-- không dùng `no_rendering_mode`
-- nếu headless thì phải dùng off-screen rendering, không tắt render camera
+- `WorldState` — trạng thái thế giới từ perception và runtime
+- `ManeuverContract` — hợp đồng maneuver bounded của agent
+- `TrajectoryRequest` — đầu vào cho planner/MPC
+- `MRCPlan` — kế hoạch minimal risk maneuver
+- `ActuatorCommand` — lệnh cuối cùng cho xe
 
-### LiDAR parse sai
+## Điểm mạnh của hệ thống
 
-- `lidar/LIDAR_TOP.npy` phải là `N x 4`
-- raw layout là `[x, y, z, intensity]`
-- adapter mới thêm `time_lag` ở bước build model input
+- pipeline theo stage rõ ràng, dễ replay và debug
+- dùng artifact thay vì chỉ dùng trạng thái trong bộ nhớ
+- có benchmark và evaluator riêng cho từng lớp
+- có cơ chế safety và fallback để không giao toàn quyền cho agent
 
-### Radar schema sai
+## Cách hiểu nhanh
 
-- `radar/*.npy` phải là `N x 4`
-- raw layout là `[velocity, altitude, azimuth, depth]`
-- `adapter_report.json` phải cho thấy active bridge là:
-  - `minimal_6d_runtime_patch`
-  - `input_columns = [x, y, z, vx_comp, vy_comp, time_diff]`
+Nếu muốn hiểu hệ thống theo thứ tự hợp lý, hãy đi theo:
 
-### Extrinsic sai
+1. schema dữ liệu
+2. state machine authority
+3. safety supervisor
+4. arbiter điều phối
+5. scenario runner và evaluator
 
-- check `meta.json -> sensors -> <name> -> matrix_*`
+Đây là mô tả đúng phần hệ thống tôi đã xây dựng trong repo này: một kiến trúc autonomous driving theo stage, có perception, benchmark, behavior, runtime, và authority/safety được tách rõ.
 - check `geometry_report.json`
 - front/back/left/right phải nằm đúng quadrant trong `radar_lidar_topdown.png`
 
