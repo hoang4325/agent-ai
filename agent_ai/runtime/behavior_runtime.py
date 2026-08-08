@@ -7,7 +7,11 @@ from typing import Any, Dict, List
 
 from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl
 from agent_ai.shared.artifact_io import write_json as _write_json
+from agent_ai.authority.soft_contract import build_soft_contract_from_behavior
+from agent_ai.world_state.cost_memory import CostMemory
+from agent_ai.world_state.interaction_predictor import apply_interaction_prediction
 from agent_ai.world_state.planner_interface import build_planner_interface_payload
+from agent_ai.world_state.motion_predictor import annotate_tracks_with_prediction
 from agent_ai.world_state.risk_engine import RiskAssessmentEngine
 from agent_ai.world_state.tactical_rules import RuleBasedTacticalPolicy
 from agent_ai.world_state.tracker import SimpleObjectTracker
@@ -24,7 +28,7 @@ from agent_ai.behavior.route.provider import load_route_manifest, resolve_route_
 
 from .state_store import BehaviorFrameState, PerceptionFrameResult
 
-LOGGER = logging.getLogger("stage4.world_behavior_runtime")
+LOGGER = logging.getLogger("agent_ai.runtime.behavior_runtime")
 
 
 class WorldBehaviorRuntime:
@@ -75,6 +79,7 @@ class WorldBehaviorRuntime:
         self.risk_engine = RiskAssessmentEngine()
         self.world_builder = WorldStateBuilder()
         self.policy = RuleBasedTacticalPolicy(cruise_speed_mps=self.cruise_speed_mps)
+        self.cost_memory = CostMemory()
 
     def process_prediction(self, perception_frame: PerceptionFrameResult) -> BehaviorFrameState:
         if perception_frame.raw_prediction is None:
@@ -83,10 +88,52 @@ class WorldBehaviorRuntime:
         stage2_start = time.perf_counter()
         normalized = perception_frame.raw_prediction
         tracked_objects = self.tracker.update(normalized)
-        risk_summary = self.risk_engine.evaluate(tracked_objects)
+        annotate_tracks_with_prediction(tracked_objects)
+        interaction = apply_interaction_prediction(
+            tracked_objects,
+            ego_speed_mps=float(normalized.ego.speed_mps),
+            ensure_independent=False,
+        )
+        risk_summary = self.risk_engine.evaluate(
+            tracked_objects,
+            ego_speed_mps=float(normalized.ego.speed_mps),
+            interaction=interaction,
+        )
         world_state = self.world_builder.build(normalized, tracked_objects, risk_summary)
-        decision_intent = self.policy.decide(world_state)
-        planner_payload = build_planner_interface_payload(world_state, decision_intent)
+        world_state.decision_context = {
+            **world_state.decision_context,
+            "interaction_tags": list(interaction.tags),
+            "soft_weight_profile": [self.cost_memory.last_profile],
+        }
+        decision_intent = self.policy.decide(world_state, cost_memory=self.cost_memory)
+        self.cost_memory.observe(
+            min_ttc_s=risk_summary.minimum_ttc_seconds,
+            highest_risk=risk_summary.highest_risk_level,
+            maneuver=decision_intent.maneuver,
+            interaction_severity=interaction.max_interaction_severity,
+            object_count=len(tracked_objects),
+            nearest_front_m=risk_summary.nearest_front_vehicle_distance_m,
+        )
+        soft_bundle = build_soft_contract_from_behavior(
+            frame_id=int(world_state.frame_id),
+            sim_time_s=float(world_state.timestamp),
+            maneuver=decision_intent.maneuver,
+            ego_speed_mps=float(world_state.ego.speed_mps),
+            target_speed_mps=float(decision_intent.target_speed_mps),
+            min_ttc_s=risk_summary.minimum_ttc_seconds,
+            highest_risk=risk_summary.highest_risk_level,
+            interaction_severity=float(interaction.max_interaction_severity),
+            confidence=float(decision_intent.confidence),
+            front_gap_m=world_state.scene.front_free_space_m,
+            reasoning_tags=decision_intent.reasoning_tags,
+        )
+        planner_payload = build_planner_interface_payload(
+            world_state,
+            decision_intent,
+            soft_contract=soft_bundle.to_dict(),
+            interaction_summary=interaction.to_dict(),
+            cost_memory_snapshot=self.cost_memory.snapshot(),
+        )
         stage2_ms = (time.perf_counter() - stage2_start) * 1000.0
 
         stage3_start = time.perf_counter()

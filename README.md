@@ -53,7 +53,7 @@ Source chính dùng **tên domain**, không còn package `stage*`.
 | `agent_ai.behavior.coverage` | Planner coverage tooling |
 | `agent_ai.runtime` | Online orchestration + shadow |
 | `agent_ai.authority` | Authority / safety / TOR / MRM |
-| `agent_ai.benchmark` | Cases, metrics, gates, corpus |
+| `agent_ai.benchmark` | Cases, metrics, corpus + subpackages `gates` / `shadow` / `takeover` / `assist` |
 | `agent_ai.shared` | I/O, numeric, ports, logging |
 | `agent_ai.cli` | Entry CLI thống nhất |
 

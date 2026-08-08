@@ -41,25 +41,38 @@ class ContractResolver:
         self,
         agent_intent: str,
         contract: ManeuverContract,
+        *,
+        cost_profile: str | None = None,
+        forward_clear_m: float | None = None,
+        soft_speed_scale: float = 1.0,
     ) -> TrajectoryRequest:
         """
         Translate L1 maneuver intent + contract bounds into L2 TrajectoryRequest.
         MPC is the only entity that will produce L3 actuation from this.
+
+        P2 optional kwargs:
+          cost_profile — override default AGENT_BOUNDED (e.g. AGENT_BOUNDED_CAUTIOUS)
+          forward_clear_m — tighten drivable envelope from perception
+          soft_speed_scale — extra derate [0,1] from interaction/risk soft layer
         """
         speed_ratio = _INTENT_SPEED_RATIO.get(agent_intent, 1.0)
-        desired_v = contract.max_speed_mps * speed_ratio
+        scale = max(0.0, min(1.0, float(soft_speed_scale)))
+        desired_v = contract.max_speed_mps * speed_ratio * scale
+        v_max = contract.max_speed_mps * max(scale, 0.5 if scale < 1.0 else 1.0)
 
+        clear = 100.0 if forward_clear_m is None else max(5.0, float(forward_clear_m))
         envelope = DrivableEnvelope(
             envelope_uuid=contract.drivable_envelope_uuid or "default",
             left_bound_m=contract.max_lateral_offset_m,
             right_bound_m=contract.max_lateral_offset_m,
-            forward_clear_m=100.0,   # placeholder; real value comes from BEVFusion
+            forward_clear_m=clear,
         )
 
+        profile = cost_profile or "AGENT_BOUNDED"
         return TrajectoryRequest(
             source="CONTRACT_RESOLVER",
             tactical_intent=agent_intent,
-            v_max_mps=contract.max_speed_mps,
+            v_max_mps=v_max,
             a_long_max_mps2=contract.max_longitudinal_accel_mps2,
             a_lat_max_mps2=contract.max_lateral_accel_mps2,
             jerk_max_mps3=contract.max_jerk_mps3,
@@ -68,5 +81,5 @@ class ContractResolver:
             target_lane_id=contract.target_lane_id,
             target_v_desired_mps=desired_v,
             horizon_s=min(contract.max_duration_s, 3.0),
-            cost_profile="AGENT_BOUNDED",
+            cost_profile=profile,
         )

@@ -12,7 +12,7 @@ without rearranging stage packages:
   AuthorityPort   → stage9 AuthorityArbiter
 
 New components should implement the relevant Protocol and be injected at
-composition roots (e.g. Stage4OnlineOrchestrator, AuthorityArbiter) rather
+composition roots (e.g. OnlineOrchestrator, AuthorityArbiter) rather
 than hard-wiring deeper into stage internals.
 """
 from __future__ import annotations

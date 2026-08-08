@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.online_shadow_stability import run_stage6_online_shadow_stability
+from agent_ai.benchmark.shadow.online_shadow_stability import run_online_shadow_stability
 
 
 def main() -> int:
@@ -18,7 +18,7 @@ def main() -> int:
     parser.add_argument("--no-restart-between-runs", action="store_true")
     args = parser.parse_args()
 
-    result = run_stage6_online_shadow_stability(
+    result = run_online_shadow_stability(
         REPO_ROOT,
         repeats=args.repeats,
         carla_root=args.carla_root,

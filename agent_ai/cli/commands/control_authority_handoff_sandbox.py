@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.control_authority_handoff_sandbox import run_stage6_control_authority_handoff_sandbox
+from agent_ai.benchmark.takeover.control_authority_handoff_sandbox import run_control_authority_handoff_sandbox
 
 
 def main() -> int:
@@ -16,7 +16,7 @@ def main() -> int:
     parser.add_argument("--carla-port", type=int, default=2000)
     args = parser.parse_args()
 
-    result = run_stage6_control_authority_handoff_sandbox(
+    result = run_control_authority_handoff_sandbox(
         REPO_ROOT,
         carla_root=args.carla_root,
         carla_port=int(args.carla_port),

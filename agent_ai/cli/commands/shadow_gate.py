@@ -1,5 +1,5 @@
 """
-run_stage6_shadow_gate.py
+run_shadow_gate.py
 =========================
 Stage 6 MPC shadow rollout entrypoint:
 1. Verify Stage 6 shadow readiness is already green on the promoted subset
@@ -22,9 +22,9 @@ from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 ensure_repo_on_path()
 from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path
 from agent_ai.benchmark.runner_core import run_benchmark
-from agent_ai.benchmark.shadow_artifacts import generate_mpc_shadow_artifacts
-from agent_ai.benchmark.shadow_contract_audit import run_stage6_shadow_contract_audit
-from agent_ai.benchmark.shadow_metric_pack import build_stage6_shadow_metric_pack
+from agent_ai.benchmark.shadow.shadow_artifacts import generate_mpc_shadow_artifacts
+from agent_ai.benchmark.shadow.shadow_contract_audit import run_shadow_contract_audit
+from agent_ai.benchmark.shadow.shadow_metric_pack import build_stage6_shadow_metric_pack
 from agent_ai.cli.commands.system_benchmark_e2e import run_e2e_benchmark
 
 
@@ -222,7 +222,7 @@ def _build_shadow_report(
     return report
 
 
-def run_stage6_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
+def run_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
     repo_root = Path(repo_root or REPO_ROOT)
     readiness = load_json(repo_root / "agent_ai" / "benchmark" / "shadow_readiness.json", default={}) or {}
     if str(readiness.get("status")) != "ready":
@@ -243,7 +243,7 @@ def run_stage6_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any
 
     e2e_report_root = Path(str(e2e_result["report_dir"])).parent
     shadow_case_outputs = _materialize_shadow_outputs(e2e_report_root, required_cases)
-    contract_audit = run_stage6_shadow_contract_audit(
+    contract_audit = run_shadow_contract_audit(
         repo_root,
         case_stage3c_dirs={
             case_id: e2e_report_root / "case_runs" / case_id / "stage3c"
@@ -322,6 +322,6 @@ def run_stage6_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any
 
 
 if __name__ == "__main__":
-    result = run_stage6_shadow_gate()
+    result = run_shadow_gate()
     print(result["gate_result"]["overall_status"])
     sys.exit(0 if result["gate_result"]["overall_status"] == "pass" else 1)

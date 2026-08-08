@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.online_shadow_golden import run_stage6_online_shadow_golden_gate
+from agent_ai.benchmark.shadow.online_shadow_golden import run_online_shadow_golden_gate
 
 
 def main() -> int:
@@ -15,7 +15,7 @@ def main() -> int:
     parser.add_argument("--repin-baseline", action="store_true")
     args = parser.parse_args()
 
-    result = run_stage6_online_shadow_golden_gate(REPO_ROOT, repin_baseline=bool(args.repin_baseline))
+    result = run_online_shadow_golden_gate(REPO_ROOT, repin_baseline=bool(args.repin_baseline))
     print(result["gate_result"]["overall_status"])
     return 0 if result["gate_result"]["overall_status"] == "pass" else 1
 

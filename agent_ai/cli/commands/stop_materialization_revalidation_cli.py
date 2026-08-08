@@ -6,8 +6,8 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.stop_materialization_revalidation import run_stage4_stop_materialization_revalidation
+from agent_ai.benchmark.gates.stop_materialization_revalidation import run_stop_materialization_revalidation
 
 
 if __name__ == "__main__":
-    run_stage4_stop_materialization_revalidation(REPO_ROOT)
+    run_stop_materialization_revalidation(REPO_ROOT)

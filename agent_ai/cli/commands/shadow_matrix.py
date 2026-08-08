@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.shadow_matrix import run_stage6_shadow_matrix
+from agent_ai.benchmark.shadow.shadow_matrix import run_shadow_matrix
 
 
 def main() -> int:
@@ -19,7 +19,7 @@ def main() -> int:
     parser.add_argument("--retry-attempts", type=int, default=1)
     args = parser.parse_args()
 
-    result = run_stage6_shadow_matrix(
+    result = run_shadow_matrix(
         REPO_ROOT,
         carla_root=args.carla_root,
         carla_port=int(args.carla_port),

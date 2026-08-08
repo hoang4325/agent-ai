@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.shadow_expansion import rerun_stage6_shadow_expansion_golden_from_stability
+from agent_ai.benchmark.shadow.shadow_expansion import rerun_stage6_shadow_expansion_golden_from_stability
 
 
 def main() -> int:

@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.takeover_canary import run_stage6_takeover_canary
+from agent_ai.benchmark.takeover.takeover_canary import run_takeover_canary
 
 
 def main() -> int:
@@ -17,7 +17,7 @@ def main() -> int:
     parser.add_argument("--kill-switch-verification-source", default="simulation_abort_path_verified")
     args = parser.parse_args()
 
-    payload = run_stage6_takeover_canary(
+    payload = run_takeover_canary(
         REPO_ROOT,
         phase=str(args.phase),
         operator_signoff_source=str(args.operator_signoff_source),

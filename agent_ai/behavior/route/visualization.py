@@ -73,7 +73,7 @@ def _save_lane_change_stage_timeline(output_path: Path, frame_records: List[Dict
     plt.close(fig)
 
 
-def save_stage3b_visualization_bundle(
+def save_route_visualization_bundle(
     *,
     output_root: str | Path,
     frame_records: Iterable[Dict[str, Any]],

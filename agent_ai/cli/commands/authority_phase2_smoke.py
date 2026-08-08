@@ -1,7 +1,7 @@
 """
 Stage 9 — Phase 2 Smoke Test
 ==============================
-Verifies TORManager, MRMExecutor, HumanOverrideMonitor, Stage9Evaluator.
+Verifies TORManager, MRMExecutor, HumanOverrideMonitor, AuthorityEvaluator.
 Includes integration tests across TOR → MRM → SAFE_STOP path and
 human override detection + re-engagement.
 
@@ -37,7 +37,7 @@ from agent_ai.authority import (
     ODDStatus,
     SafetySupervisor,
     SensorHealth,
-    Stage9Evaluator,
+    AuthorityEvaluator,
     TORManager,
     TrajectoryRequest,
     WorldState,
@@ -229,24 +229,24 @@ def test_human_override_released():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Stage9Evaluator tests
+# AuthorityEvaluator tests
 # ─────────────────────────────────────────────────────────────────────────────
 
 def test_evaluator_empty_log(tmp_log: Path):
-    print("\n[TEST] Stage9Evaluator — empty log")
-    ev = Stage9Evaluator(tmp_log / "empty.jsonl")
+    print("\n[TEST] AuthorityEvaluator — empty log")
+    ev = AuthorityEvaluator(tmp_log / "empty.jsonl")
     report = ev.compute()
     _check("returns EvaluationReport", isinstance(report, EvaluationReport))
     _check("no frames", report.total_frames == 0)
 
 
 def test_evaluator_from_real_log():
-    print("\n[TEST] Stage9Evaluator — reads existing Phase 1 log")
+    print("\n[TEST] AuthorityEvaluator — reads existing Phase 1 log")
     log = Path("agent_ai/benchmark/reports/stage9_authority_log.jsonl")
     if not log.exists():
         print("    [SKIP] No log file found — run Phase 1 smoke first")
         return
-    ev = Stage9Evaluator(log)
+    ev = AuthorityEvaluator(log)
     report = ev.compute()
     _check("report has frames", report.total_frames >= 0)
     _check("gates evaluated", len(report.gate_results) == 8)

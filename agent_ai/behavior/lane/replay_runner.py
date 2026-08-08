@@ -11,15 +11,15 @@ from agent_ai.shared.artifact_io import write_json as _write_json
 from agent_ai.shared.logging_setup import configure_logging
 
 from .request_builder import build_behavior_request
-from .evaluation import summarize_stage3_session
+from .evaluation import summarize_lane_session
 from .context_builder import build_lane_context
 from .reasoning import build_lane_relative_objects, summarize_lane_scene
 from .maneuver_validator import validate_maneuvers
 from .map_adapter import CarlaMapAdapter, bevfusion_world_xyz_to_carla
 from .schema import LaneAwareWorldState
-from .visualization import save_stage3_visualization_bundle
+from .visualization import save_lane_visualization_bundle
 
-LOGGER = logging.getLogger("stage3.replay_runner")
+LOGGER = logging.getLogger("agent_ai.behavior.lane.replay_runner")
 
 
 def _list_stage2_frame_dirs(stage2_output_dir: Path) -> List[Path]:
@@ -206,9 +206,9 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
             lane_context.junction_context.is_in_junction,
         )
 
-    evaluation_summary = summarize_stage3_session(frame_records)
+    evaluation_summary = summarize_lane_session(frame_records)
     _write_json(output_dir / "evaluation_summary.json", evaluation_summary)
-    save_stage3_visualization_bundle(
+    save_lane_visualization_bundle(
         output_root=output_dir / "visualization",
         frame_records=frame_records,
     )

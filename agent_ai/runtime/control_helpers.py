@@ -1,7 +1,7 @@
 """
 Stage-4 control helpers extracted from the online orchestrator.
 
-Keeps ``Stage4OnlineOrchestrator`` focused on the tick loop while shared
+Keeps ``OnlineOrchestrator`` focused on the tick loop while shared
 control math / CARLA apply helpers live here for reuse and testing.
 """
 from __future__ import annotations

@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, List
 from agent_ai.shared.artifact_io import write_json as _write_json
 
 
-def save_stage4_visualization_bundle(
+def save_runtime_visualization_bundle(
     *,
     output_root: str | Path,
     tick_records: Iterable[Dict[str, Any]],

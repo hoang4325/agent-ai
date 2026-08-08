@@ -12,9 +12,9 @@ INVARIANTS:
   - Fallback to baseline on any veto or timeout
 
 Usage:
-  python scripts/run_stage8_assist_smoke.py
-  python scripts/run_stage8_assist_smoke.py --adapter-mode api --api-endpoint <url>
-  python scripts/run_stage8_assist_smoke.py --adapter-mode api_simulated
+  python scripts/run_assist_smoke.py
+  python scripts/run_assist_smoke.py --adapter-mode api --api-endpoint <url>
+  python scripts/run_assist_smoke.py --adapter-mode api_simulated
 """
 from __future__ import annotations
 
@@ -29,8 +29,8 @@ from typing import Any
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
-from agent_ai.benchmark.assist_adapter import Stage8AssistAdapter
+from agent_ai.benchmark.shadow.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
+from agent_ai.benchmark.assist.assist_adapter import AssistAdapter
 from agent_ai.benchmark.io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
 
 # ── Constants ──────────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ def _compute_gate_metrics(frame_records: list, ae_stats: dict) -> dict:
     }
 
 
-def run_stage8_assist_smoke(
+def run_assist_smoke(
     repo_root: str | Path,
     adapter_mode: str = "api_simulated",
     api_key_env_var: str = "AGENT_API_KEY",
@@ -217,7 +217,7 @@ def run_stage8_assist_smoke(
     shadow_adapter = AgentShadowAdapter(cfg)
 
     # ── Build Stage 8 assist adapter ───────────────────────────────────────────
-    assist = Stage8AssistAdapter(
+    assist = AssistAdapter(
         shadow_adapter=shadow_adapter,
         case_id=STAGE8_CANARY_CASE,
         memory_window=memory_window,
@@ -363,7 +363,7 @@ def main() -> None:
             sys.exit(2)
         print(f"[Stage8-Assist] API key found in {args.api_key_env} — real LLM calls enabled.")
 
-    result = run_stage8_assist_smoke(
+    result = run_assist_smoke(
         repo_root=args.repo_root,
         adapter_mode=args.adapter_mode,
         api_key_env_var=args.api_key_env,

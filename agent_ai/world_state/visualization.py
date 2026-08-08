@@ -71,7 +71,7 @@ def _save_scene_timeline(
     plt.close(fig)
 
 
-def save_stage2_visualization_bundle(
+def save_world_visualization_bundle(
     *,
     output_root: str | Path,
     world_states: Iterable[WorldState],

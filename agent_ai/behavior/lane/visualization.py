@@ -88,7 +88,7 @@ def _save_lane_context_timeline(output_path: Path, frame_records: List[Dict[str,
     plt.close(fig)
 
 
-def save_stage3_visualization_bundle(
+def save_lane_visualization_bundle(
     *,
     output_root: str | Path,
     frame_records: Iterable[Dict[str, Any]],

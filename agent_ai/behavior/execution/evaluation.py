@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, List
 from agent_ai.behavior.coverage.evaluation import derive_lane_change_events, derive_stop_events
 
 
-def summarize_stage3c_session(
+def summarize_execution_session(
     execution_records: Iterable[Dict[str, Any]],
     lane_change_events: Iterable[Dict[str, Any]],
 ) -> Dict[str, Any]:

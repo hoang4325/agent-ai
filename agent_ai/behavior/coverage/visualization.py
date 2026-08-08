@@ -6,7 +6,7 @@ from typing import Any, Dict
 import matplotlib.pyplot as plt
 
 
-def save_stage3c_coverage_visualization(
+def save_coverage_visualization(
     *,
     output_dir: str | Path,
     coverage_summary: Dict[str, Any],

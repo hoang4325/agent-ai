@@ -1648,7 +1648,7 @@ def run(args: argparse.Namespace) -> int:
             LOGGER.warning("Stage10 MP4 recording disabled by AGENTAI_DISABLE_MP4; ignoring --record-mp4")
             effective_record_mp4 = False
         if effective_record_mp4:
-            from agent_ai.behavior.execution.video_recorder import Stage3CVideoRecorder
+            from agent_ai.behavior.execution.video_recorder import ExecutionVideoRecorder
 
             recording_path = (
                 Path(args.recording_path)
@@ -1660,7 +1660,7 @@ def run(args: argparse.Namespace) -> int:
                 if float(args.recording_fps) > 0.0
                 else 1.0 / max(float(args.delta_t), 1e-6)
             )
-            video_recorder = Stage3CVideoRecorder(
+            video_recorder = ExecutionVideoRecorder(
                 world=world,
                 vehicle=ego,
                 output_path=recording_path,

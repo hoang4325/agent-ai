@@ -9,7 +9,7 @@ from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
 PROJECT_ROOT = REPO_ROOT
-from agent_ai.benchmark.organic_fallback_ring import run_stage6_organic_fallback_ring  # noqa: E402
+from agent_ai.benchmark.takeover.organic_fallback_ring import run_organic_fallback_ring  # noqa: E402
 
 
 def main() -> None:
@@ -18,7 +18,7 @@ def main() -> None:
     parser.add_argument("--carla-root", default="D:/carla")
     parser.add_argument("--retry-attempts", type=int, default=1)
     args = parser.parse_args()
-    result = run_stage6_organic_fallback_ring(
+    result = run_organic_fallback_ring(
         PROJECT_ROOT,
         case_ids=args.case_ids,
         carla_root=args.carla_root,

@@ -5,9 +5,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from agent_ai.behavior.lane.evaluation import summarize_stage3_session
-from agent_ai.behavior.route.evaluation import summarize_stage3b_session
-from agent_ai.behavior.execution.evaluation import summarize_stage3c_session
+from agent_ai.behavior.lane.evaluation import summarize_lane_session
+from agent_ai.behavior.route.evaluation import summarize_route_session
+from agent_ai.behavior.execution.evaluation import summarize_execution_session
 from agent_ai.behavior.coverage.planner_quality import write_planner_quality_artifacts
 
 from .io import dump_json, dump_jsonl, load_json, load_jsonl
@@ -279,14 +279,14 @@ def _write_stage2_bundle(*, stage2_dir: Path, updates: list[dict[str, Any]], sel
 
 def _write_stage3a_bundle(*, stage3a_dir: Path, stage3a_records: list[dict[str, Any]], selected_sample: str | None, stage4_dir: Path) -> None:
     dump_jsonl(stage3a_dir / "behavior_timeline.jsonl", stage3a_records)
-    dump_json(stage3a_dir / "evaluation_summary.json", summarize_stage3_session(stage3a_records))
+    dump_json(stage3a_dir / "evaluation_summary.json", summarize_lane_session(stage3a_records))
     if selected_sample:
         _copy_if_exists(stage4_dir / "frames" / selected_sample / "lane_aware_world_state.json", stage3a_dir / "frames" / selected_sample / "lane_aware_world_state.json")
 
 
 def _write_stage3b_bundle(*, stage3b_dir: Path, stage3b_records: list[dict[str, Any]], selected_sample: str | None, stage4_dir: Path) -> None:
     dump_jsonl(stage3b_dir / "behavior_timeline_v2.jsonl", stage3b_records)
-    dump_json(stage3b_dir / "evaluation_summary.json", summarize_stage3b_session(stage3b_records))
+    dump_json(stage3b_dir / "evaluation_summary.json", summarize_route_session(stage3b_records))
     if selected_sample:
         _copy_if_exists(stage4_dir / "frames" / selected_sample / "behavior_request_v2.json", stage3b_dir / "frames" / selected_sample / "behavior_request_v2.json")
 
@@ -298,7 +298,7 @@ def _write_stage3c_bundle(*, stage3c_dir: Path, stage4_dir: Path) -> None:
     online_summary = load_json(stage4_dir / "online_run_summary.json") or {}
     stage3c_summary = online_summary.get("stage3c_execution_summary")
     if not isinstance(stage3c_summary, dict):
-        stage3c_summary = summarize_stage3c_session(execution_records, lane_change_events)
+        stage3c_summary = summarize_execution_session(execution_records, lane_change_events)
     dump_json(stage3c_dir / "execution_summary.json", stage3c_summary)
     dump_jsonl(stage3c_dir / "execution_timeline.jsonl", execution_records)
     dump_jsonl(stage3c_dir / "lane_change_events.jsonl", lane_change_events)

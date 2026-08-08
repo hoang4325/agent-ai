@@ -1,5 +1,5 @@
 """
-run_stage5b_gate.py
+run_artifact_gate.py
 ===================
 Entrypoint to run the Stage 5B planner / execution quality gate:
 1. Build Stage 5B metric pack and set files
@@ -25,9 +25,9 @@ ensure_repo_on_path()
 from agent_ai.benchmark.frozen_corpus_builder import build_frozen_corpus
 from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path
 from agent_ai.benchmark.runner_core import run_benchmark
-from agent_ai.benchmark.artifact_audit import run_stage5b_artifact_audit
-from agent_ai.benchmark.artifact_failure_replay_builder import build_stage5b_sets
-from agent_ai.benchmark.artifact_metric_pack import build_stage5b_metric_pack
+from agent_ai.benchmark.gates.artifact_audit import run_artifact_audit
+from agent_ai.benchmark.gates.artifact_failure_replay_builder import build_stage5b_sets
+from agent_ai.benchmark.gates.artifact_metric_pack import build_stage5b_metric_pack
 from agent_ai.cli.commands.system_benchmark_e2e import run_e2e_benchmark
 
 
@@ -206,7 +206,7 @@ def _merge_gate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
+def run_artifact_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
     repo_root = Path(repo_root or REPO_ROOT)
 
     print("=" * 72)
@@ -243,7 +243,7 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
     print(f"  -> Readiness counts: {frozen_build['readiness']['summary']['readiness_counts']}")
 
     print("\n[Phase 4] Auditing Stage 5B artifact support...")
-    artifact_audit = run_stage5b_artifact_audit(repo_root)
+    artifact_audit = run_artifact_audit(repo_root)
     print(f"  -> Artifact support: {artifact_audit['artifact_support']}")
 
     benchmark_runs: list[dict[str, Any]] = []
@@ -343,5 +343,9 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    result = run_stage5b_gate()
+    result = run_artifact_gate()
     sys.exit(0 if result["overall_status"] == "pass" else 1)
+
+
+# Backward-compatible aliases
+run_stage5b_gate = run_artifact_gate

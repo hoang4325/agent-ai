@@ -1,9 +1,2 @@
-from __future__ import annotations
-
-from pathlib import Path
-
-from .mpc_tuning import run_stage6_mpc_tuning_compare
-
-
-def main(repo_root: str | Path) -> dict:
-    return run_stage6_mpc_tuning_compare(repo_root)
+"""Deprecated: use ``agent_ai.benchmark.shadow.mpc_tuning_compare``."""
+from agent_ai.benchmark.shadow.mpc_tuning_compare import *  # noqa: F403

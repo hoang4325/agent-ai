@@ -106,6 +106,10 @@ class TrackedObject:
     risk_score: float = 0.0
     risk_level: str = "low"
     reasoning_tags: List[str] = field(default_factory=list)
+    # Multi-mode short-horizon prediction (P1); empty when not computed.
+    predicted_modes: List[Dict[str, Any]] = field(default_factory=list)
+    predicted_min_ttc_s: float | None = None
+    predicted_min_range_m: float | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         return dataclass_to_dict(self)
@@ -168,6 +172,10 @@ class PlannerInterfacePayload:
     tracked_objects: List[Dict[str, Any]]
     scene_summary: Dict[str, Any]
     risk_summary: Dict[str, Any]
+    # P2 optional enrichments (empty when not computed).
+    soft_contract: Dict[str, Any] = field(default_factory=dict)
+    interaction_summary: Dict[str, Any] = field(default_factory=dict)
+    cost_memory_snapshot: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return dataclass_to_dict(self)

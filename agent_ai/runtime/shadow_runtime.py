@@ -8,12 +8,12 @@ from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl
 from agent_ai.shared.artifact_io import touch_jsonl as _touch_jsonl
 from agent_ai.shared.artifact_io import write_json as _write_json_impl
 from agent_ai.shared.artifact_io import write_jsonl as _write_jsonl
-from agent_ai.benchmark.kinematic_mpc_shadow import (
+from agent_ai.benchmark.shadow.kinematic_mpc_shadow import (
     _build_shadow_summary_from_proposals,
     new_shadow_runtime_state,
     solve_kinematic_shadow_step,
 )
-from agent_ai.benchmark.shadow_artifacts import (
+from agent_ai.benchmark.shadow.shadow_artifacts import (
     _merge_realized_outcome_into_shadow_summary,
     build_shadow_baseline_comparison_payload,
     build_shadow_realized_outcome_payload,
@@ -25,7 +25,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     _write_json_impl(path, payload, ensure_ascii=True, trailing_newline=True)
 
 
-class Stage4ShadowRuntime:
+class ShadowRuntime:
     def __init__(self, *, output_dir: str | Path, case_id: str) -> None:
         self.output_dir = Path(output_dir)
         self.case_id = str(case_id)

@@ -10,11 +10,11 @@ from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl
 from agent_ai.behavior.execution.contract import ExecutionRequest
 from agent_ai.behavior.execution.monitor import ExecutionMonitor
 from agent_ai.behavior.execution.local_planner_bridge import LocalPlannerBridge, PlannerStepResult
-from agent_ai.behavior.execution.video_recorder import Stage3CVideoRecorder
+from agent_ai.behavior.execution.video_recorder import ExecutionVideoRecorder
 
 from .arbitration import ArbitrationDecision, arbitrate_request
 
-LOGGER = logging.getLogger("stage4.execution_runtime")
+LOGGER = logging.getLogger("agent_ai.runtime.execution")
 
 
 @dataclass
@@ -88,9 +88,9 @@ class ExecutionRuntime:
         self.hard_stale_ticks = int(hard_stale_ticks)
         self._pending_tick: _PendingExecutionTick | None = None
 
-        self.video_recorder: Stage3CVideoRecorder | None = None
+        self.video_recorder: ExecutionVideoRecorder | None = None
         if recording_enabled:
-            self.video_recorder = Stage3CVideoRecorder(
+            self.video_recorder = ExecutionVideoRecorder(
                 world=vehicle.get_world(),
                 vehicle=vehicle,
                 output_path=recording_path or (self.output_dir / "video" / "closed_loop.mp4"),

@@ -20,7 +20,7 @@ from typing import Any
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.cli.commands.assist_smoke import run_stage8_assist_smoke
+from agent_ai.cli.commands.assist_smoke import run_assist_smoke
 from agent_ai.benchmark.io import dump_json
 
 
@@ -54,7 +54,7 @@ def main():
         print(f"\n[Stage8-Campaign] ─── RUN {i} / {args.runs} ─────────────────────────────")
         
         try:
-            res = run_stage8_assist_smoke(
+            res = run_assist_smoke(
                 repo_root=args.repo_root,
                 adapter_mode=args.adapter_mode,
                 api_key_env_var=args.api_key_env,

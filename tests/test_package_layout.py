@@ -71,12 +71,34 @@ class PackageLayoutTests(unittest.TestCase):
 
     def test_renamed_authority_modules(self) -> None:
         from agent_ai.authority.arbiter import AuthorityArbiter
-        from agent_ai.authority.evaluator import Stage9Evaluator
+        from agent_ai.authority.evaluator import AuthorityEvaluator, Stage9Evaluator
         from agent_ai.authority.state_machine import AuthorityStateMachine
 
         self.assertTrue(callable(AuthorityArbiter))
         self.assertTrue(callable(AuthorityStateMachine))
-        self.assertTrue(callable(Stage9Evaluator))
+        self.assertTrue(callable(AuthorityEvaluator))
+        self.assertIs(AuthorityEvaluator, Stage9Evaluator)
+
+    def test_benchmark_subpackages_importable(self) -> None:
+        for name in (
+            "agent_ai.benchmark.gates",
+            "agent_ai.benchmark.shadow",
+            "agent_ai.benchmark.takeover",
+            "agent_ai.benchmark.assist",
+            "agent_ai.benchmark.gates.contract_audit",
+            "agent_ai.benchmark.takeover.takeover_canary",
+            "agent_ai.benchmark.assist.assist_adapter",
+        ):
+            self.assertIsNotNone(importlib.import_module(name))
+
+    def test_runtime_symbol_aliases(self) -> None:
+        # Import symbols without pulling cv2-heavy execution stack if possible.
+        # orchestrator imports ExecutionRuntime which imports cv2 — skip if env broken.
+        try:
+            from agent_ai.runtime.orchestrator import OnlineOrchestrator, Stage4OnlineOrchestrator
+        except ImportError:
+            self.skipTest("optional deps (cv2/numpy) unavailable in this environment")
+        self.assertIs(OnlineOrchestrator, Stage4OnlineOrchestrator)
 
     def test_cli_command_modules_use_domain_names(self) -> None:
         from agent_ai.cli.registry_data import COMMANDS

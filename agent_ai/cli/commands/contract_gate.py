@@ -1,5 +1,5 @@
 """
-run_stage5a_gate.py
+run_contract_gate.py
 ====================
 Entrypoint to run the full Stage 5A gate pipeline:
 1. Contract audit
@@ -21,9 +21,9 @@ from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
 from agent_ai.benchmark.frozen_corpus_builder import build_frozen_corpus
-from agent_ai.benchmark.contract_audit import run_contract_audit
-from agent_ai.benchmark.contract_metric_pack import build_stage5a_metric_pack
-from agent_ai.benchmark.contract_failure_replay_builder import build_failure_replay_cases
+from agent_ai.benchmark.gates.contract_audit import run_contract_audit
+from agent_ai.benchmark.gates.contract_metric_pack import build_stage5a_metric_pack
+from agent_ai.benchmark.gates.contract_failure_replay_builder import build_failure_replay_cases
 from agent_ai.benchmark.io import dump_json, load_yaml, resolve_repo_path
 from agent_ai.cli.commands.system_benchmark_e2e import run_e2e_benchmark
 
@@ -101,7 +101,7 @@ def _scenario_replay_diagnostics(result: dict[str, Any], required_cases: list[st
     }
 
 
-def run_stage5a_gate(
+def run_contract_gate(
     repo_root: str | Path | None = None,
     skip_audit: bool = False,
     skip_failure_cases: bool = False,
@@ -273,5 +273,9 @@ def run_stage5a_gate(
 
 if __name__ == "__main__":
     from typing import Any
-    result = run_stage5a_gate()
+    result = run_contract_gate()
     sys.exit(0 if result["overall_status"] == "pass" else 1)
+
+
+# Backward-compatible aliases
+run_stage5a_gate = run_contract_gate

@@ -9,7 +9,7 @@ from agent_ai.shared.artifact_io import write_json as _write_json
 from .state_store import BehaviorFrameState, OnlineStackState, OnlineTickRecord
 
 
-class Stage4Monitor:
+class RuntimeMonitor:
     def __init__(self, *, output_dir: str | Path) -> None:
         self.output_dir = Path(output_dir)
         self.tick_record_path = self.output_dir / "online_tick_record.jsonl"

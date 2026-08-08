@@ -10,7 +10,7 @@ from typing import Any, Dict, Iterable, List, Sequence
 
 import carla
 
-LOGGER = logging.getLogger("stage3_multilane_scenario")
+LOGGER = logging.getLogger("agent_ai.cli.multilane_scenario")
 
 
 @dataclass

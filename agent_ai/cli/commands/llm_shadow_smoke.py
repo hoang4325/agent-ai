@@ -24,10 +24,10 @@ Adapter modes:
                              Missing key → all frames timeout-fallback (recorded).
 
 Usage:
-  python scripts/run_stage7_llm_shadow_smoke.py
-  python scripts/run_stage7_llm_shadow_smoke.py --adapter-mode api_simulated
-  python scripts/run_stage7_llm_shadow_smoke.py --adapter-mode api
-  python scripts/run_stage7_llm_shadow_smoke.py --adapter-mode api --api-key-env GEMINI_API_KEY
+  python scripts/run_llm_shadow_smoke.py
+  python scripts/run_llm_shadow_smoke.py --adapter-mode api_simulated
+  python scripts/run_llm_shadow_smoke.py --adapter-mode api
+  python scripts/run_llm_shadow_smoke.py --adapter-mode api --api-key-env GEMINI_API_KEY
 
 Output:
   agent_ai/benchmark/llm_shadow_smoke_result.json
@@ -43,7 +43,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.llm_shadow_smoke import run_stage7_llm_shadow_smoke
+from agent_ai.benchmark.shadow.llm_shadow_smoke import run_llm_shadow_smoke
 
 
 def _parse_args() -> argparse.Namespace:
@@ -108,7 +108,7 @@ def main() -> None:
         else:
             print(f"[Stage7-LLM] API key found in {args.api_key_env} — real Gemini calls enabled.")
 
-    result = run_stage7_llm_shadow_smoke(
+    result = run_llm_shadow_smoke(
         repo_root=args.repo_root,
         adapter_mode=args.adapter_mode,
         api_key_env_var=args.api_key_env,

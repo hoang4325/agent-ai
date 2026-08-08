@@ -1,5 +1,5 @@
 """
-run_stage6_preflight.py
+run_preflight.py
 =======================
 Refreshes frozen corpus, builds the Stage 6 preflight metric pack, audits
 stop_target / latency / fallback contracts, and materializes a replay-based
@@ -20,8 +20,8 @@ ensure_repo_on_path()
 from agent_ai.benchmark.frozen_corpus_builder import build_frozen_corpus
 from agent_ai.benchmark.io import dump_json, load_yaml, resolve_repo_path
 from agent_ai.benchmark.runner_core import run_benchmark
-from agent_ai.benchmark.preflight_contract_audit import run_stage6_preflight_contract_audit
-from agent_ai.benchmark.preflight_metric_pack import build_stage6_preflight_metric_pack
+from agent_ai.benchmark.gates.preflight_contract_audit import run_preflight_contract_audit
+from agent_ai.benchmark.gates.preflight_metric_pack import build_stage6_preflight_metric_pack
 
 
 def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
@@ -84,7 +84,7 @@ def _materialize_runtime_overlay(repo_root: Path, benchmark_config: dict[str, An
     return runtime_cfg_path, overlay_set_name
 
 
-def run_stage6_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
+def run_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
     repo_root = Path(repo_root or REPO_ROOT)
     benchmark_config = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
 
@@ -101,7 +101,7 @@ def run_stage6_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
         output_root=frozen_root,
     )
     metric_pack = build_stage6_preflight_metric_pack(repo_root)
-    audit = run_stage6_preflight_contract_audit(repo_root)
+    audit = run_preflight_contract_audit(repo_root)
     runtime_cfg_path, set_name = _materialize_runtime_overlay(repo_root, benchmark_config, metric_pack)
     replay_eval = run_benchmark(
         repo_root=repo_root,
@@ -127,4 +127,4 @@ def run_stage6_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    run_stage6_preflight()
+    run_preflight()

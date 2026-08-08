@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List
 from .schema import DecisionIntent, WorldState
 
 
-def summarize_stage2_session(
+def summarize_world_session(
     world_states: Iterable[WorldState],
     decisions: Iterable[DecisionIntent],
 ) -> Dict[str, object]:

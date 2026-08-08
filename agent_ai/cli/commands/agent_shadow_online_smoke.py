@@ -1,7 +1,7 @@
 """
 Stage 7C — Agent Shadow Online Smoke Script
 =============================================
-scripts/run_stage7c_online_shadow_smoke.py
+scripts/run_agent_shadow_online_smoke.py
 
 Runs Stage 7C agent shadow online smoke on the exact 2 promoted cases:
   - ml_right_positive_core
@@ -12,11 +12,11 @@ CRITICAL: shadow-only, NO control authority.
   No assist mode. No takeover. No authority hand-off.
 
 Usage:
-  python scripts/run_stage7c_online_shadow_smoke.py
-  python scripts/run_stage7c_online_shadow_smoke.py --adapter-mode stub
-  python scripts/run_stage7c_online_shadow_smoke.py --max-frames 60
-    python scripts/run_stage7c_online_shadow_smoke.py --cases ml_right_positive_core,stop_follow_ambiguity_core,ml_left_positive_core,arbitration_stop_during_prepare_right
-  python scripts/run_stage7c_online_shadow_smoke.py --output-dir D:/Agent-AI/agent_ai/benchmark/reports/stage7c_run1
+  python scripts/run_agent_shadow_online_smoke.py
+  python scripts/run_agent_shadow_online_smoke.py --adapter-mode stub
+  python scripts/run_agent_shadow_online_smoke.py --max-frames 60
+    python scripts/run_agent_shadow_online_smoke.py --cases ml_right_positive_core,stop_follow_ambiguity_core,ml_left_positive_core,arbitration_stop_during_prepare_right
+  python scripts/run_agent_shadow_online_smoke.py --output-dir D:/Agent-AI/agent_ai/benchmark/reports/stage7c_run1
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
 PROJECT_ROOT = REPO_ROOT
-from agent_ai.benchmark.agent_shadow_online_smoke import run_stage7c_online_shadow_smoke
+from agent_ai.benchmark.shadow.agent_shadow_online_smoke import run_agent_shadow_online_smoke
 
 
 def main() -> None:
@@ -98,7 +98,7 @@ def main() -> None:
     print("=" * 65)
     print()
 
-    result = run_stage7c_online_shadow_smoke(
+    result = run_agent_shadow_online_smoke(
         repo_root=repo_root,
         config_path=args.config,
         set_name=args.set,

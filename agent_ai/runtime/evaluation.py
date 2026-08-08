@@ -4,7 +4,7 @@ from collections import Counter
 from statistics import mean
 from typing import Any, Dict, Iterable, List
 
-from agent_ai.behavior.execution.evaluation import summarize_stage3c_session
+from agent_ai.behavior.execution.evaluation import summarize_execution_session
 
 
 def _mean_or_none(values: List[float | None]) -> float | None:
@@ -14,7 +14,7 @@ def _mean_or_none(values: List[float | None]) -> float | None:
     return float(mean(filtered))
 
 
-def summarize_stage4_session(
+def summarize_runtime_session(
     *,
     tick_records: Iterable[Dict[str, Any]],
     behavior_updates: Iterable[Dict[str, Any]],
@@ -29,7 +29,7 @@ def summarize_stage4_session(
     behavior_updates = list(behavior_updates)
     execution_records = list(execution_records)
     lane_change_events = list(lane_change_events)
-    stage3c_summary = summarize_stage3c_session(execution_records, lane_change_events)
+    stage3c_summary = summarize_execution_session(execution_records, lane_change_events)
 
     behavior_counter = Counter(
         record["selected_behavior"] for record in tick_records if record.get("selected_behavior")

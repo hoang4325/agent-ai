@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.shadow_expansion import run_stage6_shadow_expansion
+from agent_ai.benchmark.shadow.shadow_expansion import run_shadow_expansion
 
 
 def main() -> int:
@@ -17,7 +17,7 @@ def main() -> int:
     parser.add_argument("--carla-port", type=int, default=2000)
     args = parser.parse_args()
 
-    result = run_stage6_shadow_expansion(
+    result = run_shadow_expansion(
         REPO_ROOT,
         repeats=int(args.repeats),
         carla_root=args.carla_root,

@@ -82,12 +82,12 @@ _GATES = {
 
 # ── Evaluator ─────────────────────────────────────────────────────────────────
 
-class Stage9Evaluator:
+class AuthorityEvaluator:
     """
     Evaluate Stage 9 authority metrics from JSONL authority log.
 
     Usage:
-      ev = Stage9Evaluator(log_path)
+      ev = AuthorityEvaluator(log_path)
       report = ev.compute()
       ev.print_report(report)
     """
@@ -242,3 +242,7 @@ class Stage9Evaluator:
         r.all_gates_pass = all(r.gate_results.values())
 
         return r
+
+
+# Backward-compatible alias
+Stage9Evaluator = AuthorityEvaluator

@@ -41,11 +41,11 @@ CANONICAL_MODULES: dict[str, str] = {
     "agent_ai.cli.commands.stage9_campaign": "agent_ai.cli.commands.authority_campaign",
     "agent_ai.cli.commands.stage6_shadow_gate": "agent_ai.cli.commands.shadow_gate",
     # benchmark examples
-    "agent_ai.benchmark.stage6_shadow_gate": "agent_ai.benchmark.shadow_contract_audit",
-    "agent_ai.benchmark.stage6_takeover_canary": "agent_ai.benchmark.takeover_canary",
-    "agent_ai.benchmark.stage5a_contract_audit": "agent_ai.benchmark.contract_audit",
-    "agent_ai.benchmark.stage7_agent_shadow_audit": "agent_ai.benchmark.agent_shadow_audit",
-    "agent_ai.benchmark.stage8_assist_adapter": "agent_ai.benchmark.assist_adapter",
+    "agent_ai.benchmark.stage6_shadow_gate": "agent_ai.benchmark.shadow.shadow_contract_audit",
+    "agent_ai.benchmark.stage6_takeover_canary": "agent_ai.benchmark.takeover.takeover_canary",
+    "agent_ai.benchmark.stage5a_contract_audit": "agent_ai.benchmark.gates.contract_audit",
+    "agent_ai.benchmark.stage7_agent_shadow_audit": "agent_ai.benchmark.shadow.agent_shadow_audit",
+    "agent_ai.benchmark.stage8_assist_adapter": "agent_ai.benchmark.assist.assist_adapter",
 }
 
 # Public packages (no stage* names)

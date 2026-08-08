@@ -4,7 +4,7 @@ from collections import Counter
 from typing import Any, Dict, Iterable, List
 
 
-def summarize_stage3b_session(frame_records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+def summarize_route_session(frame_records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     records = list(frame_records)
     if not records:
         return {

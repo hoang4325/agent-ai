@@ -36,10 +36,10 @@ from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
 PROJECT_ROOT = REPO_ROOT
-from agent_ai.benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig, build_adapter
+from agent_ai.benchmark.shadow.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig, build_adapter
 from agent_ai.benchmark.io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
-from agent_ai.benchmark.agent_shadow_audit import run_stage7_contract_audit
-from agent_ai.benchmark.agent_shadow_metric_pack import (
+from agent_ai.benchmark.shadow.agent_shadow_audit import run_agent_shadow_contract_audit
+from agent_ai.benchmark.shadow.agent_shadow_metric_pack import (
     build_agent_baseline_comparison,
     build_agent_shadow_summary,
     compute_agent_shadow_metrics,
@@ -144,7 +144,7 @@ def _build_agent_input_bundle(
     return ego_state, tracked_objects, lane_context, route_context, stop_ctx, baseline_context
 
 
-def run_stage7_gate(
+def run_agent_shadow_gate(
     *,
     repo_root: Path,
     benchmark_config: dict[str, Any],
@@ -411,7 +411,7 @@ def main() -> None:
     # Optional: run audit first
     if args.run_audit:
         print("[Stage7] Running contract audit...")
-        run_stage7_contract_audit(repo_root)
+        run_agent_shadow_contract_audit(repo_root)
 
     # Build adapter
     adapter = build_adapter(
@@ -425,7 +425,7 @@ def main() -> None:
     print(f"[Stage7] Output: {output_dir}")
     print("[Stage7] INVARIANT: agent is shadow-only. Baseline tactical + MPC = sole authority.\n")
 
-    result = run_stage7_gate(
+    result = run_agent_shadow_gate(
         repo_root=repo_root,
         benchmark_config=benchmark_config,
         set_name=args.set,
@@ -444,3 +444,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# Backward-compatible aliases
+run_stage7_gate = run_agent_shadow_gate

@@ -170,9 +170,9 @@ def main() -> None:
     args = parse_args()
     configure_logging()
     ensure_carla_pythonapi(args.carla_pythonapi_root)
-    from agent_ai.runtime.orchestrator import Stage4OnlineOrchestrator
+    from agent_ai.runtime.orchestrator import OnlineOrchestrator
 
-    orchestrator = Stage4OnlineOrchestrator(args)
+    orchestrator = OnlineOrchestrator(args)
     orchestrator.run()
 
 

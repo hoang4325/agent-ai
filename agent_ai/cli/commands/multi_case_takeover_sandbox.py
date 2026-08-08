@@ -6,11 +6,11 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.multi_case_takeover_sandbox import run_stage6_multi_case_takeover_sandbox
+from agent_ai.benchmark.takeover.multi_case_takeover_sandbox import run_multi_case_takeover_sandbox
 
 
 def main() -> int:
-    payload = run_stage6_multi_case_takeover_sandbox(REPO_ROOT)
+    payload = run_multi_case_takeover_sandbox(REPO_ROOT)
     status = str((payload.get("result") or {}).get("overall_status") or "fail")
     print(status)
     return 0 if status == "pass" else 1

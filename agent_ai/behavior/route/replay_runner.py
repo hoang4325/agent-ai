@@ -12,12 +12,12 @@ from agent_ai.shared.logging_setup import configure_logging
 
 from .request_builder import build_behavior_request_v2
 from .behavior_selector import select_behavior
-from .evaluation import summarize_stage3b_session
+from .evaluation import summarize_route_session
 from .context_builder import build_route_conditioned_scene, build_route_context
 from .provider import load_route_manifest, resolve_route_hint
-from .visualization import save_stage3b_visualization_bundle
+from .visualization import save_route_visualization_bundle
 
-LOGGER = logging.getLogger("stage3b.replay_runner")
+LOGGER = logging.getLogger("agent_ai.behavior.route.replay_runner")
 
 
 def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -160,9 +160,9 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
             behavior_selection.lane_change_stage,
         )
 
-    evaluation_summary = summarize_stage3b_session(frame_records)
+    evaluation_summary = summarize_route_session(frame_records)
     _write_json(output_dir / "evaluation_summary.json", evaluation_summary)
-    save_stage3b_visualization_bundle(
+    save_route_visualization_bundle(
         output_root=output_dir / "visualization",
         frame_records=frame_records,
     )

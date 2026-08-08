@@ -7,7 +7,7 @@ from pathlib import Path
 from agent_ai.cli.bootstrap import REPO_ROOT, ensure_repo_on_path
 
 ensure_repo_on_path()
-from agent_ai.benchmark.non_timeout_fallback_ring import run_stage6_non_timeout_fallback_ring
+from agent_ai.benchmark.takeover.non_timeout_fallback_ring import run_non_timeout_fallback_ring
 
 
 def main() -> int:
@@ -16,7 +16,7 @@ def main() -> int:
     parser.add_argument("--carla-port", type=int, default=2000)
     args = parser.parse_args()
 
-    result = run_stage6_non_timeout_fallback_ring(
+    result = run_non_timeout_fallback_ring(
         REPO_ROOT,
         carla_root=args.carla_root,
         carla_port=int(args.carla_port),

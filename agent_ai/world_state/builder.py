@@ -24,8 +24,13 @@ def _object_ref(track: TrackedObject) -> Dict[str, Any]:
         "bearing_deg": float(track.bearing_deg),
         "position_ego": list(track.position_ego),
         "velocity_ego": list(track.velocity_ego),
+        "speed_mps": float(track.speed_mps),
+        "ttc_seconds": track.ttc_seconds,
         "risk_level": str(track.risk_level),
         "risk_score": float(track.risk_score),
+        "predicted_min_ttc_s": track.predicted_min_ttc_s,
+        "predicted_min_range_m": track.predicted_min_range_m,
+        "predicted_modes": list(track.predicted_modes or []),
     }
 
 

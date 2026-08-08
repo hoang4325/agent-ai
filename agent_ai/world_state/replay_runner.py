@@ -9,16 +9,20 @@ from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl
 from agent_ai.shared.artifact_io import write_json as _write_json
 from agent_ai.shared.logging_setup import configure_logging
 
-from .evaluation import summarize_stage2_session
+from .evaluation import summarize_world_session
 from .planner_interface import build_planner_interface_payload
+from .cost_memory import CostMemory
+from .interaction_predictor import apply_interaction_prediction
+from .motion_predictor import annotate_tracks_with_prediction
 from .prediction_loader import list_stage1_frame_artifacts, load_normalized_prediction
+from agent_ai.authority.soft_contract import build_soft_contract_from_behavior
 from .risk_engine import RiskAssessmentEngine
 from .tactical_rules import RuleBasedTacticalPolicy
 from .tracker import SimpleObjectTracker
-from .visualization import save_stage2_visualization_bundle
+from .visualization import save_world_visualization_bundle
 from .builder import WorldStateBuilder
 
-LOGGER = logging.getLogger("stage2.replay_runner")
+LOGGER = logging.getLogger("agent_ai.world_state.replay_runner")
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +66,7 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
     risk_engine = RiskAssessmentEngine()
     world_builder = WorldStateBuilder()
     policy = RuleBasedTacticalPolicy(cruise_speed_mps=args.cruise_speed_mps)
+    cost_memory = CostMemory()
 
     world_states = []
     decisions = []
@@ -72,16 +77,60 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
         "prediction_variant": args.prediction_variant,
         "min_score": args.min_score,
         "num_artifacts": len(artifacts),
+        "algorithm_tier": "P2",
     }
     _write_json(output_dir / "stage2_manifest.json", manifest)
 
     for artifact in artifacts:
         normalized = load_normalized_prediction(artifact, min_score=args.min_score)
         tracked_objects = tracker.update(normalized)
-        risk_summary = risk_engine.evaluate(tracked_objects)
+        annotate_tracks_with_prediction(tracked_objects)
+        interaction = apply_interaction_prediction(
+            tracked_objects,
+            ego_speed_mps=float(normalized.ego.speed_mps),
+            ensure_independent=False,
+        )
+        risk_summary = risk_engine.evaluate(
+            tracked_objects,
+            ego_speed_mps=float(normalized.ego.speed_mps),
+            interaction=interaction,
+        )
         world_state = world_builder.build(normalized, tracked_objects, risk_summary)
-        decision = policy.decide(world_state)
-        planner_payload = build_planner_interface_payload(world_state, decision)
+        # Stash interaction + adaptive weights into decision context for consumers.
+        world_state.decision_context = {
+            **world_state.decision_context,
+            "interaction_tags": list(interaction.tags),
+            "soft_weight_profile": [cost_memory.last_profile],
+        }
+        decision = policy.decide(world_state, cost_memory=cost_memory)
+        cost_memory.observe(
+            min_ttc_s=risk_summary.minimum_ttc_seconds,
+            highest_risk=risk_summary.highest_risk_level,
+            maneuver=decision.maneuver,
+            interaction_severity=interaction.max_interaction_severity,
+            object_count=len(tracked_objects),
+            nearest_front_m=risk_summary.nearest_front_vehicle_distance_m,
+        )
+        soft_bundle = build_soft_contract_from_behavior(
+            frame_id=int(world_state.frame_id),
+            sim_time_s=float(world_state.timestamp),
+            maneuver=decision.maneuver,
+            ego_speed_mps=float(world_state.ego.speed_mps),
+            target_speed_mps=float(decision.target_speed_mps),
+            min_ttc_s=risk_summary.minimum_ttc_seconds,
+            highest_risk=risk_summary.highest_risk_level,
+            interaction_severity=float(interaction.max_interaction_severity),
+            confidence=float(decision.confidence),
+            front_gap_m=world_state.scene.front_free_space_m,
+            reasoning_tags=decision.reasoning_tags,
+        )
+        planner_payload = build_planner_interface_payload(
+            world_state,
+            decision,
+            soft_contract=soft_bundle.to_dict(),
+            interaction_summary=interaction.to_dict(),
+            cost_memory_snapshot=cost_memory.snapshot(),
+        )
 
         frame_output_dir = frames_dir / artifact.sample_name
         _write_json(frame_output_dir / "normalized_prediction.json", normalized.to_dict())
@@ -91,12 +140,14 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
                 "sample_name": normalized.sample_name,
                 "frame_id": normalized.frame_id,
                 "tracked_objects": [item.to_dict() for item in tracked_objects],
+                "interaction_summary": interaction.to_dict(),
             },
         )
         _write_json(frame_output_dir / "scene_summary.json", world_state.scene.to_dict())
         _write_json(frame_output_dir / "risk_summary.json", world_state.risk_summary.to_dict())
         _write_json(frame_output_dir / "world_state.json", world_state.to_dict())
         _write_json(frame_output_dir / "decision_intent.json", decision.to_dict())
+        _write_json(frame_output_dir / "soft_contract.json", soft_bundle.to_dict())
         _write_json(frame_output_dir / "planner_interface_payload.json", planner_payload.to_dict())
 
         _append_jsonl(
@@ -132,9 +183,9 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
             world_state.risk_summary.highest_risk_level,
         )
 
-    evaluation_summary = summarize_stage2_session(world_states, decisions)
+    evaluation_summary = summarize_world_session(world_states, decisions)
     _write_json(output_dir / "evaluation_summary.json", evaluation_summary)
-    save_stage2_visualization_bundle(
+    save_world_visualization_bundle(
         output_root=output_dir / "visualization",
         world_states=world_states,
         decisions=decisions,

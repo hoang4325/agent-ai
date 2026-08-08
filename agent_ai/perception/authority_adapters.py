@@ -7,7 +7,7 @@ Protocol interfaces required by the Stage 9 AuthorityArbiter.
 Adapters defined here:
   - RealMPCAdapter       : wraps kinematic_mpc_shadow → MPCOptimizerProto
   - RealBaselineAdapter  : wraps stage9 safety-aware baseline → BaselinePlannerProto
-  - RealAgentAdapter     : wraps benchmark.agent_shadow_adapter → Stage9AgentAdapterProto
+  - RealAgentAdapter     : wraps benchmark.agent_shadow_adapter → AgentAdapterProto
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ class RealMPCAdapter:
         # Lazy import — only available in the Docker/Linux environment
         try:
             sys.path.insert(0, str(os.environ.get("BEV_REPO", "/workspace/bevfusion") + "/../.."))
-            from agent_ai.benchmark.kinematic_mpc_shadow import (
+            from agent_ai.benchmark.shadow.kinematic_mpc_shadow import (
                 _solve_longitudinal_mpc_qp,
                 _solve_lateral_mpc_qp,
                 _StopContext,
@@ -317,11 +317,11 @@ class RealBaselineAdapter:
             return self.DEFAULT_CRUISE_SPEED_MPS
 
 
-# ── 3. RealAgentAdapter (agent_shadow_adapter → Stage9AgentAdapterProto) ──────
+# ── 3. RealAgentAdapter (agent_shadow_adapter → AgentAdapterProto) ──────
 
 class RealAgentAdapter:
     """
-    Wraps AgentShadowAdapter to implement Stage9AgentAdapterProto.
+    Wraps AgentShadowAdapter to implement AgentAdapterProto.
 
     The AgentShadowAdapter works in shadow mode — it proposes a ManeuverContract
     based on current WorldState without directly issuing actuator commands.
@@ -333,7 +333,7 @@ class RealAgentAdapter:
             _root = str(os.environ.get("AGENT_AI_ROOT", "/workspace/Agent-AI"))
             if _root not in sys.path:
                 sys.path.insert(0, _root)
-            from agent_ai.benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
+            from agent_ai.benchmark.shadow.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
             resolved_model_id = str(os.environ.get("AGENT_MODEL_ID", f"stage10_{mode}"))
             api_timeout_s = float(os.environ.get("AGENT_API_TIMEOUT_S", "30.0"))
             self._adapter = AgentShadowAdapter(
@@ -353,7 +353,7 @@ class RealAgentAdapter:
             LOGGER.warning("RealAgentAdapter: AgentShadowAdapter unavailable (%s). Using fallback.", exc)
             self._adapter = None
 
-    # ── Stage9AgentAdapterProto ───────────────────────────────────────────────
+    # ── AgentAdapterProto ───────────────────────────────────────────────
 
     def observe_intent(self, world) -> Optional[Any]:
         """Return the full shadow intent record for evaluation/logging."""

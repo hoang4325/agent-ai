@@ -44,7 +44,7 @@ class BaselinePlannerProto(Protocol):
 
 
 @runtime_checkable
-class Stage9AgentAdapterProto(Protocol):
+class AgentAdapterProto(Protocol):
     def propose_contract(self, world: WorldState) -> Optional[ManeuverContract]: ...
     def get_intent(self, world: WorldState, contract: ManeuverContract) -> str: ...
 
@@ -92,7 +92,7 @@ class AuthorityArbiter:
         asm: AuthorityStateMachine,
         baseline_detector: BaselineDetector,
         human_override: HumanOverrideMonitorProto,
-        agent: Stage9AgentAdapterProto,
+        agent: AgentAdapterProto,
         supervisor: SafetySupervisor,
         baseline: BaselinePlannerProto,
         contract_resolver: ContractResolver,
@@ -335,3 +335,7 @@ class AuthorityArbiter:
         self._asm.transition_to(AuthorityState.MINIMAL_RISK_MANEUVER, reason="unexpected_state_fallback", sim_time_s=sim_time_s)
         self._logger.log_mrm_start("unexpected_state_fallback", mrm_plan.strategy.value)
         return self._mpc.execute(mrm_plan.to_trajectory_request())
+
+
+# Backward-compatible aliases
+Stage9AgentAdapterProto = AgentAdapterProto

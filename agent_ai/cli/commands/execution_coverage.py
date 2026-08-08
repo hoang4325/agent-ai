@@ -14,7 +14,7 @@ from agent_ai.shared.artifact_io import write_jsonl as _write_jsonl  # noqa: E40
 from agent_ai.behavior.coverage.junction_execution_runner import run_junction_execution
 from agent_ai.behavior.coverage.left_positive import probe_left_positive, spawn_left_positive
 from agent_ai.behavior.coverage.scenario_coverage_analyzer import analyze_stage3c_coverage
-from agent_ai.behavior.coverage.visualization import save_stage3c_coverage_visualization
+from agent_ai.behavior.coverage.visualization import save_coverage_visualization
 
 
 def parse_args() -> argparse.Namespace:
@@ -98,7 +98,7 @@ def main() -> None:
                 run_output_dir / "lane_change_events_enriched.jsonl",
                 list(run_metrics.get("lane_change_events", [])),
             )
-        save_stage3c_coverage_visualization(output_dir=output_dir / "visualization", coverage_summary=payload)
+        save_coverage_visualization(output_dir=output_dir / "visualization", coverage_summary=payload)
         print(json.dumps(payload["execution_coverage_summary"], indent=2))
         return
 

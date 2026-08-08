@@ -21,9 +21,9 @@ from .control_helpers import (
     build_shadow_candidate_control as _build_shadow_candidate_control,
     vehicle_speed_mps as _vehicle_speed_mps,
 )
-from .evaluation import summarize_stage4_session
+from .evaluation import summarize_runtime_session
 from .execution import ExecutionRuntime
-from .monitoring import Stage4Monitor
+from .monitoring import RuntimeMonitor
 from .perception_adapter import PerceptionOnlineAdapter
 from .scenario_actor_materialization import materialize_scenario_actors
 from .session_utils import (
@@ -32,16 +32,16 @@ from .session_utils import (
     normalize_town_name as _normalize_town_name,
     resolve_attach_actor_id as _resolve_attach_actor_id,
 )
-from .shadow_runtime import Stage4ShadowRuntime
+from .shadow_runtime import ShadowRuntime
 from .stop_scene_alignment import apply_stop_scene_alignment
 from .state_store import BehaviorFrameState, OnlineStackState, OnlineTickRecord
-from .visualization import save_stage4_visualization_bundle
+from .visualization import save_runtime_visualization_bundle
 from .behavior_runtime import WorldBehaviorRuntime
 
-LOGGER = logging.getLogger("stage4.online_orchestrator")
+LOGGER = logging.getLogger("agent_ai.runtime.orchestrator")
 
 
-class Stage4OnlineOrchestrator:
+class OnlineOrchestrator:
     def __init__(self, args: Any) -> None:
         self.args = args
         self.project_root = REPO_ROOT
@@ -61,7 +61,7 @@ class Stage4OnlineOrchestrator:
         self.scenario_actor_materialization: Dict[str, Any] | None = None
         self.scenario_actor_bindings: Dict[str, Dict[str, Any]] = {}
         self.stop_scene_alignment: Dict[str, Any] | None = None
-        self.shadow_runtime: Stage4ShadowRuntime | None = None
+        self.shadow_runtime: ShadowRuntime | None = None
         self.control_authority_sandbox_mode = str(
             getattr(args, "control_authority_sandbox_mode", "disabled") or "disabled"
         )
@@ -261,7 +261,7 @@ class Stage4OnlineOrchestrator:
             soft_stale_ticks=int(args.soft_stale_ticks),
             hard_stale_ticks=int(args.hard_stale_ticks),
         )
-        self.monitor = Stage4Monitor(output_dir=self.output_dir)
+        self.monitor = RuntimeMonitor(output_dir=self.output_dir)
         self.stop_scene_alignment = apply_stop_scene_alignment(
             world=self.world,
             ego_vehicle=self.ego_vehicle,
@@ -270,7 +270,7 @@ class Stage4OnlineOrchestrator:
             args=args,
         )
         if bool(getattr(args, "shadow_mode", False)):
-            self.shadow_runtime = Stage4ShadowRuntime(
+            self.shadow_runtime = ShadowRuntime(
                 output_dir=self.output_dir,
                 case_id=self.output_dir.parent.name or "stage4_online_case",
             )
@@ -1136,7 +1136,7 @@ class Stage4OnlineOrchestrator:
             self.execution_runtime.close()
             self.perception_adapter.close()
 
-        summary = summarize_stage4_session(
+        summary = summarize_runtime_session(
             tick_records=self.monitor.tick_records,
             behavior_updates=self.monitor.behavior_updates,
             execution_records=self.execution_runtime.monitor.timeline_records,
@@ -1202,9 +1202,13 @@ class Stage4OnlineOrchestrator:
                 dict(self.stop_scene_alignment),
             )
         _write_json(self.output_dir / "online_run_summary.json", summary)
-        save_stage4_visualization_bundle(
+        save_runtime_visualization_bundle(
             output_root=self.output_dir / "visualization",
             tick_records=self.monitor.tick_records,
         )
         LOGGER.info("Stage4 online run complete output_dir=%s", self.output_dir)
         return summary
+
+
+# Backward-compatible alias
+Stage4OnlineOrchestrator = OnlineOrchestrator

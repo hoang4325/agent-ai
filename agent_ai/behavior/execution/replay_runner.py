@@ -14,15 +14,15 @@ from agent_ai.shared.env_flags import mp4_recording_disabled as _mp4_recording_d
 from agent_ai.shared.logging_setup import configure_logging
 from agent_ai.behavior.coverage.planner_quality import write_planner_quality_artifacts
 
-from .evaluation import summarize_stage3c_session
+from .evaluation import summarize_execution_session
 from .contract import ExecutionRequest, build_execution_request
 from .monitor import ExecutionMonitor
 from .local_planner_bridge import LocalPlannerBridge, ensure_carla_pythonapi
 from .stop_target_runtime import enrich_runtime_stop_target
-from .video_recorder import Stage3CVideoRecorder
-from .visualization import save_stage3c_visualization_bundle
+from .video_recorder import ExecutionVideoRecorder
+from .visualization import save_execution_visualization_bundle
 
-LOGGER = logging.getLogger("stage3c.replay_runner")
+LOGGER = logging.getLogger("agent_ai.behavior.execution.replay_runner")
 
 
 def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -346,7 +346,7 @@ def _run_request_tick(
     lane_change_events_path: Path,
     output_dir: Path,
     persist_frame_artifacts: bool,
-    video_recorder: Stage3CVideoRecorder | None,
+    video_recorder: ExecutionVideoRecorder | None,
 ) -> Dict[str, Any]:
     snapshot_before = world.get_snapshot()
     had_active_lane_change = bridge.active_lane_change is not None
@@ -512,13 +512,13 @@ def run_closed_loop(args: argparse.Namespace) -> Dict[str, Any]:
         else output_dir / "video" / "closed_loop.mp4"
     )
     recording_fps = float(args.recording_fps) if float(args.recording_fps) > 0.0 else (1.0 / float(args.fixed_delta_seconds))
-    video_recorder: Stage3CVideoRecorder | None = None
+    video_recorder: ExecutionVideoRecorder | None = None
 
     original_settings = _enable_sync_mode(world, float(args.fixed_delta_seconds))
     last_request: ExecutionRequest | None = None
     try:
         if bool(args.record_mp4):
-            video_recorder = Stage3CVideoRecorder(
+            video_recorder = ExecutionVideoRecorder(
                 world=world,
                 vehicle=ego_vehicle,
                 output_path=recording_path,
@@ -612,7 +612,7 @@ def run_closed_loop(args: argparse.Namespace) -> Dict[str, Any]:
                 video_recorder=video_recorder,
             )
 
-        evaluation_summary = summarize_stage3c_session(monitor.timeline_records, monitor.lane_change_events)
+        evaluation_summary = summarize_execution_session(monitor.timeline_records, monitor.lane_change_events)
         _write_json(output_dir / "execution_summary.json", evaluation_summary)
         planner_quality_bundle = write_planner_quality_artifacts(
             output_dir,
@@ -635,7 +635,7 @@ def run_closed_loop(args: argparse.Namespace) -> Dict[str, Any]:
         _write_json(output_dir / "stage3c_manifest.json", manifest)
         if video_recorder is not None:
             _write_json(output_dir / "video_manifest.json", video_recorder.manifest())
-        save_stage3c_visualization_bundle(
+        save_execution_visualization_bundle(
             output_root=output_dir / "visualization",
             execution_records=monitor.timeline_records,
         )

@@ -38,7 +38,7 @@ def _camera_transform_for_mode(carla_module: Any, mode: str) -> tuple[Any, Any]:
     return transform, spring_arm
 
 
-class Stage3CVideoRecorder:
+class ExecutionVideoRecorder:
     def __init__(
         self,
         *,

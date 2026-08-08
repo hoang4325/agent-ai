@@ -13,14 +13,14 @@ from typing import Any, Dict, List
 from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl
 from agent_ai.shared.artifact_io import write_json as _write_json
 from agent_ai.world_state.prediction_loader import (
-    Stage1FrameArtifact,
+    PerceptionFrameArtifact,
     _resolve_artifact_path,
     load_normalized_prediction,
 )
 
 from .state_store import PerceptionFrameResult
 
-LOGGER = logging.getLogger("stage4.perception_online_adapter")
+LOGGER = logging.getLogger("agent_ai.runtime.perception_adapter")
 
 
 def _seconds_to_ms(value: float | None) -> float | None:
@@ -427,7 +427,7 @@ class PerceptionOnlineAdapter:
             self._summary_offset = handle.tell()
         return payloads
 
-    def _artifact_from_payload(self, payload: Dict[str, Any]) -> Stage1FrameArtifact:
+    def _artifact_from_payload(self, payload: Dict[str, Any]) -> PerceptionFrameArtifact:
         status = str(payload["status"])
         if status == "inferred_compare":
             variant = "bridge_minimal" if self.prediction_variant == "auto" else self.prediction_variant
@@ -441,7 +441,7 @@ class PerceptionOnlineAdapter:
                 payload["output_dir"],
                 session_dir=self.session_root,
             )
-        return Stage1FrameArtifact(
+        return PerceptionFrameArtifact(
             sample_name=str(payload["sample_name"]),
             sequence_index=int(payload["sequence_index"]),
             frame_id=int(payload["frame_id"]),

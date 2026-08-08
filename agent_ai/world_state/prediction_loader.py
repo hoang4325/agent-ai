@@ -34,7 +34,7 @@ CLASS_GROUPS: Dict[str, str] = {
 
 
 @dataclass
-class Stage1FrameArtifact:
+class PerceptionFrameArtifact:
     sample_name: str
     sequence_index: int
     frame_id: int
@@ -89,13 +89,13 @@ def list_stage1_frame_artifacts(
     stage1_session_dir: str | Path,
     *,
     prediction_variant: str = "auto",
-) -> List[Stage1FrameArtifact]:
+) -> List[PerceptionFrameArtifact]:
     session_dir = Path(stage1_session_dir)
     summary_path = session_dir / "live_summary.jsonl"
     if not summary_path.exists():
         raise FileNotFoundError(f"Missing live_summary.jsonl in {session_dir}")
 
-    artifacts: List[Stage1FrameArtifact] = []
+    artifacts: List[PerceptionFrameArtifact] = []
     for payload in _load_jsonl(summary_path, missing_ok=False):
         status = payload.get("status")
         if status not in {"inferred", "inferred_compare"}:
@@ -110,7 +110,7 @@ def list_stage1_frame_artifacts(
             prediction_dir = _resolve_artifact_path(payload.get("output_dir"), session_dir=session_dir)
 
         artifacts.append(
-            Stage1FrameArtifact(
+            PerceptionFrameArtifact(
                 sample_name=str(payload["sample_name"]),
                 sequence_index=int(payload["sequence_index"]),
                 frame_id=int(payload["frame_id"]),
@@ -173,7 +173,7 @@ def _ego_state_from_meta(meta: Dict) -> EgoState:
 
 
 def load_normalized_prediction(
-    artifact: Stage1FrameArtifact,
+    artifact: PerceptionFrameArtifact,
     *,
     class_names: Sequence[str] | None = None,
     min_score: float = 0.2,

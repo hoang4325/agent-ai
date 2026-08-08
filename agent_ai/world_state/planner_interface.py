@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, Dict, List
 
 from .schema import DecisionIntent, PlannerInterfacePayload, WorldState
 
@@ -10,6 +10,9 @@ def build_planner_interface_payload(
     decision_intent: DecisionIntent,
     *,
     max_objects: int = 8,
+    soft_contract: Dict[str, Any] | None = None,
+    interaction_summary: Dict[str, Any] | None = None,
+    cost_memory_snapshot: Dict[str, Any] | None = None,
 ) -> PlannerInterfacePayload:
     tracked_objects = sorted(
         world_state.objects,
@@ -31,4 +34,7 @@ def build_planner_interface_payload(
         tracked_objects=[item.to_dict() for item in selected_objects],
         scene_summary=world_state.scene.to_dict(),
         risk_summary=world_state.risk_summary.to_dict(),
+        soft_contract=dict(soft_contract or {}),
+        interaction_summary=dict(interaction_summary or {}),
+        cost_memory_snapshot=dict(cost_memory_snapshot or {}),
     )
