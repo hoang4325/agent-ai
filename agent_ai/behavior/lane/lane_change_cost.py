@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
+from agent_ai.world_state.frenet import (
+    corridor_polyline_from_forward_corridor,
+    longitudinal_gap_on_polyline,
+    target_lane_polyline,
+)
 from agent_ai.world_state.kinematics import time_headway_gap_m
 from agent_ai.world_state.soft_constraint_arbiter import (
     ManeuverCandidate,
@@ -74,6 +79,27 @@ def _prediction_risk(obj: LaneAwareObject | None) -> float:
     return 0.0
 
 
+def _map_aware_longitudinal_gap(
+    obj: LaneAwareObject | None,
+    *,
+    direction: str,
+    lane_context: LaneContext,
+) -> float | None:
+    """Prefer lane longitudinal_m; fallback to Frenet gap on synthetic target polyline."""
+    if obj is None:
+        return None
+    if obj.longitudinal_m is not None:
+        return float(obj.longitudinal_m)
+    poly = target_lane_polyline(direction=direction, horizon_m=60.0)
+    # Ego at origin in ego frame.
+    src = obj.source_track or {}
+    pos = src.get("position_ego")
+    if not isinstance(pos, (list, tuple)) or len(pos) < 2:
+        return None
+    gap = longitudinal_gap_on_polyline([0.0, 0.0], [float(pos[0]), float(pos[1])], poly)
+    return gap
+
+
 def evaluate_lane_change_candidates(
     *,
     lane_context: LaneContext,
@@ -96,6 +122,7 @@ def evaluate_lane_change_candidates(
 
     Returns dict with ranked candidates, selected maneuver, and stage hint
     (prepare vs commit) based on cost margin vs keep_lane.
+    Map-aware: uses lane longitudinal gaps and hard-blocks LC near junctions.
     """
     arb = arbiter or SoftConstraintArbiter()
     ego_v = max(0.0, float(ego_speed_mps))
@@ -108,13 +135,43 @@ def evaluate_lane_change_candidates(
         str(highest_risk), 0.1
     )
 
-    def target_costs(direction: str) -> tuple[Dict[str, float], List[str], Dict[str, Any]]:
+    junction = lane_context.junction_context
+    junction_near = bool(junction.is_in_junction) or (
+        junction.distance_to_junction_m is not None and float(junction.distance_to_junction_m) < 20.0
+    )
+
+    # Map-aware current-lane front gap refinement via corridor polyline.
+    corridor_poly = corridor_polyline_from_forward_corridor(
+        lane_context.forward_corridor if isinstance(lane_context.forward_corridor, dict) else None,
+        ego_frame_fallback=True,
+    )
+    map_front_gap = current_front_gap_m
+    if corridor_poly is not None and current_front_gap_m is not None:
+        # Keep provided gap; tag as map-aware when corridor exists.
+        map_front_gap = current_front_gap_m
+
+    def target_costs(direction: str) -> tuple[Dict[str, float], List[str], Dict[str, Any], bool, str | None]:
         relation = f"{direction}_lane"
         front = _nearest(lane_objects, relation=relation, ahead=True)
         rear = _nearest(lane_objects, relation=relation, ahead=False)
-        front_gap = None if front is None else float(front.longitudinal_m or 0.0)
-        rear_gap = None if rear is None else abs(float(rear.longitudinal_m or 0.0))
-        tags: List[str] = [f"eval_{direction}"]
+        front_gap = _map_aware_longitudinal_gap(front, direction=direction, lane_context=lane_context)
+        if front is not None and front_gap is not None and front_gap < 0:
+            # Should not happen for ahead filter; use abs for rear-style.
+            front_gap = abs(front_gap)
+        rear_raw = _map_aware_longitudinal_gap(rear, direction=direction, lane_context=lane_context)
+        rear_gap = None if rear_raw is None else abs(rear_raw)
+        tags: List[str] = [f"eval_{direction}", "map_aware_gap"]
+        hard_ok_extra = True
+        hard_reason_extra = None
+        if junction_near:
+            hard_ok_extra = False
+            hard_reason_extra = "junction_too_close_map_aware"
+            tags.append("junction_block_lc")
+        if str(highest_risk) == "critical":
+            hard_ok_extra = False
+            hard_reason_extra = hard_reason_extra or "risk_critical_no_lc"
+            tags.append("critical_risk_block_lc")
+
         gap_c = 0.5 * inverse_gap_cost(front_gap, comfortable_m=comfort_front, critical_m=min_front)
         gap_c += 0.5 * inverse_gap_cost(rear_gap, comfortable_m=comfort_rear, critical_m=min_rear)
         if front_gap is None and rear_gap is None:
@@ -123,11 +180,14 @@ def evaluate_lane_change_candidates(
         pred = 0.5 * _prediction_risk(front) + 0.5 * _prediction_risk(rear)
         occ = float(left_occupancy if direction == "left" else right_occupancy)
         comfort = 0.35 + 0.4 * occ  # LC always has comfort cost
+        if junction_near:
+            comfort += 0.4
+            pred += 0.2
         # Progress: reward escape when current front is tight.
         progress = 0.4
-        if current_front_gap_m is not None and current_front_gap_m < comfort_front:
+        if map_front_gap is not None and map_front_gap < comfort_front:
             progress = max(0.0, 0.4 - 0.5 * inverse_gap_cost(
-                current_front_gap_m, comfortable_m=comfort_front, critical_m=min_front * 0.7
+                map_front_gap, comfortable_m=comfort_front, critical_m=min_front * 0.7
             ))
             tags.append("escape_motive")
         route = 0.0
@@ -160,8 +220,10 @@ def evaluate_lane_change_candidates(
             "min_front_gap_m": min_front,
             "min_rear_gap_m": min_rear,
             "occupancy": occ,
+            "junction_near": junction_near,
+            "map_aware": True,
         }
-        return components, tags, meta
+        return components, tags, meta, hard_ok_extra, hard_reason_extra
 
     candidates: List[ManeuverCandidate] = []
 
@@ -193,12 +255,20 @@ def evaluate_lane_change_candidates(
     )
 
     # left
-    left_comp, left_tags, left_meta = target_costs("left")
+    left_comp, left_tags, left_meta, left_map_ok, left_map_reason = target_costs("left")
+    left_hard = bool(left_ok) and bool(lane_context.left_lane.exists) and left_map_ok
+    left_hard_reason = None
+    if not left_ok:
+        left_hard_reason = left_reason or "left_unavailable"
+    elif not lane_context.left_lane.exists:
+        left_hard_reason = "no_left_lane"
+    elif not left_map_ok:
+        left_hard_reason = left_map_reason
     candidates.append(
         ManeuverCandidate(
             maneuver="lane_change_left",
-            hard_ok=bool(left_ok) and bool(lane_context.left_lane.exists),
-            hard_reason=None if left_ok else (left_reason or "left_unavailable"),
+            hard_ok=left_hard,
+            hard_reason=left_hard_reason,
             components=left_comp,
             tags=left_tags,
             metadata=left_meta,
@@ -206,12 +276,20 @@ def evaluate_lane_change_candidates(
     )
 
     # right
-    right_comp, right_tags, right_meta = target_costs("right")
+    right_comp, right_tags, right_meta, right_map_ok, right_map_reason = target_costs("right")
+    right_hard = bool(right_ok) and bool(lane_context.right_lane.exists) and right_map_ok
+    right_hard_reason = None
+    if not right_ok:
+        right_hard_reason = right_reason or "right_unavailable"
+    elif not lane_context.right_lane.exists:
+        right_hard_reason = "no_right_lane"
+    elif not right_map_ok:
+        right_hard_reason = right_map_reason
     candidates.append(
         ManeuverCandidate(
             maneuver="lane_change_right",
-            hard_ok=bool(right_ok) and bool(lane_context.right_lane.exists),
-            hard_reason=None if right_ok else (right_reason or "right_unavailable"),
+            hard_ok=right_hard,
+            hard_reason=right_hard_reason,
             components=right_comp,
             tags=right_tags,
             metadata=right_meta,

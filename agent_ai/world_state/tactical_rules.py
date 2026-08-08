@@ -109,6 +109,17 @@ class RuleBasedTacticalPolicy:
         lane_preference = "keep_current"
         maneuver = "keep_lane"
         confidence = 0.55
+        # Map / scene soft flags (A1): suppress LC near junctions when annotated.
+        abnormal = set(scene.abnormal_flags or [])
+        soft = set(world_state.decision_context.get("soft_constraints") or [])
+        junction_hold = bool(
+            abnormal.intersection({"junction_near", "junction_ahead", "in_junction"})
+            or soft.intersection({"junction_hold", "no_lane_change_near_junction"})
+            or any("junction" in c for c in constraints)
+        )
+        if junction_hold:
+            reasoning_tags.append("junction_hold_no_lc")
+            constraints.append("no_lane_change_near_junction")
 
         # Adaptive geometric thresholds from ego speed.
         stop_dist = max(
@@ -171,9 +182,9 @@ class RuleBasedTacticalPolicy:
             )
             left_occ = float(scene.left_side_occupancy)
             right_occ = float(scene.right_side_occupancy)
-            left_clear = left_occ < 0.30
-            right_clear = right_occ < 0.30
-            escape = front_vehicle_distance < follow_close * 1.15
+            left_clear = left_occ < 0.30 and not junction_hold
+            right_clear = right_occ < 0.30 and not junction_hold
+            escape = front_vehicle_distance < follow_close * 1.15 and not junction_hold
 
             candidates = [
                 ManeuverCandidate(

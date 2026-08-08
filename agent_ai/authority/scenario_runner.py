@@ -165,6 +165,8 @@ class _AgentStub:
 
 
 class _MPCStub:
+    """Lightweight stub for scenarios that force infeasible preview without OSQP."""
+
     def __init__(self, always_feasible: bool = True) -> None:
         self._feasible = always_feasible
 
@@ -175,11 +177,21 @@ class _MPCStub:
         return self._feasible
 
 
+def _default_mpc():
+    """Prefer real OSQP adapter; fall back to stub if osqp/numpy unavailable."""
+    try:
+        from .osqp_mpc_adapter import OSQPMpcAdapter
+
+        return OSQPMpcAdapter()
+    except Exception:
+        return _MPCStub()
+
+
 def _build_arbiter(
     log_path: Path,
     baseline: Optional[_BaselineStub] = None,
     agent: Optional[_AgentStub] = None,
-    mpc: Optional[_MPCStub] = None,
+    mpc=None,
     human: Optional[HumanOverrideMonitor] = None,
     tor: Optional[TORManager] = None,
     mrm: Optional[MRMExecutor] = None,
@@ -194,7 +206,7 @@ def _build_arbiter(
         baseline=baseline or _BaselineStub(),
         contract_resolver=ContractResolver(),
         handoff_planner=HandoffPlanner(),
-        mpc=mpc or _MPCStub(),
+        mpc=mpc if mpc is not None else _default_mpc(),
         tor=_tor,
         mrm=mrm or MRMExecutor(),
         log_path=log_path,

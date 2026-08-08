@@ -1,0 +1,48 @@
+{
+  "case_id": "dense_left_gap_ok",
+  "description": "Slow leader at moderate range, empty left lane → cost path prefers left LC prepare/commit.",
+  "ego": {"speed_mps": 7.0, "cruise_speed_mps": 8.0},
+  "tracks": [
+    {
+      "track_id": 1,
+      "class_group": "vehicle",
+      "position_ego": [18.0, 0.1, 0.0],
+      "velocity_ego": [-0.5, 0.0],
+      "relative_sector": "front"
+    }
+  ],
+  "scene": {
+    "left_side_occupancy": 0.05,
+    "right_side_occupancy": 0.75,
+    "front_free_space_m": 18.0
+  },
+  "route": {"prefer": "left"},
+  "lane_context": {
+    "left_lane": {"exists": true, "lane_change_allowed_from_current": true, "same_direction_as_ego": true},
+    "right_lane": {"exists": true, "lane_change_allowed_from_current": true},
+    "junction_context": {
+      "is_in_junction": false,
+      "distance_to_junction_m": 90.0
+    }
+  },
+  "lane_objects": [
+    {
+      "track_id": 1,
+      "class_group": "vehicle",
+      "lane_relation": "current_lane",
+      "longitudinal_m": 18.0,
+      "is_front_in_current_lane": true,
+      "is_blocking_current_lane": true,
+      "source_track": {"position_ego": [18.0, 0.1], "speed_mps": 5.0, "velocity_ego": [-0.5, 0.0]}
+    }
+  ],
+  "lane_change_permission": {"left": true, "right": true},
+  "expect": {
+    "risk_levels_any": ["low", "medium", "high"],
+    "maneuvers_any": ["lane_change_left", "follow", "slow_down"],
+    "lc_stages_any": ["prepare", "commit"],
+    "lc_selected_any": ["lane_change_left"],
+    "lc_selected_forbidden": ["lane_change_right"],
+    "prediction_modes_any": ["lane_follow", "cv", "brake"]
+  }
+}

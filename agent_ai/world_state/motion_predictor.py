@@ -1,10 +1,12 @@
 """
-Multi-mode short-horizon motion prediction for tracked objects (P1).
+Multi-mode short-horizon motion prediction for tracked objects (P1 + A1).
 
 Modes (ego frame):
   - cv: constant velocity
   - brake: decelerate along heading
   - lat_left / lat_right: CV + mild lateral acceleration (vehicles)
+  - lane_follow: constant speed along map/reference polyline (Frenet)
+  - lane_change_left / lane_change_right: blend toward target-lane offset
   - static: stay put (static / very slow objects)
 
 Each mode produces waypoints and a mode probability. Consumers use either the
@@ -16,6 +18,7 @@ import math
 from dataclasses import asdict, dataclass, field
 from typing import Dict, List, Sequence
 
+from .frenet import frenet_to_xy, project_to_frenet
 from .kinematics import hypot2, ttc_2d_s
 from .schema import TrackedObject
 
@@ -104,6 +107,58 @@ def _normalize_probs(modes: List[PredictedMode]) -> List[PredictedMode]:
     return modes
 
 
+def _rollout_lane_follow(
+    *,
+    px: float,
+    py: float,
+    speed_mps: float,
+    polyline: Sequence[Sequence[float]],
+    horizon_s: float,
+    dt: float,
+    lateral_blend: float = 0.35,
+    target_d_m: float | None = None,
+) -> tuple[List[List[float]], float, float | None] | None:
+    """
+    Integrate motion along polyline: advance s at |speed|, blend d toward target_d.
+    """
+    pose = project_to_frenet([px, py], polyline)
+    if pose is None:
+        return None
+    s = pose.s_m
+    d = pose.d_m if target_d_m is None else float(target_d_m) * 0.0 + pose.d_m
+    d_goal = 0.0 if target_d_m is None else float(target_d_m)
+    speed = max(0.3, abs(float(speed_mps)))
+    # Longitudinal speed along path: use projection of velocity if available via speed.
+    waypoints: List[List[float]] = [[px, py, 0.0]]
+    min_range = hypot2(px, py)
+    t = 0.0
+    steps = max(1, int(round(horizon_s / dt)))
+    x, y = px, py
+    for _ in range(steps):
+        s = s + speed * dt
+        d = d + lateral_blend * (d_goal - d)
+        xy = frenet_to_xy(polyline, s, d)
+        if xy is None:
+            break
+        x, y = float(xy[0]), float(xy[1])
+        t += dt
+        waypoints.append([x, y, float(t)])
+        r = hypot2(x, y)
+        if r < min_range:
+            min_range = r
+    # Approx velocity along path at t0 for TTC.
+    h = pose.heading_rad
+    vx0 = speed * math.cos(h)
+    vy0 = speed * math.sin(h)
+    # If object is roughly ahead of ego and moving with path, relative vel toward ego
+    # is better captured as object motion in ego frame; use position-delta velocity.
+    if len(waypoints) >= 2:
+        vx0 = (waypoints[1][0] - waypoints[0][0]) / max(dt, 1e-3)
+        vy0 = (waypoints[1][1] - waypoints[0][1]) / max(dt, 1e-3)
+    ttc = ttc_2d_s([px, py], [vx0, vy0])
+    return waypoints, float(min_range), ttc
+
+
 def predict_modes_for_track(
     track: TrackedObject,
     *,
@@ -111,6 +166,9 @@ def predict_modes_for_track(
     dt_s: float = 0.2,
     brake_accel_mps2: float = 2.5,
     lateral_accel_mps2: float = 1.2,
+    reference_polyline: Sequence[Sequence[float]] | None = None,
+    enable_lane_change_modes: bool = True,
+    lane_width_m: float = 3.5,
 ) -> List[PredictedMode]:
     """Generate multi-mode predictions for a single track in ego coordinates."""
     px = float(track.position_ego[0])
@@ -123,12 +181,15 @@ def predict_modes_for_track(
     lx, ly = -uy, ux
 
     modes: List[PredictedMode] = []
+    map_aware = reference_polyline is not None and len(reference_polyline) >= 2
 
     # --- CV ---
     wp, rmin, ttc = _rollout(
         px=px, py=py, vx=vx, vy=vy, ax=0.0, ay=0.0, horizon_s=horizon_s, dt=dt_s
     )
-    p_cv = 0.55 if track.class_group == "vehicle" else 0.45
+    p_cv = 0.40 if (map_aware and track.class_group == "vehicle") else (
+        0.55 if track.class_group == "vehicle" else 0.45
+    )
     if speed < 0.3:
         p_cv = 0.25
     modes.append(
@@ -153,7 +214,7 @@ def predict_modes_for_track(
         modes.append(
             PredictedMode(
                 mode_id="brake",
-                probability=0.20 if track.class_group == "vehicle" else 0.15,
+                probability=0.18 if track.class_group == "vehicle" else 0.15,
                 waypoints_ego=wp,
                 terminal_position_ego=wp[-1][:2],
                 min_range_m=rmin,
@@ -162,8 +223,8 @@ def predict_modes_for_track(
             )
         )
 
-    # --- Lateral bias (vehicles / VRU slightly) ---
-    if track.class_group in {"vehicle", "vru"} and speed > 0.5:
+    # --- Lateral bias (vehicles / VRU slightly) — free-space when no map ---
+    if track.class_group in {"vehicle", "vru"} and speed > 0.5 and not map_aware:
         lat_scale = lateral_accel_mps2 if track.class_group == "vehicle" else 0.6 * lateral_accel_mps2
         for mode_id, sign, base_p in (
             ("lat_left", 1.0, 0.12),
@@ -185,6 +246,74 @@ def predict_modes_for_track(
                     tags=["lateral_bias", mode_id],
                 )
             )
+
+    # --- Map-aware lane_follow (+ optional LC modes) ---
+    if map_aware and track.class_group in {"vehicle", "vru"} and speed > 0.2:
+        path_speed = max(speed, 0.5)
+        # Prefer signed longitudinal speed along path from velocity projection.
+        pose0 = project_to_frenet([px, py], reference_polyline)  # type: ignore[arg-type]
+        if pose0 is not None:
+            # Component of velocity along heading.
+            path_speed = max(
+                0.3,
+                abs(vx * math.cos(pose0.heading_rad) + vy * math.sin(pose0.heading_rad)),
+            )
+            if path_speed < 0.3:
+                path_speed = max(speed, 0.5)
+        lf = _rollout_lane_follow(
+            px=px,
+            py=py,
+            speed_mps=path_speed,
+            polyline=reference_polyline,  # type: ignore[arg-type]
+            horizon_s=horizon_s,
+            dt=dt_s,
+            target_d_m=0.0,
+        )
+        if lf is not None:
+            wp, rmin, ttc = lf
+            modes.append(
+                PredictedMode(
+                    mode_id="lane_follow",
+                    probability=0.35 if track.class_group == "vehicle" else 0.25,
+                    waypoints_ego=wp,
+                    terminal_position_ego=wp[-1][:2],
+                    min_range_m=rmin,
+                    ttc_to_ego_s=ttc,
+                    tags=["map_aware", "lane_follow"],
+                )
+            )
+
+        if enable_lane_change_modes and track.class_group == "vehicle" and speed > 1.0:
+            for direction, mode_id, base_p in (
+                ("left", "lane_change_left", 0.08),
+                ("right", "lane_change_right", 0.08),
+            ):
+                # Use current corridor with target lateral offset (±lane width).
+                d_goal = lane_width_m if direction == "left" else -lane_width_m
+                lc = _rollout_lane_follow(
+                    px=px,
+                    py=py,
+                    speed_mps=path_speed * 0.95,
+                    polyline=reference_polyline,  # type: ignore[arg-type]
+                    horizon_s=horizon_s,
+                    dt=dt_s,
+                    lateral_blend=0.45,
+                    target_d_m=d_goal,
+                )
+                if lc is None:
+                    continue
+                wp, rmin, ttc = lc
+                modes.append(
+                    PredictedMode(
+                        mode_id=mode_id,
+                        probability=base_p,
+                        waypoints_ego=wp,
+                        terminal_position_ego=wp[-1][:2],
+                        min_range_m=rmin,
+                        ttc_to_ego_s=ttc,
+                        tags=["map_aware", "lane_change", direction],
+                    )
+                )
 
     # --- Static hold ---
     if track.class_group == "static" or speed < 0.25:
@@ -209,13 +338,24 @@ def annotate_tracks_with_prediction(
     *,
     horizon_s: float = 3.0,
     dt_s: float = 0.2,
+    reference_polyline: Sequence[Sequence[float]] | None = None,
+    enable_lane_change_modes: bool = True,
+    lane_width_m: float = 3.5,
 ) -> List[TrackedObject]:
     """
     In-place annotate tracks with predicted_modes / envelope metrics.
+    When reference_polyline is provided (ego-frame centerline), adds map-aware modes.
     Returns the same list for chaining.
     """
     for track in tracks:
-        modes = predict_modes_for_track(track, horizon_s=horizon_s, dt_s=dt_s)
+        modes = predict_modes_for_track(
+            track,
+            horizon_s=horizon_s,
+            dt_s=dt_s,
+            reference_polyline=reference_polyline,
+            enable_lane_change_modes=enable_lane_change_modes,
+            lane_width_m=lane_width_m,
+        )
         track.predicted_modes = [m.to_dict() for m in modes]
         min_ttc = None
         min_range = None

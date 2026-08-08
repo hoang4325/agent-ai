@@ -46,6 +46,11 @@ from .contract_resolver import ContractResolver
 from .handoff_planner import HandoffPlanner
 from .logger import AuthorityLogger
 from .arbiter import AuthorityArbiter
+try:
+    from .osqp_mpc_adapter import OSQPMpcAdapter, trajectory_request_to_bounds
+except Exception:  # pragma: no cover - optional heavy deps (osqp)
+    OSQPMpcAdapter = None  # type: ignore
+    trajectory_request_to_bounds = None  # type: ignore
 
 # ── Phase 2 modules ───────────────────────────────────────────────────────────
 from .tor_manager import TORManager
@@ -74,6 +79,7 @@ __all__ = [
     "evaluate_soft_vetoes", "soft_cost_profile",
     "SafetySupervisor", "ContractResolver", "HandoffPlanner",
     "AuthorityLogger", "AuthorityArbiter",
+    "OSQPMpcAdapter", "trajectory_request_to_bounds",
     # Phase 2
     "TORManager", "MRMExecutor", "HumanOverrideMonitor",
     "AuthorityEvaluator", "Stage9Evaluator", "EvaluationReport",

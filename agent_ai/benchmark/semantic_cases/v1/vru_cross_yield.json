@@ -1,0 +1,43 @@
+{
+  "case_id": "vru_cross_yield",
+  "description": "Nearby VRU ahead must trigger yield / protective slow behavior.",
+  "ego": {"speed_mps": 5.0, "cruise_speed_mps": 8.0},
+  "tracks": [
+    {
+      "track_id": 10,
+      "class_group": "vru",
+      "class_name": "pedestrian",
+      "position_ego": [6.0, 0.8, 0.0],
+      "velocity_ego": [-0.5, -0.8],
+      "relative_sector": "front"
+    }
+  ],
+  "scene": {
+    "left_side_occupancy": 0.3,
+    "right_side_occupancy": 0.3,
+    "front_free_space_m": 6.0
+  },
+  "lane_context": {
+    "left_lane": {"exists": true},
+    "right_lane": {"exists": true},
+    "junction_context": {"is_in_junction": false, "distance_to_junction_m": 40.0}
+  },
+  "lane_objects": [
+    {
+      "track_id": 10,
+      "class_group": "vru",
+      "class_name": "pedestrian",
+      "lane_relation": "current_lane",
+      "longitudinal_m": 6.0,
+      "lateral_m": 0.8,
+      "is_front_in_current_lane": true,
+      "source_track": {"position_ego": [6.0, 0.8], "speed_mps": 1.0}
+    }
+  ],
+  "lane_change_permission": {"left": true, "right": true},
+  "expect": {
+    "maneuvers_any": ["yield", "stop", "emergency_stop", "slow_down"],
+    "maneuvers_forbidden": ["lane_change_left", "lane_change_right"],
+    "tags_any": ["vru_priority", "yield_zone", "vru", "vru_nearby", "protect_vru"]
+  }
+}

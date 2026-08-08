@@ -13,6 +13,7 @@ from .evaluation import summarize_world_session
 from .planner_interface import build_planner_interface_payload
 from .cost_memory import CostMemory
 from .interaction_predictor import apply_interaction_prediction
+from .frenet import default_straight_corridor
 from .motion_predictor import annotate_tracks_with_prediction
 from .prediction_loader import list_stage1_frame_artifacts, load_normalized_prediction
 from agent_ai.authority.soft_contract import build_soft_contract_from_behavior
@@ -84,7 +85,10 @@ def run_replay(args: argparse.Namespace) -> Dict[str, Any]:
     for artifact in artifacts:
         normalized = load_normalized_prediction(artifact, min_score=args.min_score)
         tracked_objects = tracker.update(normalized)
-        annotate_tracks_with_prediction(tracked_objects)
+        annotate_tracks_with_prediction(
+            tracked_objects,
+            reference_polyline=default_straight_corridor(horizon_m=60.0),
+        )
         interaction = apply_interaction_prediction(
             tracked_objects,
             ego_speed_mps=float(normalized.ego.speed_mps),

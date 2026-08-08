@@ -127,7 +127,145 @@ DEFAULT_SHADOW_MPC_CONFIG: dict[str, Any] = {
         "eps_abs": 1e-4,
         "eps_rel": 1e-4,
     },
+    # P0-MPC: soft contract / cost_profile injection defaults.
+    "cost_profiles": {
+        "BASELINE": {},
+        "HANDOFF": {"r_accel_scale": 1.15, "r_control_scale": 1.1},
+        "MRM": {
+            "r_accel_scale": 1.25,
+            "q_speed_terminal_scale": 1.4,
+            "v_max_scale": 0.5,
+            "a_max_scale": 0.6,
+        },
+        "AGENT_BOUNDED": {},
+        "AGENT_BOUNDED_CAUTIOUS": {
+            "r_accel_scale": 1.45,
+            "r_control_scale": 1.25,
+            "q_speed_scale": 0.85,
+            "v_max_scale": 0.90,
+            "a_max_scale": 0.85,
+            "clear_scale": 0.92,
+        },
+        "AGENT_BOUNDED_DEFENSIVE": {
+            "r_accel_scale": 1.85,
+            "r_control_scale": 1.45,
+            "q_speed_scale": 0.70,
+            "v_max_scale": 0.75,
+            "a_max_scale": 0.70,
+            "clear_scale": 0.85,
+            "ttc_speed_scale": 0.8,
+        },
+    },
+    "bounds": {
+        "clear_distance_holdback_m": 2.0,
+        "min_clear_distance_m": 4.0,
+        "ttc_critical_s": 2.0,
+        "ttc_speed_floor_mps": 0.5,
+        "degrade_target_speed_scale": 0.55,
+        "degrade_a_min_boost": -1.5,
+        "degrade_p_upper_relax": 1.15,
+    },
 }
+
+
+def extract_mpc_bounds(request: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Normalize MPC bound injection from execution_request / trajectory_request / soft_contract.
+
+    Supported keys (all optional):
+      v_max_mps, a_long_max_mps2, a_long_min_mps2, a_lat_max_mps2, lateral_bound_m,
+      forward_clear_m, clear_distance_m, min_ttc_s, cost_profile, soft_speed_scale,
+      target_v_desired_mps, jerk_max_mps3
+    """
+    req = dict(request or {})
+    nested = {}
+    for key in ("mpc_bounds", "trajectory_request", "soft_contract", "contract_bounds"):
+        blob = req.get(key)
+        if isinstance(blob, dict):
+            # soft_contract may nest under "contract"
+            if key == "soft_contract" and isinstance(blob.get("contract"), dict):
+                nested.update(blob["contract"])
+            nested.update(blob)
+
+    def _pick(*keys: str) -> float | None:
+        for source in (req, nested):
+            for k in keys:
+                if k in source and source[k] is not None:
+                    val = _safe_float(source[k])
+                    if val is not None:
+                        return val
+        return None
+
+    profile = None
+    for source in (req, nested):
+        if source.get("cost_profile"):
+            profile = str(source["cost_profile"])
+            break
+
+    clear = _pick("forward_clear_m", "clear_distance_m", "front_free_space_m")
+    # Nested drivable envelope
+    env = nested.get("drivable_envelope") if isinstance(nested.get("drivable_envelope"), dict) else None
+    if env is None and isinstance(req.get("drivable_envelope"), dict):
+        env = req["drivable_envelope"]
+    if clear is None and env is not None:
+        clear = _safe_float(env.get("forward_clear_m"))
+
+    return {
+        "v_max_mps": _pick("v_max_mps", "max_speed_mps"),
+        "a_long_max_mps2": _pick("a_long_max_mps2", "max_longitudinal_accel_mps2"),
+        "a_long_min_mps2": _pick("a_long_min_mps2"),
+        "a_lat_max_mps2": _pick("a_lat_max_mps2", "max_lateral_accel_mps2"),
+        "lateral_bound_m": _pick("lateral_bound_m", "max_lateral_offset_m"),
+        "forward_clear_m": clear,
+        "min_ttc_s": _pick("min_ttc_s", "min_ttc_threshold_s", "minimum_ttc_seconds"),
+        "soft_speed_scale": _pick("soft_speed_scale") or 1.0,
+        "target_v_desired_mps": _pick("target_v_desired_mps", "target_speed_mps"),
+        "jerk_max_mps3": _pick("jerk_max_mps3", "max_jerk_mps3"),
+        "cost_profile": profile,
+    }
+
+
+def _cost_profile_scales(profile: str | None) -> dict[str, float]:
+    cfg = get_shadow_tuning_config()
+    profiles = cfg.get("cost_profiles") or {}
+    raw = profiles.get(str(profile or ""), {}) or {}
+    return {str(k): float(v) for k, v in raw.items()}
+
+
+def apply_bounds_to_target_speed(
+    target_speed_mps: float,
+    bounds: dict[str, Any] | None,
+) -> tuple[float, list[str]]:
+    """Clamp desired speed by v_max, soft_speed_scale, TTC, and cost_profile."""
+    notes: list[str] = []
+    speed = max(0.0, float(target_speed_mps))
+    b = bounds or {}
+    scales = _cost_profile_scales(b.get("cost_profile") if b else None)
+    soft_scale = float(b.get("soft_speed_scale") or 1.0)
+    soft_scale = max(0.0, min(1.0, soft_scale))
+    if soft_scale < 0.999:
+        speed *= soft_scale
+        notes.append(f"soft_speed_scale={soft_scale:.2f}")
+    v_max_scale = float(scales.get("v_max_scale", 1.0))
+    if b.get("v_max_mps") is not None:
+        cap = float(b["v_max_mps"]) * v_max_scale
+        if speed > cap:
+            speed = cap
+            notes.append(f"v_max_cap={cap:.2f}")
+    elif v_max_scale < 0.999:
+        speed *= v_max_scale
+        notes.append(f"profile_v_scale={v_max_scale:.2f}")
+    # Short TTC → further derate free speed (not stop mode).
+    min_ttc = b.get("min_ttc_s")
+    if min_ttc is not None:
+        bounds_cfg = (get_shadow_tuning_config().get("bounds") or {})
+        ttc_crit = float(bounds_cfg.get("ttc_critical_s", 2.0))
+        if float(min_ttc) < ttc_crit:
+            ttc_scale = float(scales.get("ttc_speed_scale", 0.85))
+            floor = float(bounds_cfg.get("ttc_speed_floor_mps", 0.5))
+            speed = max(floor, speed * ttc_scale * max(0.2, float(min_ttc) / ttc_crit))
+            notes.append(f"ttc_derate ttc={float(min_ttc):.2f}")
+    return float(max(0.0, speed)), notes
 
 
 _ACTIVE_SHADOW_MPC_CONFIG: dict[str, Any] | None = None
@@ -521,83 +659,148 @@ def _solve_longitudinal_mpc_qp(
     dt_s: float,
     horizon_steps: int,
     stop_distance_m: float | None = None,
+    bounds: dict[str, Any] | None = None,
+    allow_degrade: bool = True,
 ) -> dict[str, Any]:
     stop_mode = stop_distance_m is not None
     shadow_cfg = get_shadow_tuning_config()
     lon_cfg = ((shadow_cfg.get("longitudinal") or {}).get("stop" if stop_mode else "follow") or {})
+    bounds_cfg = shadow_cfg.get("bounds") or {}
+    b = bounds or {}
+    scales = _cost_profile_scales(b.get("cost_profile"))
+    notes: list[str] = []
+
+    q_speed = float(lon_cfg.get("q_speed", 0.45 if stop_mode else 0.9)) * float(scales.get("q_speed_scale", 1.0))
+    q_speed_terminal = float(lon_cfg.get("q_speed_terminal", 5.5 if stop_mode else 2.2)) * float(
+        scales.get("q_speed_terminal_scale", 1.0)
+    )
+    r_accel = float(lon_cfg.get("r_accel", 0.18)) * float(scales.get("r_accel_scale", 1.0))
+    r_accel_delta = float(lon_cfg.get("r_accel_delta", 0.3)) * float(scales.get("r_accel_scale", 1.0))
+
+    desired_speed, speed_notes = apply_bounds_to_target_speed(float(target_speed_mps), b)
+    notes.extend(speed_notes)
+
     template_build_started = perf_counter()
     template = _longitudinal_template(
         int(max(horizon_steps, 6)),
         round(float(dt_s), 4),
         stop_mode,
-        float(lon_cfg.get("q_speed", 0.45 if stop_mode else 0.9)),
+        q_speed,
         float(lon_cfg.get("q_position", 0.12 if stop_mode else 0.02)),
-        float(lon_cfg.get("q_speed_terminal", 5.5 if stop_mode else 2.2)),
+        q_speed_terminal,
         float(lon_cfg.get("q_position_terminal", 18.0 if stop_mode else 0.0)),
-        float(lon_cfg.get("r_accel", 0.18)),
-        float(lon_cfg.get("r_accel_delta", 0.3)),
+        r_accel,
+        r_accel_delta,
     )
     N = template.N
-    q = np.zeros(3 * N, dtype=float)
 
-    if not stop_mode:
-        v_reference = np.full(N, float(target_speed_mps), dtype=float)
-        q[template.v_idx] = -2.0 * template.v_weights * v_reference
-    else:
-        p_reference = np.array(
-            [float(stop_distance_m) * ((k + 1) / N) for k in range(N)],
-            dtype=float,
+    def _assemble(target_v: float, *, a_min: float, a_max: float, p_upper: float, v_max: float):
+        q = np.zeros(3 * N, dtype=float)
+        if not stop_mode:
+            v_reference = np.full(N, float(target_v), dtype=float)
+            q[template.v_idx] = -2.0 * template.v_weights * v_reference
+        else:
+            p_reference = np.array(
+                [float(stop_distance_m) * ((k + 1) / N) for k in range(N)],
+                dtype=float,
+            )
+            v_reference = np.array(
+                [max(float(current_speed_mps) * (1.0 - ((k + 1) / N)), 0.0) for k in range(N)],
+                dtype=float,
+            )
+            q[template.v_idx] = -2.0 * template.v_weights * v_reference
+            if template.p_weights is not None:
+                q[template.p_idx] = -2.0 * template.p_weights * p_reference
+        rhs_speed = np.zeros(N, dtype=float)
+        rhs_speed[0] = float(current_speed_mps)
+        rhs_pos = np.zeros(N, dtype=float)
+        rhs_pos[0] = float(template.dt_s * float(current_speed_mps))
+        l_bounds = np.concatenate(
+            [
+                rhs_speed,
+                rhs_pos,
+                np.zeros(N, dtype=float),
+                np.zeros(N, dtype=float),
+                np.full(N, a_min, dtype=float),
+            ]
         )
-        v_reference = np.array(
-            [max(float(current_speed_mps) * (1.0 - ((k + 1) / N)), 0.0) for k in range(N)],
-            dtype=float,
+        u_bounds = np.concatenate(
+            [
+                rhs_speed,
+                rhs_pos,
+                np.full(N, v_max, dtype=float),
+                np.full(N, p_upper, dtype=float),
+                np.full(N, a_max, dtype=float),
+            ]
         )
-        q[template.v_idx] = -2.0 * template.v_weights * v_reference
-        if template.p_weights is not None:
-            q[template.p_idx] = -2.0 * template.p_weights * p_reference
+        return q, l_bounds, u_bounds
 
-    rhs_speed = np.zeros(N, dtype=float)
-    rhs_speed[0] = float(current_speed_mps)
-    rhs_pos = np.zeros(N, dtype=float)
-    rhs_pos[0] = float(template.dt_s * float(current_speed_mps))
-    v_max = max(
-        float(current_speed_mps),
-        float(target_speed_mps),
-        float(lon_cfg.get("v_max_floor_mps", 8.0)),
-    ) + float(lon_cfg.get("v_max_buffer_mps", 4.0))
-    p_upper = (
-        max(float(stop_distance_m), 0.5)
-        if stop_mode
-        else max(float(target_speed_mps), float(current_speed_mps), 4.0) * template.dt_s * N * float(lon_cfg.get("p_upper_scale", 1.8))
-        + float(lon_cfg.get("p_upper_bias_m", 6.0))
-    )
+    # --- Bounds: contract / clear distance ---
     a_min = float(lon_cfg.get("a_min", -6.0 if stop_mode else -3.5))
     a_max = float(lon_cfg.get("a_max", 1.5 if stop_mode else 2.0))
-    l_bounds = np.concatenate(
-        [
-            rhs_speed,
-            rhs_pos,
-            np.zeros(N, dtype=float),
-            np.zeros(N, dtype=float),
-            np.full(N, a_min, dtype=float),
-        ]
-    )
-    u_bounds = np.concatenate(
-        [
-            rhs_speed,
-            rhs_pos,
-            np.full(N, v_max, dtype=float),
-            np.full(N, p_upper, dtype=float),
-            np.full(N, a_max, dtype=float),
-        ]
-    )
+    if b.get("a_long_min_mps2") is not None:
+        a_min = min(a_min, float(b["a_long_min_mps2"]))  # more negative allowed if provided
+        notes.append("a_min_from_bounds")
+    if b.get("a_long_max_mps2") is not None:
+        a_max = min(a_max, float(b["a_long_max_mps2"]) * float(scales.get("a_max_scale", 1.0)))
+        notes.append("a_max_from_bounds")
+    elif scales.get("a_max_scale"):
+        a_max *= float(scales["a_max_scale"])
+
+    v_max = max(
+        float(current_speed_mps),
+        float(desired_speed),
+        float(lon_cfg.get("v_max_floor_mps", 8.0)),
+    ) + float(lon_cfg.get("v_max_buffer_mps", 4.0))
+    if b.get("v_max_mps") is not None:
+        # Hard cap: never plan faster than contract (plus tiny buffer for numerics).
+        v_max = min(v_max, float(b["v_max_mps"]) * float(scales.get("v_max_scale", 1.0)) + 0.25)
+        notes.append("v_max_from_bounds")
+
+    if stop_mode:
+        p_upper = max(float(stop_distance_m), 0.5)
+    else:
+        p_upper = (
+            max(float(desired_speed), float(current_speed_mps), 4.0)
+            * template.dt_s
+            * N
+            * float(lon_cfg.get("p_upper_scale", 1.8))
+            + float(lon_cfg.get("p_upper_bias_m", 6.0))
+        )
+        clear = b.get("forward_clear_m")
+        if clear is not None:
+            holdback = float(bounds_cfg.get("clear_distance_holdback_m", 2.0))
+            clear_scale = float(scales.get("clear_scale", 1.0))
+            min_clear = float(bounds_cfg.get("min_clear_distance_m", 4.0))
+            clear_cap = max(min_clear, float(clear) * clear_scale - holdback)
+            if clear_cap < p_upper:
+                p_upper = clear_cap
+                notes.append(f"p_upper_clear={p_upper:.2f}")
+
     build_latency_ms = float((perf_counter() - template_build_started) * 1000.0)
-    solution, diagnostics = _solve_osqp_template(
-        template=template,
-        q=q,
-        l=l_bounds,
-        u=u_bounds,
-    )
+    q, l_bounds, u_bounds = _assemble(desired_speed, a_min=a_min, a_max=a_max, p_upper=p_upper, v_max=v_max)
+    solution, diagnostics = _solve_osqp_template(template=template, q=q, l=l_bounds, u=u_bounds)
+    degraded = False
+
+    # Feasibility recovery: re-solve with safer target / stronger brake / relaxed clear.
+    if solution is None and allow_degrade and not stop_mode:
+        deg_v = float(desired_speed) * float(bounds_cfg.get("degrade_target_speed_scale", 0.55))
+        deg_a_min = a_min + float(bounds_cfg.get("degrade_a_min_boost", -1.5))
+        deg_p = p_upper * float(bounds_cfg.get("degrade_p_upper_relax", 1.15))
+        q2, l2, u2 = _assemble(deg_v, a_min=deg_a_min, a_max=a_max, p_upper=deg_p, v_max=v_max)
+        solution, diagnostics = _solve_osqp_template(template=template, q=q2, l=l2, u=u2)
+        if solution is not None:
+            degraded = True
+            desired_speed = deg_v
+            notes.append("feasibility_degrade_follow")
+    elif solution is None and allow_degrade and stop_mode:
+        deg_a_min = min(a_min, -7.5)
+        q2, l2, u2 = _assemble(0.0, a_min=deg_a_min, a_max=min(a_max, 0.5), p_upper=p_upper, v_max=max(v_max, 1.0))
+        solution, diagnostics = _solve_osqp_template(template=template, q=q2, l=l2, u=u2)
+        if solution is not None:
+            degraded = True
+            notes.append("feasibility_degrade_stop")
+
     if solution is None:
         return {
             "feasible": False,
@@ -612,14 +815,21 @@ def _solve_longitudinal_mpc_qp(
             "speeds": None,
             "distances": None,
             "accelerations": None,
+            "applied_bounds": b,
+            "bound_notes": notes,
+            "degraded": False,
+            "effective_target_speed_mps": desired_speed,
         }
 
     v_solution = [float(current_speed_mps)] + [float(solution[int(index)]) for index in template.v_idx]
     p_solution = [0.0] + [float(solution[int(index)]) for index in template.p_idx]
     a_solution = [float(solution[int(index)]) for index in template.a_idx]
+    status = diagnostics["status"]
+    if degraded:
+        status = f"degraded_{status}" if status else "degraded_optimal"
     return {
         "feasible": True,
-        "solver_status": diagnostics["status"],
+        "solver_status": status,
         "solver_timed_out": diagnostics["timed_out"],
         "objective": diagnostics["objective"],
         "iterations": diagnostics["iterations"],
@@ -630,6 +840,10 @@ def _solve_longitudinal_mpc_qp(
         "speeds": v_solution,
         "distances": p_solution,
         "accelerations": a_solution,
+        "applied_bounds": b,
+        "bound_notes": notes,
+        "degraded": degraded,
+        "effective_target_speed_mps": desired_speed,
     }
 
 
@@ -638,8 +852,12 @@ def _solve_lateral_mpc_qp(
     target_offset_m: float,
     dt_s: float,
     horizon_steps: int,
+    bounds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     lat_cfg = get_shadow_tuning_config().get("lateral") or {}
+    b = bounds or {}
+    scales = _cost_profile_scales(b.get("cost_profile"))
+    r_scale = float(scales.get("r_control_scale", 1.0))
     template_build_started = perf_counter()
     template = _lateral_template(
         int(max(horizon_steps, 6)),
@@ -647,22 +865,32 @@ def _solve_lateral_mpc_qp(
         float(lat_cfg.get("q_offset", 1.1)),
         float(lat_cfg.get("q_offset_terminal", 8.0)),
         float(lat_cfg.get("q_velocity", 0.15)),
-        float(lat_cfg.get("r_control", 0.12)),
-        float(lat_cfg.get("r_control_delta", 0.25)),
+        float(lat_cfg.get("r_control", 0.12)) * r_scale,
+        float(lat_cfg.get("r_control_delta", 0.25)) * r_scale,
     )
     N = template.N
     q = np.zeros(3 * N, dtype=float)
+    # Clamp target offset to lateral bound from contract when present.
+    offset = float(target_offset_m)
+    if b.get("lateral_bound_m") is not None:
+        bound = max(0.2, float(b["lateral_bound_m"]))
+        if abs(offset) > bound:
+            offset = copysign(bound, offset)
     y_reference = np.array(
-        [float(target_offset_m) * _smoothstep((k + 1) / N) for k in range(N)],
+        [float(offset) * _smoothstep((k + 1) / N) for k in range(N)],
         dtype=float,
     )
     q[template.y_idx] = -2.0 * template.y_weights * y_reference
     y_limit = max(
-        abs(float(target_offset_m)) * float(lat_cfg.get("y_limit_scale", 1.5)),
+        abs(float(offset)) * float(lat_cfg.get("y_limit_scale", 1.5)),
         float(lat_cfg.get("y_limit_floor_m", 3.5)),
     )
+    if b.get("lateral_bound_m") is not None:
+        y_limit = min(y_limit, max(abs(float(b["lateral_bound_m"])) * 1.25, abs(offset) + 0.25))
     vy_limit = float(lat_cfg.get("vy_limit_mps", 3.0))
     u_limit = float(lat_cfg.get("u_limit", 4.0))
+    if b.get("a_lat_max_mps2") is not None:
+        u_limit = min(u_limit, max(0.5, float(b["a_lat_max_mps2"]) * 1.5))
     zeros = np.zeros(N, dtype=float)
     l_bounds = np.concatenate(
         [
@@ -896,6 +1124,7 @@ def _build_stop_solution(
     current_speed_mps: float,
     dt_s: float,
     stop_distance_m: float | None,
+    bounds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     stop_cfg = ((get_shadow_tuning_config().get("longitudinal") or {}).get("stop") or {})
     horizon_steps = int(stop_cfg.get("horizon_steps", 12))
@@ -975,19 +1204,29 @@ def _build_stop_solution(
             "solver_solve_latency_ms": total_latency_ms,
             "solver_total_latency_ms": total_latency_ms,
         }
+    # Prefer explicit stop distance; also respect clear distance holdback from bounds.
+    effective_stop = stop_distance_m
+    if bounds and bounds.get("forward_clear_m") is not None and stop_distance_m is not None:
+        holdback = float((get_shadow_tuning_config().get("bounds") or {}).get("clear_distance_holdback_m", 2.0))
+        clear_cap = max(0.5, float(bounds["forward_clear_m"]) - holdback)
+        if clear_cap < float(stop_distance_m):
+            effective_stop = clear_cap
     qp = _solve_longitudinal_mpc_qp(
         current_speed_mps=current_speed_mps,
         target_speed_mps=0.0,
         dt_s=dt_s,
         horizon_steps=horizon_steps,
-        stop_distance_m=stop_distance_m,
+        stop_distance_m=effective_stop,
+        bounds=bounds,
     )
     speeds = list(qp.get("speeds") or ([float(current_speed_mps)] + [0.0] * horizon_steps))
     distances = list(qp.get("distances") or ([0.0] * (horizon_steps + 1)))
     predicted_distance = float(distances[-1]) if distances else 0.0
-    distance_error = float(predicted_distance - float(stop_distance_m))
+    distance_error = float(predicted_distance - float(effective_stop if effective_stop is not None else stop_distance_m or 0.0))
     solver_status = str(qp.get("solver_status") or "unknown")
     feasible = bool(qp.get("feasible"))
+    notes = [f"mpc_objective={qp.get('objective')}"]
+    notes.extend(list(qp.get("bound_notes") or []))
     return {
         "feasible": feasible,
         "solver_status": solver_status,
@@ -995,16 +1234,19 @@ def _build_stop_solution(
         "target_speed_mps": 0.0,
         "speeds": speeds,
         "distances": distances,
+        "accelerations": qp.get("accelerations"),
         "stop_final_error_m": abs(distance_error),
         "stop_overshoot_distance_m": max(distance_error, 0.0),
         "fallback_recommendation": None if feasible else "maintain_baseline_stop_controller",
-        "notes": [f"mpc_objective={qp.get('objective')}"],
+        "notes": notes,
         "objective": qp.get("objective"),
         "iterations": qp.get("iterations", 0),
         "solver_problem_build_latency_ms": float(qp.get("solver_problem_build_latency_ms") or 0.0),
         "solver_setup_latency_ms": float(qp.get("solver_setup_latency_ms") or 0.0),
         "solver_solve_latency_ms": float(qp.get("solver_solve_latency_ms") or 0.0),
         "solver_total_latency_ms": float(qp.get("solver_total_latency_ms") or 0.0),
+        "degraded": bool(qp.get("degraded")),
+        "applied_bounds": qp.get("applied_bounds"),
     }
 
 
@@ -1014,6 +1256,7 @@ def _build_lane_change_solution(
     state: dict[str, Any],
     current_speed_mps: float,
     dt_s: float,
+    bounds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     shadow_cfg = get_shadow_tuning_config()
     lane_cfg = shadow_cfg.get("lane_change") or {}
@@ -1025,6 +1268,7 @@ def _build_lane_change_solution(
     direction = "left" if requested_behavior.endswith("left") else "right"
     recommended_behavior = requested_behavior
     notes: list[str] = []
+    bounds = bounds if bounds is not None else extract_mpc_bounds(request)
 
     if target_lane_id is None:
         return {
@@ -1064,6 +1308,12 @@ def _build_lane_change_solution(
         if lateral_error_m > float(lane_cfg.get("high_error_threshold_m", 2.0))
         else float(lane_cfg.get("target_speed_cap_low_error_mps", 6.0)),
     )
+    # LC + high lateral error: couple long speed down further (P1-MPC light couple).
+    if lateral_error_m > float(lane_cfg.get("high_error_threshold_m", 2.0)):
+        capped_target_speed_mps = min(capped_target_speed_mps, max(2.0, current_speed_mps * 0.85))
+        notes.append("lc_long_lat_speed_couple")
+    capped_target_speed_mps, speed_notes = apply_bounds_to_target_speed(capped_target_speed_mps, bounds)
+    notes.extend(speed_notes)
     nominal_completion_time_s = _clamp(
         float(lane_cfg.get("nominal_time_base_s", 0.8))
         + lateral_error_m
@@ -1085,12 +1335,14 @@ def _build_lane_change_solution(
         dt_s=dt_s,
         horizon_steps=horizon_steps,
         stop_distance_m=None,
+        bounds=bounds,
     )
     signed_total_offset = copysign(lateral_error_m, -1.0 if direction == "right" else 1.0)
     lat_qp = _solve_lateral_mpc_qp(
         target_offset_m=signed_total_offset,
         dt_s=dt_s,
         horizon_steps=horizon_steps,
+        bounds=bounds,
     )
     speeds = list(lon_qp.get("speeds") or ([float(current_speed_mps)] + [capped_target_speed_mps] * horizon_steps))
     distances = list(lon_qp.get("distances") or [float(index) * dt_s * capped_target_speed_mps for index in range(horizon_steps + 1)])
@@ -1132,11 +1384,13 @@ def _build_lane_change_solution(
             sign_changes += 1
         previous_error = error
 
+    notes.extend(list(lon_qp.get("bound_notes") or []))
+    eff_speed = float(lon_qp.get("effective_target_speed_mps") or capped_target_speed_mps)
     return {
         "feasible": feasible,
         "solver_status": solver_status,
         "solver_timed_out": solver_timed_out,
-        "target_speed_mps": capped_target_speed_mps,
+        "target_speed_mps": eff_speed,
         "recommended_behavior": recommended_behavior,
         "fallback_recommendation": None if feasible else "maintain_baseline_lane_follow",
         "completion_time_s": completion_time_s,
@@ -1146,6 +1400,10 @@ def _build_lane_change_solution(
         "control_jerk_proxy": _jerk_proxy_from_profile(speeds, dt_s),
         "trajectory_points": points,
         "notes": notes,
+        "accelerations": lon_qp.get("accelerations"),
+        "lateral_controls": lat_qp.get("controls"),
+        "degraded": bool(lon_qp.get("degraded")),
+        "applied_bounds": bounds,
         "objective": {
             "longitudinal": lon_qp.get("objective"),
             "lateral": lat_qp.get("objective"),
@@ -1166,8 +1424,11 @@ def _build_follow_solution(
     request: dict[str, Any],
     current_speed_mps: float,
     dt_s: float,
+    bounds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     target_speed_mps = _safe_float(request.get("target_speed_mps")) or current_speed_mps
+    bounds = bounds if bounds is not None else extract_mpc_bounds(request)
+    target_speed_mps, speed_notes = apply_bounds_to_target_speed(float(target_speed_mps), bounds)
     follow_cfg = ((get_shadow_tuning_config().get("longitudinal") or {}).get("follow") or {})
     qp = _solve_longitudinal_mpc_qp(
         current_speed_mps=current_speed_mps,
@@ -1175,10 +1436,12 @@ def _build_follow_solution(
         dt_s=dt_s,
         horizon_steps=int(follow_cfg.get("horizon_steps", 10)),
         stop_distance_m=None,
+        bounds=bounds,
     )
     horizon_steps = int(follow_cfg.get("horizon_steps", 10))
-    speeds = list(qp.get("speeds") or ([float(current_speed_mps)] + [target_speed_mps] * horizon_steps))
-    distances = list(qp.get("distances") or [float(index) * dt_s * target_speed_mps for index in range(horizon_steps + 1)])
+    eff = float(qp.get("effective_target_speed_mps") or target_speed_mps)
+    speeds = list(qp.get("speeds") or ([float(current_speed_mps)] + [eff] * horizon_steps))
+    distances = list(qp.get("distances") or [float(index) * dt_s * eff for index in range(horizon_steps + 1)])
     points = [
         {
             "t_s": round(index * dt_s, 4),
@@ -1188,20 +1451,28 @@ def _build_follow_solution(
         }
         for index in range(len(distances))
     ]
+    notes = list(speed_notes)
+    notes.extend(list(qp.get("bound_notes") or []))
     return {
         "feasible": bool(qp.get("feasible")),
-        "solver_status": "optimal_lane_follow_mpc" if bool(qp.get("feasible")) else str(qp.get("solver_status") or "infeasible_lane_follow_mpc"),
+        "solver_status": (
+            ("degraded_" if qp.get("degraded") else "")
+            + ("optimal_lane_follow_mpc" if bool(qp.get("feasible")) else str(qp.get("solver_status") or "infeasible_lane_follow_mpc"))
+        ),
         "solver_timed_out": bool(qp.get("solver_timed_out", False)),
-        "target_speed_mps": target_speed_mps,
+        "target_speed_mps": eff,
         "recommended_behavior": str(request.get("requested_behavior") or "keep_lane"),
         "fallback_recommendation": None if bool(qp.get("feasible")) else "maintain_baseline_lane_follow",
         "completion_time_s": None,
         "heading_settle_time_s": None,
+        "accelerations": qp.get("accelerations"),
+        "degraded": bool(qp.get("degraded")),
+        "applied_bounds": bounds,
         "lateral_oscillation_rate": 0.0,
-        "trajectory_smoothness_proxy": 0.0,
+        "trajectory_smoothness_proxy": _smoothness_proxy(distances, [0.0] * len(distances)),
         "control_jerk_proxy": _jerk_proxy_from_profile(speeds, dt_s),
         "trajectory_points": points,
-        "notes": [],
+        "notes": notes,
         "objective": qp.get("objective"),
         "iterations": qp.get("iterations", 0),
         "solver_problem_build_latency_ms": float(qp.get("solver_problem_build_latency_ms") or 0.0),
@@ -1421,6 +1692,14 @@ def solve_kinematic_shadow_step(
     runtime_state = runtime_state or new_shadow_runtime_state()
     request = dict(row.get("execution_request") or {})
     state = dict(row.get("execution_state") or {})
+    # Promote scene-level clear/TTC into request for bound injection when absent.
+    scene = dict(row.get("scene") or row.get("world_state", {}).get("scene") or {})
+    risk = dict(row.get("risk_summary") or row.get("world_state", {}).get("risk_summary") or {})
+    if request.get("front_free_space_m") is None and scene.get("front_free_space_m") is not None:
+        request["front_free_space_m"] = scene.get("front_free_space_m")
+    if request.get("min_ttc_s") is None and risk.get("minimum_ttc_seconds") is not None:
+        request["min_ttc_s"] = risk.get("minimum_ttc_seconds")
+    mpc_bounds = extract_mpc_bounds(request)
     request_frame = _safe_int(request.get("frame"))
     carla_frame = _safe_int(row.get("carla_frame"))
     timestamp = _safe_float(row.get("timestamp"))
@@ -1444,6 +1723,7 @@ def solve_kinematic_shadow_step(
             current_speed_mps=current_speed_mps,
             dt_s=dt_s,
             stop_distance_m=stop_distance_m,
+            bounds=mpc_bounds,
         )
         recommended_behavior = "stop_before_obstacle"
         trajectory_points = [
@@ -1465,6 +1745,7 @@ def solve_kinematic_shadow_step(
             state=state,
             current_speed_mps=current_speed_mps,
             dt_s=dt_s,
+            bounds=mpc_bounds,
         )
         recommended_behavior = str(solution["recommended_behavior"])
         trajectory_points = list(solution["trajectory_points"])
@@ -1486,6 +1767,7 @@ def solve_kinematic_shadow_step(
             request=request,
             current_speed_mps=current_speed_mps,
             dt_s=dt_s,
+            bounds=mpc_bounds,
         )
         recommended_behavior = str(solution["recommended_behavior"])
         trajectory_points = list(solution["trajectory_points"])
@@ -1595,6 +1877,8 @@ def solve_kinematic_shadow_step(
         "disagreement_with_baseline": behavior_disagreement,
         "divergence_reasons": divergence_reasons,
         "notes": notes,
+        "mpc_bounds_applied": mpc_bounds,
+        "mpc_degraded": bool(solution.get("degraded")),
         "provenance": {
             "source_stage": source_stage,
             "proposal_mode": "shadow_only_no_takeover",

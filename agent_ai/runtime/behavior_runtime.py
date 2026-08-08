@@ -11,6 +11,10 @@ from agent_ai.authority.soft_contract import build_soft_contract_from_behavior
 from agent_ai.world_state.cost_memory import CostMemory
 from agent_ai.world_state.interaction_predictor import apply_interaction_prediction
 from agent_ai.world_state.planner_interface import build_planner_interface_payload
+from agent_ai.world_state.frenet import (
+    corridor_polyline_from_forward_corridor,
+    default_straight_corridor,
+)
 from agent_ai.world_state.motion_predictor import annotate_tracks_with_prediction
 from agent_ai.world_state.risk_engine import RiskAssessmentEngine
 from agent_ai.world_state.tactical_rules import RuleBasedTacticalPolicy
@@ -88,7 +92,12 @@ class WorldBehaviorRuntime:
         stage2_start = time.perf_counter()
         normalized = perception_frame.raw_prediction
         tracked_objects = self.tracker.update(normalized)
-        annotate_tracks_with_prediction(tracked_objects)
+        # Stage-2 uses straight ego corridor; refined with map corridor after stage-3
+        # context is available (re-annotate if chain present).
+        annotate_tracks_with_prediction(
+            tracked_objects,
+            reference_polyline=default_straight_corridor(horizon_m=self.forward_horizon_m),
+        )
         interaction = apply_interaction_prediction(
             tracked_objects,
             ego_speed_mps=float(normalized.ego.speed_mps),
@@ -144,6 +153,19 @@ class WorldBehaviorRuntime:
             horizon_m=self.forward_horizon_m,
             waypoint_step_m=self.waypoint_step_m,
         )
+        # Re-annotate with map corridor when available (A1).
+        map_poly = corridor_polyline_from_forward_corridor(
+            lane_context.forward_corridor if isinstance(lane_context.forward_corridor, dict) else None,
+            ego_frame_fallback=True,
+            horizon_m=self.forward_horizon_m,
+        )
+        if map_poly is not None:
+            annotate_tracks_with_prediction(tracked_objects, reference_polyline=map_poly)
+            apply_interaction_prediction(
+                tracked_objects,
+                ego_speed_mps=float(normalized.ego.speed_mps),
+                ensure_independent=False,
+            )
         lane_objects = build_lane_relative_objects(
             world_state=world_state.to_dict(),
             lane_context=lane_context,

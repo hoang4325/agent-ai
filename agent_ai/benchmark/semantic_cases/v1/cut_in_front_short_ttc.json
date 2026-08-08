@@ -1,0 +1,55 @@
+{
+  "case_id": "cut_in_front_short_ttc",
+  "description": "Closing cut-in on frontal corridor with short TTC; must slow/stop, not LC commit.",
+  "ego": {"speed_mps": 8.0, "cruise_speed_mps": 8.0},
+  "tracks": [
+    {
+      "track_id": 1,
+      "class_group": "vehicle",
+      "class_name": "car",
+      "position_ego": [7.0, 0.2, 0.0],
+      "velocity_ego": [-6.0, 0.0],
+      "relative_sector": "front"
+    }
+  ],
+  "scene": {
+    "left_side_occupancy": 0.4,
+    "right_side_occupancy": 0.4,
+    "front_free_space_m": 7.0
+  },
+  "lane_context": {
+    "left_lane": {"exists": true, "lane_change_allowed_from_current": true},
+    "right_lane": {"exists": true, "lane_change_allowed_from_current": true},
+    "junction_context": {
+      "is_in_junction": false,
+      "junction_ahead": false,
+      "distance_to_junction_m": 80.0
+    }
+  },
+  "lane_objects": [
+    {
+      "track_id": 1,
+      "class_group": "vehicle",
+      "lane_relation": "current_lane",
+      "longitudinal_m": 7.0,
+      "lateral_m": 0.2,
+      "is_front_in_current_lane": true,
+      "is_blocking_current_lane": true,
+      "source_track": {
+        "position_ego": [7.0, 0.2, 0.0],
+        "velocity_ego": [-6.0, 0.0],
+        "speed_mps": 6.0
+      }
+    }
+  ],
+  "lane_change_permission": {"left": true, "right": true},
+  "expect": {
+    "risk_levels_any": ["high", "critical"],
+    "maneuvers_any": ["emergency_stop", "stop", "slow_down", "follow", "yield"],
+    "maneuvers_forbidden": [],
+    "lc_stages_forbidden": ["commit"],
+    "min_ttc_max": 3.0,
+    "tags_any": ["ttc_critical", "ttc_high", "predicted_mode_risk", "short_ttc", "distance_critical", "front_blocked", "critical_risk"],
+    "prediction_modes_any": ["cv", "lane_follow", "brake"]
+  }
+}
