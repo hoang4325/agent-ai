@@ -24,9 +24,9 @@ Workspace tích hợp thử nghiệm trên giả lập **CARLA**, kết nối c�
 
 ---
 
-## 2. Kiến Trúc Tổng Thể & Luồng Dữ Liệu
+## 2. Kiến Trúc Tổng Thể & Luồng Dữ Liệu 6 Lớp (Pipeline Stages)
 
-Pipeline hoạt động của hệ thống được tổ chức thành các khối chức năng chính:
+Hệ thống được tổ chức thành **6 Stage liên tục**, chuẩn hóa giữa mã nguồn domain (`agent_ai.*`) và các alias lịch sử:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -35,7 +35,7 @@ Pipeline hoạt động của hệ thống được tổ chức thành các kh�
                                     │ Sensor Dump (LiDAR, Camera, Radar)
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Stage 1: Perception Bridge (BEVFusion Runtime & Coordinate Transformer)│
+│ Stage 1: Perception Bridge (BEVFusion Runtime & Coord Transformer)     │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ 3D Bounding Boxes & Map Features
                                     ▼
@@ -50,21 +50,35 @@ Pipeline hoạt động của hệ thống được tổ chức thành các kh�
                                     │ Tactical Context
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Stage 4: Agentic Reasoning & Online Shadow Execution Runtime           │
+│ Stage 4: Agentic Reasoning & Online Shadow Runtime                     │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ Proposed ManeuverContract
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Stage 9: Safety Supervisor & Authority State Machine (ASM)             │
+│ Stage 5: Safety Supervisor & Authority Layer (ASM)                     │
 │   - Check Veto: Freshness, ODD, TTC, Geometry & Confidence Gates       │
 │   - Decision: Baseline Active / Agent Granted / TOR Issued / MRM       │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ Approved Maneuver Contract
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Contract Resolver & MPC Controller ──► Output Actuators (Steer/Throttle)│
-└────────────────────────────────────────────────────────────────────────┘
+│ Stage 6: Benchmark & Execution Synth (Contract Resolver & MPC Controller)│
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Actuator Commands (Steer/Throttle)
+                                    ▼
+                                  CARLA
 ```
+
+### Chi Tiết Phân Hạng 6 Stage & Legacy Mapping
+
+| Stage Chuẩn | Tên Domain Layer | Package Python | Chức Năng Chính | Legacy Alias |
+| :--- | :--- | :--- | :--- | :--- |
+| **Stage 1** | Perception Bridge | `agent_ai.perception` | Kết nối CARLA sensor, đồng bộ frame, BEVFusion inference | `carla_bevfusion_stage1` |
+| **Stage 2** | World State Engine | `agent_ai.world_state` | Tracking vật thể, dự đoán chuyển động, scene graph & risk summary | `stage2` |
+| **Stage 3** | Tactical Behavior | `agent_ai.behavior` | Ngữ cảnh làn đường (`.lane`), lộ trình (`.route`), local plan (`.execution`) | `stage3`, `stage3b`, `stage3c` |
+| **Stage 4** | Agentic Runtime | `agent_ai.runtime` | Vòng lặp điều phối 10Hz, shadow execution, agentic reasoning | `stage4` |
+| **Stage 5** | Safety & Authority | `agent_ai.authority` | Quản lý trạng thái ASM, Safety Supervisor Veto, TOR & MRM | `stage9` |
+| **Stage 6** | Benchmark & Evaluation | `agent_ai.benchmark` | Frozen corpus, shadow gates, takeover canary, metrics audit | `stage5a`, `stage6`, `stage7`, `stage8` |
 
 ---
 
@@ -78,8 +92,8 @@ Mã nguồn được tái cấu trúc hoàn toàn theo domain chức năng, lo�
 | **`agent_ai.world_state`** | Object tracking, scene representation, spatial-temporal risk modeling. |
 | **`agent_ai.behavior`** | Phân mảnh thành các subpackage:<br>• `.lane`: Ngữ cảnh làn đường & lane topology.<br>• `.route`: Lập kế hoạch hành vi theo lộ trình.<br>• `.execution`: Local planner & execution helpers.<br>• `.coverage`: Tooling kiểm thử độ bao phủ kịch bản. |
 | **`agent_ai.runtime`** | Vòng lặp điều phối online 10Hz, shadow execution, monitoring & metrics logger. |
-| **`agent_ai.authority`** | Lớp an toàn trung tâm:<br>• `authority_state_machine.py`: Trạng thái ASM & chuyển vùng quyền lực.<br>• `safety_supervisor.py`: Động cơ Veto với các hard safety gates.<br>• `authority_arbiter.py`: Điều phối luồng 10Hz.<br>• `baseline_detector.py`: Phát hiện baseline bị stuck/dao động.<br>• `contract_resolver.py`: Chuyển contract thành Trajectory Request.<br>• `tor_manager.py` & `minimal_risk_maneuver.py`: Xử lý Takeover Request & MRM fallback. |
-| **`agent_ai.benchmark`** | Frozen corpus, metric registry, gate evaluations (`gates/`, `shadow/`, `takeover/`, `assist/`). |
+| **`agent_ai.authority`** | Lớp an toàn trung tâm (xây dựng dựa trên thiết kế Stage 9 cũ):<br>• `state_machine.py`: Trạng thái ASM & chuyển vùng quyền lực.<br>• `safety_supervisor.py`: Động cơ Veto với các hard safety gates.<br>• `arbiter.py`: Điều phối luồng 10Hz.<br>• `baseline_detector.py`: Phát hiện baseline bị stuck/dao động.<br>• `contract_resolver.py`: Chuyển contract thành Trajectory Request.<br>• `tor_manager.py` & `minimal_risk_maneuver.py`: Xử lý Takeover Request & MRM fallback. |
+| **`agent_ai.benchmark`** | Frozen corpus, metric registry, gate evaluations (tích hợp các mốc stage 5a/6/7/8 cũ vào subpackages `.gates`, `.shadow`, `.takeover`, `.assist`). |
 | **`agent_ai.shared`** | I/O artifacts, numeric math, common data schemas, logging. |
 | **`agent_ai.cli`** | Endpoint CLI thống nhất cho toàn bộ hệ thống. |
 
@@ -96,19 +110,19 @@ python -m agent_ai.cli list
 # 2. Xem trợ giúp chi tiết từng command
 python -m agent_ai.cli world_replay --help
 
-# 3. Chạy Replay Stage 2 dựa trên kết quả Stage 1 session
+# 3. Chạy Replay Stage 2 (World State) dựa trên kết quả Stage 1 session
 python -m agent_ai.cli world_replay \
   --stage1-session /path/to/stage1_session \
   --output-dir /tmp/stage2_output
 
-# 4. Chạy Online Runtime Orchestrator
+# 4. Chạy Stage 4 Online Runtime Orchestrator
 python -m agent_ai.cli online_runtime \
   --output-dir /tmp/online_runtime_out
 
-# 5. Đánh giá chiến dịch Authority & Safety (Stage 9 Campaign)
+# 5. Đánh giá chiến dịch Authority & Safety (Stage 5 / Legacy Stage 9 Campaign)
 python -m agent_ai.cli authority_campaign
 
-# 6. Chạy Gate kiểm định Shadow Execution
+# 6. Chạy Gate kiểm định Shadow Execution (Stage 6 / Legacy Stage 6 Gate)
 python -m agent_ai.cli shadow_gate
 ```
 
@@ -116,7 +130,7 @@ python -m agent_ai.cli shadow_gate
 
 ## 5. Cơ Chế An Toàn & Quản Lý Trạng Thái (Authority State Machine - ASM)
 
-Trạng thái điều phối quyền kiểm soát xe được quản lý bởi **Authority State Machine (ASM)** gồm các trạng thái chính:
+Trạng thái điều phối quyền kiểm soát xe (nằm trong `agent_ai.authority`) được quản lý bởi **Authority State Machine (ASM)** gồm các trạng thái chính:
 
 1. **`BASELINE_ACTIVE`**: Hệ thống baseline mặc định nắm quyền lái xe.
 2. **`AGENT_REQUESTED`**: Agent phát hiện cơ hội/sự cố và xin cấp quyền **ManeuverContract**.
