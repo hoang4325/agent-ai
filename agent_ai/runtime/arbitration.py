@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, List
 
-from agent_ai.behavior.execution.execution_contract import ExecutionRequest
+from agent_ai.behavior.execution.contract import ExecutionRequest
 
 
 @dataclass

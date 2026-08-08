@@ -1,22 +1,22 @@
 """
-Agent-AI — standardized package layout for the autonomous-driving research stack.
+Agent-AI — domain-oriented package layout (no stage* package names).
 
-Package map (legacy → canonical)
---------------------------------
-carla_bevfusion_stage1 → agent_ai.perception
-stage2                 → agent_ai.world_state
-stage3                 → agent_ai.behavior.lane
-stage3b                → agent_ai.behavior.route
-stage3c                → agent_ai.behavior.execution
-stage3c_coverage       → agent_ai.behavior.coverage
-stage4                 → agent_ai.runtime
-stage9                 → agent_ai.authority
-benchmark              → agent_ai.benchmark
-common                 → agent_ai.shared
+Public packages
+---------------
+- agent_ai.perception
+- agent_ai.world_state
+- agent_ai.behavior.lane | .route | .execution | .coverage
+- agent_ai.runtime
+- agent_ai.authority
+- agent_ai.benchmark
+- agent_ai.shared
+- agent_ai.cli
 
-Legacy top-level names remain as thin shims so existing scripts keep working.
-Prefer canonical ``agent_ai.*`` imports in new code.
+Prefer ``agent_ai.*`` imports and ``python -m agent_ai.cli <command>``.
+Legacy root packages (``stage2``, ``stage9``, ``common``, …) have been removed.
+See ``agent_ai.module_map`` for rename history.
 """
+
 from __future__ import annotations
 
 from .paths import REPO_ROOT

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
 
-from .execution_contract import ExecutionRequest
+from .contract import ExecutionRequest
 from .lane_change_executor import LaneChangeTracker
 from agent_ai.behavior.coverage.lane_change_completion import LaneChangeCompletionCriteria
 from agent_ai.behavior.coverage.stop_controller_tuner import StopControllerConfig, compute_stop_command

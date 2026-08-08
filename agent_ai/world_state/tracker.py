@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .object_schema import NormalizedDetection, NormalizedFramePrediction, TrackedObject
+from .schema import NormalizedDetection, NormalizedFramePrediction, TrackedObject
 
 LOGGER = logging.getLogger(__name__)
 

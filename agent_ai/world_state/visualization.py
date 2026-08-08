@@ -5,7 +5,7 @@ from typing import Iterable, List
 
 import matplotlib.pyplot as plt
 
-from .object_schema import DecisionIntent, WorldState
+from .schema import DecisionIntent, WorldState
 
 
 def _save_decision_timeline(

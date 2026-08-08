@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Dict, Iterable, List
 
-from .object_schema import DecisionIntent, WorldState
+from .schema import DecisionIntent, WorldState
 
 
 def summarize_stage2_session(

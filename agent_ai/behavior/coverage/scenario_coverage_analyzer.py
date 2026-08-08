@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List
 
-from .evaluation_stage3c_coverage import build_stage3c_run_metrics, load_json, select_best_run
+from .evaluation import build_stage3c_run_metrics, load_json, select_best_run
 
 
 def _safe_load_json(path: str | Path) -> Dict[str, Any] | None:

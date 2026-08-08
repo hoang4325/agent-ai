@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from .object_schema import DecisionIntent, PlannerInterfacePayload, WorldState
+from .schema import DecisionIntent, PlannerInterfacePayload, WorldState
 
 
 def build_planner_interface_payload(

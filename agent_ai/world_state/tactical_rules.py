@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from .object_schema import DecisionIntent, WorldState
+from .schema import DecisionIntent, WorldState
 
 LOGGER = logging.getLogger(__name__)
 

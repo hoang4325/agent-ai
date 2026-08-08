@@ -6,7 +6,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any, Dict, Iterable, List
 
-from .evaluation_stage3c_coverage import (
+from .evaluation import (
     derive_lane_change_events,
     derive_stop_events,
     load_json,

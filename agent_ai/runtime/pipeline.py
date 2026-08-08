@@ -35,15 +35,15 @@ ONLINE_PIPELINE_ORDER: tuple[str, ...] = (
 )
 
 PIPELINE_COMPONENTS: dict[str, str] = {
-    "perception": "agent_ai.runtime.perception_online_adapter.PerceptionOnlineAdapter",
-    "world_behavior": "agent_ai.runtime.world_behavior_runtime.WorldBehaviorRuntime",
-    "execution": "agent_ai.runtime.execution_runtime.ExecutionRuntime",
+    "perception": "agent_ai.runtime.perception_adapter.PerceptionOnlineAdapter",
+    "world_behavior": "agent_ai.runtime.behavior_runtime.WorldBehaviorRuntime",
+    "execution": "agent_ai.runtime.execution.ExecutionRuntime",
     "shadow": "agent_ai.runtime.shadow_runtime.Stage4ShadowRuntime",
     "monitor": "agent_ai.runtime.monitoring.Stage4Monitor",
-    "orchestrator": "agent_ai.runtime.online_orchestrator.Stage4OnlineOrchestrator",
+    "orchestrator": "agent_ai.runtime.orchestrator.Stage4OnlineOrchestrator",
     "session_utils": "agent_ai.runtime.session_utils",
     "control_helpers": "agent_ai.runtime.control_helpers",
-    "authority": "agent_ai.authority.authority_arbiter.AuthorityArbiter",
+    "authority": "agent_ai.authority.arbiter.AuthorityArbiter",
 }
 
 __all__ = [

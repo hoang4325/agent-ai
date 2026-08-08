@@ -5,9 +5,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from agent_ai.behavior.lane.evaluation_stage3 import summarize_stage3_session
-from agent_ai.behavior.route.evaluation_stage3b import summarize_stage3b_session
-from agent_ai.behavior.execution.evaluation_stage3c import summarize_stage3c_session
+from agent_ai.behavior.lane.evaluation import summarize_stage3_session
+from agent_ai.behavior.route.evaluation import summarize_stage3b_session
+from agent_ai.behavior.execution.evaluation import summarize_stage3c_session
 from agent_ai.behavior.coverage.planner_quality import write_planner_quality_artifacts
 
 from .io import dump_json, dump_jsonl, load_json, load_jsonl

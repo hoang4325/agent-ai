@@ -77,6 +77,6 @@ def clone_execution_request_with_updates(request: Any, **updates: Any) -> Any:
     """Return a new ExecutionRequest with selected fields overridden."""
     payload = request.to_dict()
     payload.update(updates)
-    from agent_ai.behavior.execution.execution_contract import ExecutionRequest
+    from agent_ai.behavior.execution.contract import ExecutionRequest
 
     return ExecutionRequest(**payload)

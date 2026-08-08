@@ -16,7 +16,7 @@ from .risk_engine import RiskAssessmentEngine
 from .tactical_rules import RuleBasedTacticalPolicy
 from .tracker import SimpleObjectTracker
 from .visualization import save_stage2_visualization_bundle
-from .world_state_builder import WorldStateBuilder
+from .builder import WorldStateBuilder
 
 LOGGER = logging.getLogger("stage2.replay_runner")
 

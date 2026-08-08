@@ -1,4 +1,4 @@
-from .object_schema import (
+from .schema import (
     DecisionIntent,
     EgoState,
     NormalizedDetection,

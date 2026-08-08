@@ -31,9 +31,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
-from .authority_arbiter import AuthorityArbiter
-from .authority_logger import AuthorityLogger
-from .authority_state_machine import AuthorityStateMachine
+from .arbiter import AuthorityArbiter
+from .logger import AuthorityLogger
+from .state_machine import AuthorityStateMachine
 from .baseline_detector import BaselineDetector
 from .contract_resolver import ContractResolver
 from .handoff_planner import HandoffPlanner

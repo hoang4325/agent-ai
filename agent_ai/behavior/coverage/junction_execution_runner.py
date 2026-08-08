@@ -4,9 +4,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict
 
-from agent_ai.behavior.execution.replay_runner_stage3c import run_closed_loop
+from agent_ai.behavior.execution.replay_runner import run_closed_loop
 
-from .evaluation_stage3c_coverage import load_json
+from .evaluation import load_json
 
 
 def run_junction_execution(

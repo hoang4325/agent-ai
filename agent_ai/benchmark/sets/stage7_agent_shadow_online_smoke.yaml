@@ -90,10 +90,10 @@ required_artifacts_per_case:
   - agent_contract_validation.json
   - agent_timeout_fallback_events.jsonl
 
-# Canonical output files produced by stage7_agent_shadow_online_smoke.py
+# Canonical output files produced by agent_shadow_online_smoke.py
 canonical_output_files:
-  - agent_ai/benchmark/stage7_agent_shadow_online_smoke_result.json
-  - agent_ai/benchmark/stage7_agent_shadow_online_smoke_report.json
+  - agent_ai/benchmark/agent_shadow_online_smoke_result.json
+  - agent_ai/benchmark/agent_shadow_online_smoke_report.json
 
 invariants:
   - "shadow_mode = True in all agent outputs"

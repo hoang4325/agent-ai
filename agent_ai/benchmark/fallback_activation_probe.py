@@ -7,7 +7,7 @@ from typing import Any
 
 import yaml
 
-from scripts.run_system_benchmark_e2e import run_e2e_benchmark
+from agent_ai.cli.commands.system_benchmark_e2e import run_e2e_benchmark
 
 from .io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
 

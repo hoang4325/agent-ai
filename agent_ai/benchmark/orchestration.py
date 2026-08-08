@@ -96,15 +96,113 @@ def _resolve_stage_python_executable(candidate: str, fallback: str) -> str:
     return rendered
 
 
+def _resolve_cli_invocation(
+    *,
+    repo_root: Path,
+    python_executable: str,
+    profile: dict[str, Any],
+) -> list[str]:
+    """Build ``python -m agent_ai.cli <command>`` from profile fields."""
+    cli_command = profile.get("cli_command")
+    if not cli_command:
+        runner_script = str(profile.get("runner_script") or "").replace("\\", "/")
+        legacy = {
+            "scripts/run_stage2_replay.py": "world_replay",
+            "scripts/run_stage3_replay.py": "lane_behavior_replay",
+            "scripts/run_stage3b_replay.py": "route_behavior_replay",
+            "scripts/run_stage3c_closed_loop.py": "execution_closed_loop",
+            "scripts/run_stage3c_coverage.py": "execution_coverage",
+            "scripts/run_stage4_online.py": "online_runtime",
+            "scripts/run_stage4_online_revalidation.py": "online_runtime_revalidation",
+            "scripts/run_stage4_infra_smoke.py": "runtime_infra_smoke",
+            "scripts/run_stage4_fallback_activation_probe.py": "fallback_activation_probe",
+            "scripts/run_stage4_stop_alignment_revalidation.py": "stop_alignment_revalidation_cli",
+            "scripts/run_stage4_stop_materialization_revalidation.py": "stop_materialization_revalidation_cli",
+            "scripts/stage4_runtime_audit.py": "runtime_audit",
+            "scripts/run_carla_dump.py": "carla_dump",
+            "scripts/run_stage5a_gate.py": "contract_gate",
+            "scripts/run_stage5b_gate.py": "artifact_gate",
+            "scripts/run_stage6_control_authority_bounded_motion_sandbox.py": "control_authority_bounded_motion_sandbox",
+            "scripts/run_stage6_control_authority_handoff_sandbox.py": "control_authority_handoff_sandbox",
+            "scripts/run_stage6_control_authority_transfer_sandbox.py": "control_authority_transfer_sandbox",
+            "scripts/run_stage6_fallback_authority_ring.py": "fallback_authority_ring",
+            "scripts/run_stage6_full_authority_canary.py": "full_authority_canary",
+            "scripts/run_stage6_full_authority_ring.py": "full_authority_ring",
+            "scripts/run_stage6_full_authority_ring_stability.py": "full_authority_ring_stability",
+            "scripts/run_stage6_mpc_e2e_completion.py": "mpc_e2e_completion",
+            "scripts/run_stage6_mpc_e2e_completion_gate.py": "mpc_e2e_completion_gate",
+            "scripts/run_stage6_mpc_tuning.py": "mpc_tuning",
+            "scripts/run_stage6_multi_case_takeover_sandbox.py": "multi_case_takeover_sandbox",
+            "scripts/run_stage6_non_timeout_fallback_ring.py": "non_timeout_fallback_ring",
+            "scripts/run_stage6_online_shadow_golden_gate.py": "online_shadow_golden_gate",
+            "scripts/run_stage6_online_shadow_smoke.py": "online_shadow_smoke",
+            "scripts/run_stage6_online_shadow_stability.py": "online_shadow_stability",
+            "scripts/run_stage6_organic_fallback_ring.py": "organic_fallback_ring",
+            "scripts/run_stage6_pre_takeover_sandbox_gate.py": "pre_takeover_sandbox_gate",
+            "scripts/run_stage6_preflight.py": "preflight",
+            "scripts/run_stage6_preflight_revalidation.py": "preflight_revalidation",
+            "scripts/run_stage6_shadow_expansion.py": "shadow_expansion",
+            "scripts/run_stage6_shadow_expansion_golden_repin.py": "shadow_expansion_golden_repin",
+            "scripts/run_stage6_shadow_gate.py": "shadow_gate",
+            "scripts/run_stage6_shadow_matrix.py": "shadow_matrix",
+            "scripts/run_stage6_shadow_matrix_campaign.py": "shadow_matrix_campaign",
+            "scripts/run_stage6_shadow_revalidation.py": "shadow_revalidation",
+            "scripts/run_stage6_takeover_canary.py": "takeover_canary",
+            "scripts/run_stage6_takeover_enable_gate.py": "takeover_enable_gate",
+            "scripts/run_stage6_takeover_ring_6case_sandbox.py": "takeover_ring_6case_sandbox",
+            "scripts/run_stage6_takeover_ring_6case_stability.py": "takeover_ring_6case_stability",
+            "scripts/run_stage6_takeover_ring_sandbox.py": "takeover_ring_sandbox",
+            "scripts/run_stage6_takeover_ring_stability.py": "takeover_ring_stability",
+            "scripts/run_stage6_takeover_rollout_design.py": "takeover_rollout_design",
+            "scripts/run_stage6_takeover_rollout_phase.py": "takeover_rollout_phase",
+            "scripts/run_stage6_takeover_sandbox_gate.py": "takeover_sandbox_gate",
+            "scripts/run_stage7_agent_shadow_gate.py": "agent_shadow_gate",
+            "scripts/run_stage7_llm_shadow_smoke.py": "llm_shadow_smoke",
+            "scripts/run_stage7c_online_shadow_smoke.py": "agent_shadow_online_smoke",
+            "scripts/run_stage8_assist_smoke.py": "assist_smoke",
+            "scripts/run_stage8_assist_stability_campaign.py": "assist_stability_campaign",
+            "scripts/run_stage9_campaign.py": "authority_campaign",
+            "scripts/run_stage9_phase1_smoke.py": "authority_phase1_smoke",
+            "scripts/run_stage9_phase2_smoke.py": "authority_phase2_smoke",
+            "scripts/run_stage9_stability.py": "authority_stability",
+            "scripts/run_stage10_stage1_live_bridge.py": "live_authority_bridge",
+            "scripts/run_stage10_agent_stress_campaign.py": "agent_stress_campaign",
+            "scripts/run_system_benchmark.py": "system_benchmark",
+            "scripts/run_system_benchmark_e2e.py": "system_benchmark_e2e",
+            "scripts/run_tests_safe.py": "tests_safe",
+            "scripts/build_frozen_corpus.py": "build_frozen_corpus",
+            "scripts/live_infer.py": "live_infer",
+            "scripts/offline_infer.py": "offline_infer",
+            "scripts/multilane_scenario.py": "multilane_scenario",
+            "scripts/stage3_multilane_scenario.py": "multilane_scenario",
+            "scripts/geometry_sanity_check.py": "geometry_sanity_check",
+            "scripts/print_blueprint_attributes.py": "print_blueprint_attributes",
+            "scripts/online_baseline_repin.py": "online_baseline_repin",
+            "scripts/online_metric_stability.py": "online_metric_stability",
+            "scripts/online_smoke_stability.py": "online_smoke_stability",
+        }
+        cli_command = legacy.get(runner_script)
+        if not cli_command and runner_script.startswith("scripts/"):
+            # last-resort: stem as command name if registered
+            cli_command = Path(runner_script).stem
+    if not cli_command:
+        raise ValueError(f"Profile missing cli_command/runner_script: {profile.get('name')}")
+    return [python_executable, "-m", "agent_ai.cli", str(cli_command)]
+
+
 def _run_stage_command(
     *,
     repo_root: Path,
     python_executable: str,
-    runner_script: str,
+    profile: dict[str, Any],
     cli_args: list[str],
     log_path: Path,
 ) -> tuple[int, str]:
-    command = [python_executable, str((repo_root / runner_script).resolve()), *cli_args]
+    command = _resolve_cli_invocation(
+        repo_root=repo_root,
+        python_executable=python_executable,
+        profile=profile,
+    ) + list(cli_args)
     proc = subprocess.run(
         command,
         cwd=str(repo_root),
@@ -385,7 +483,7 @@ def execute_case(
         exit_code, output = _run_stage_command(
             repo_root=repo_root,
             python_executable=stage_python_executable,
-            runner_script=str(profile["runner_script"]),
+            profile=profile,
             cli_args=cli_args,
             log_path=case_run_dir / "logs" / f"{stage}.log",
         )
@@ -394,7 +492,7 @@ def execute_case(
             "stage": stage,
             "profile": profile_name,
             "status": "success" if exit_code == 0 else "fail",
-            "runner_script": str(profile["runner_script"]),
+            "cli_command": str(profile.get("cli_command") or profile.get("runner_script") or ""),
             "timing_ms": float(timing_ms),
             "log_path": str(case_run_dir / "logs" / f"{stage}.log"),
         }

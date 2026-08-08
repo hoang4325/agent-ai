@@ -41,28 +41,53 @@ sensor dump
 
 ## Cấu trúc package chuẩn (`agent_ai/`)
 
-Source chính nằm trong package `agent_ai` với tên semantic. Tên stage cũ vẫn còn dưới dạng **shim** để script/import legacy không gãy.
+Source chính dùng **tên domain**, không còn package `stage*`.
 
-| Canonical package | Legacy name | Vai trò |
-|-------------------|-------------|---------|
-| `agent_ai.perception` | `carla_bevfusion_stage1` | Sensor bridge + BEVFusion |
-| `agent_ai.world_state` | `stage2` | Tracking, risk, world state |
-| `agent_ai.behavior.lane` | `stage3` | Lane context + behavior v1 |
-| `agent_ai.behavior.route` | `stage3b` | Route-aware behavior v2 |
-| `agent_ai.behavior.execution` | `stage3c` | Execution / local planner |
-| `agent_ai.behavior.coverage` | `stage3c_coverage` | Planner coverage tooling |
-| `agent_ai.runtime` | `stage4` | Online orchestration + shadow |
-| `agent_ai.authority` | `stage9` | Authority / safety / TOR / MRM |
-| `agent_ai.benchmark` | `benchmark` | Cases, metrics, gates, corpus |
-| `agent_ai.shared` | `common` | I/O, numeric, ports, logging |
+| Package | Vai trò |
+|---------|---------|
+| `agent_ai.perception` | Sensor bridge + BEVFusion |
+| `agent_ai.world_state` | Tracking, risk, world state |
+| `agent_ai.behavior.lane` | Lane context + behavior request |
+| `agent_ai.behavior.route` | Route-aware behavior |
+| `agent_ai.behavior.execution` | Execution / local planner |
+| `agent_ai.behavior.coverage` | Planner coverage tooling |
+| `agent_ai.runtime` | Online orchestration + shadow |
+| `agent_ai.authority` | Authority / safety / TOR / MRM |
+| `agent_ai.benchmark` | Cases, metrics, gates, corpus |
+| `agent_ai.shared` | I/O, numeric, ports, logging |
+| `agent_ai.cli` | Entry CLI thống nhất |
 
-Ví dụ import mới:
+Import:
 
 ```python
-from agent_ai.runtime.online_orchestrator import Stage4OnlineOrchestrator
+from agent_ai.runtime.orchestrator import Stage4OnlineOrchestrator
 from agent_ai.authority import AuthorityArbiter, ManeuverContract
 from agent_ai.shared.artifact_io import write_json
 ```
+
+### CLI (tên domain)
+
+```bash
+# Cách chính — đầy đủ commands
+python -m agent_ai.cli list
+python -m agent_ai.cli world_replay --help
+python -m agent_ai.cli online_runtime --output-dir /tmp/out ...
+python -m agent_ai.cli authority_campaign
+python -m agent_ai.cli shadow_gate
+
+# Không còn thư mục scripts/ — chỉ dùng module CLI
+python -m agent_ai.cli world_replay --help
+python -m agent_ai.cli online_runtime --output-dir /tmp/out ...
+```
+
+### Quy ước đặt tên
+
+- **Không** dùng `stageN_` trong tên file/package Python mới
+- Package = domain; file = vai trò (`arbiter`, `builder`, `replay_runner`)
+- CLI = hành động domain (`world_replay`, `online_runtime`, `shadow_gate`)
+- Map chi tiết: `agent_ai/module_map.py`
+- Root package `stage*` / `common` / `carla_bevfusion_stage1` **đã xóa** — chỉ dùng `agent_ai.*`
+- ID pipeline trong YAML corpus (`stage1`…`stage4`) giữ nguyên (hợp đồng dữ liệu)
 
 ## Các stage chính
 

@@ -4,7 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from agent_ai.behavior.coverage.evaluation_stage3c_coverage import build_stage3c_run_metrics
+from agent_ai.behavior.coverage.evaluation import build_stage3c_run_metrics
 
 from .io import load_json, load_jsonl, resolve_repo_path
 from .semantic_artifacts import ensure_semantic_artifacts

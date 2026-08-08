@@ -13,7 +13,7 @@ from agent_ai.perception.constants import DEFAULT_OBJECT_CLASSES
 from agent_ai.shared.artifact_io import load_json as _load_json
 from agent_ai.shared.artifact_io import load_jsonl as _load_jsonl
 
-from .object_schema import EgoState, NormalizedDetection, NormalizedFramePrediction
+from .schema import EgoState, NormalizedDetection, NormalizedFramePrediction
 
 LOGGER = logging.getLogger(__name__)
 PROJECT_ROOT = REPO_ROOT

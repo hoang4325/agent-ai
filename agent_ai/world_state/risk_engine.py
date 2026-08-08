@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 from agent_ai.shared.numeric import clamp01 as _clamp01
 
-from .object_schema import RiskSummary, TrackedObject
+from .schema import RiskSummary, TrackedObject
 
 LOGGER = logging.getLogger(__name__)
 

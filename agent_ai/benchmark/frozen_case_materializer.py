@@ -660,7 +660,7 @@ def materialize_case_bundle(
         "case_id": case_id,
         "build": {
             "built_at": utc_now_iso(),
-            "tool": "scripts/build_frozen_corpus.py",
+            "tool": "python -m agent_ai.cli build_frozen_corpus",
             "bundle_dir": rel_repo_path(repo_root, bundle_dir),
         },
         "source_case_path": case_spec.get("_case_path"),
