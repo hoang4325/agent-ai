@@ -1,22 +1,9 @@
+"""Shim: ``stage3.lane_context_builder`` → ``agent_ai.behavior.lane.lane_context_builder``."""
 from __future__ import annotations
 
-from typing import Any, Dict
+import importlib
+import sys
 
-from .map_adapter import CarlaMapAdapter
-from .schema import LaneContext
-
-
-def build_lane_context(
-    *,
-    world_state: Dict[str, Any],
-    map_adapter: CarlaMapAdapter,
-    forward_horizon_m: float = 60.0,
-    waypoint_step_m: float = 5.0,
-) -> LaneContext:
-    return map_adapter.build_lane_context(
-        frame_id=int(world_state["frame"]),
-        sample_name=str(world_state["sample_name"]),
-        ego_position_world_bevfusion=world_state["ego"]["position_world"],
-        horizon_m=float(forward_horizon_m),
-        waypoint_step_m=float(waypoint_step_m),
-    )
+_module = importlib.import_module("agent_ai.behavior.lane.lane_context_builder")
+sys.modules[__name__] = _module
+globals().update({k: v for k, v in vars(_module).items() if not k.startswith("_")})

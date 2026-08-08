@@ -21,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.run_stage8_assist_smoke import run_stage8_assist_smoke
-from benchmark.io import dump_json
+from agent_ai.benchmark.io import dump_json
 
 
 def main():
@@ -45,7 +45,7 @@ def main():
     total_contract_breaches = 0
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    campaign_dir = Path(args.repo_root) / "benchmark" / "reports" / f"stage8_campaign_{ts}"
+    campaign_dir = Path(args.repo_root) / "agent_ai" / "benchmark" / "reports" / f"stage8_campaign_{ts}"
     campaign_dir.mkdir(parents=True, exist_ok=True)
 
     run_dirs = []
@@ -98,13 +98,13 @@ def main():
     }
 
     dump_json(campaign_dir / "campaign_report.json", report)
-    dump_json(Path(args.repo_root) / "benchmark" / "stage8_assist_campaign_report.json", report)
+    dump_json(Path(args.repo_root) / "agent_ai" / "benchmark" / "stage8_assist_campaign_report.json", report)
 
     print(f"\n[Stage8-Campaign] ══════════════════════ CAMPAIGN: {overall_status} ══════════════════════")
     print(f"[Stage8-Campaign] Runs Passed: {args.runs - campaign_fails} / {args.runs}")
     print(f"[Stage8-Campaign] Aggregate Approval Rate: {mean_approval:.2%} (Target >= 80%)")
     print(f"[Stage8-Campaign] Total Contract Breaches: {total_contract_breaches} (Target == 0)")
-    print(f"[Stage8-Campaign] Report saved to: benchmark/stage8_assist_campaign_report.json\n")
+    print(f"[Stage8-Campaign] Report saved to: agent_ai/benchmark/stage8_assist_campaign_report.json\n")
 
 
 if __name__ == "__main__":

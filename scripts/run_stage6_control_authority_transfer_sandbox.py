@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.stage6_control_authority_handoff_sandbox import run_stage6_control_authority_transfer_sandbox
+from agent_ai.benchmark.stage6_control_authority_handoff_sandbox import run_stage6_control_authority_transfer_sandbox
 
 
 def main() -> int:

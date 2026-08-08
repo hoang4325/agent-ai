@@ -21,11 +21,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.frozen_corpus_builder import build_frozen_corpus
-from benchmark.stage5a_contract_audit import run_contract_audit
-from benchmark.stage5a_metric_pack import build_stage5a_metric_pack
-from benchmark.stage5a_failure_replay_builder import build_failure_replay_cases
-from benchmark.io import dump_json, load_yaml, resolve_repo_path
+from agent_ai.benchmark.frozen_corpus_builder import build_frozen_corpus
+from agent_ai.benchmark.stage5a_contract_audit import run_contract_audit
+from agent_ai.benchmark.stage5a_metric_pack import build_stage5a_metric_pack
+from agent_ai.benchmark.stage5a_failure_replay_builder import build_failure_replay_cases
+from agent_ai.benchmark.io import dump_json, load_yaml, resolve_repo_path
 from scripts.run_system_benchmark_e2e import run_e2e_benchmark
 
 
@@ -60,7 +60,7 @@ def _merge_gate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _load_stage5a_case_sets(repo_root: Path) -> dict[str, list[str]]:
-    benchmark_cfg = load_yaml(repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_cfg = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
     result: dict[str, list[str]] = {}
     for set_name in ["stage5a_core_golden", "stage5a_failure_replay"]:
         set_path = resolve_repo_path(repo_root, benchmark_cfg["sets"][set_name])
@@ -145,10 +145,10 @@ def run_stage5a_gate(
         except Exception as exc:
             print(f"  ✗ Failure replay case generation failed: {exc}")
 
-    benchmark_cfg = load_yaml(repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_cfg = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
     frozen_root = resolve_repo_path(
         repo_root,
-        ((benchmark_cfg.get("frozen_corpus") or {}).get("root")) or "benchmark/frozen_corpus/v1",
+        ((benchmark_cfg.get("frozen_corpus") or {}).get("root")) or "agent_ai/benchmark/frozen_corpus/v1",
     )
     if frozen_root is None:
         raise ValueError("frozen corpus root is missing from benchmark config")
@@ -158,7 +158,7 @@ def run_stage5a_gate(
     print("\n[Phase 4] Refreshing frozen corpus...")
     frozen_build = build_frozen_corpus(
         repo_root=repo_root,
-        config_path="benchmark/benchmark_v1.yaml",
+        config_path="agent_ai/benchmark/benchmark_v1.yaml",
         output_root=frozen_root,
     )
     print(f"  → Frozen corpus refreshed at {frozen_root}")
@@ -169,7 +169,7 @@ def run_stage5a_gate(
     benchmark_results = []
     try:
         golden_result = run_e2e_benchmark(
-            config_path=repo_root / "benchmark" / "benchmark_v1.yaml",
+            config_path=repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml",
             set_name="stage5a_core_golden",
             benchmark_mode="scenario_replay",
             execute_stages=True,
@@ -195,7 +195,7 @@ def run_stage5a_gate(
     print("\n[Phase 6] Running stage5a_failure_replay via scenario_replay...")
     try:
         replay_result = run_e2e_benchmark(
-            config_path=repo_root / "benchmark" / "benchmark_v1.yaml",
+            config_path=repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml",
             set_name="stage5a_failure_replay",
             benchmark_mode="scenario_replay",
             execute_stages=True,
@@ -256,7 +256,7 @@ def run_stage5a_gate(
         ],
     }
 
-    output_path = repo_root / "benchmark" / "stage5a_gate_result.json"
+    output_path = repo_root / "agent_ai" / "benchmark" / "stage5a_gate_result.json"
     dump_json(output_path, gate_output)
 
     # ── Print verdict ─────────────────────────────────────────────────────

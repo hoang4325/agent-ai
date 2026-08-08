@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
+from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
 
 
 def _utc_now() -> str:
@@ -20,11 +20,11 @@ def _utc_now() -> str:
 
 
 def _default_decision_path() -> Path:
-    return REPO_ROOT / "benchmark" / "reports" / "baseline_repin_decision.json"
+    return REPO_ROOT / "agent_ai" / "benchmark" / "reports" / "baseline_repin_decision.json"
 
 
 def _golden_report_dirs() -> list[Path]:
-    reports_dir = REPO_ROOT / "benchmark" / "reports"
+    reports_dir = REPO_ROOT / "agent_ai" / "benchmark" / "reports"
     return sorted([p for p in reports_dir.glob("golden_*") if p.is_dir()])
 
 
@@ -72,7 +72,7 @@ def _select_candidate(candidates: list[dict[str, Any]], selected_run: str | None
 
 def _apply_repin(selected: dict[str, Any], semantic_hardening_version: str) -> dict[str, Any]:
     report_dir = Path(selected["report_dir"])
-    baseline_dir = REPO_ROOT / "benchmark" / "baselines" / "system_benchmark_v1"
+    baseline_dir = REPO_ROOT / "agent_ai" / "benchmark" / "baselines" / "system_benchmark_v1"
     baseline_metrics = baseline_dir / "baseline_metrics.json"
     baseline_commit = baseline_dir / "baseline_commit.json"
 
@@ -136,7 +136,7 @@ def run_repin(config_path: Path, decision_output: Path, selected_run: str | None
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Decide and optionally repin benchmark baseline from golden runs.")
-    parser.add_argument("--config", default=str(REPO_ROOT / "benchmark" / "benchmark_v1.yaml"))
+    parser.add_argument("--config", default=str(REPO_ROOT / "agent_ai" / "benchmark" / "benchmark_v1.yaml"))
     parser.add_argument("--decision-output", default=str(_default_decision_path()))
     parser.add_argument("--selected-run", default=None, help="Optional explicit golden run directory name, e.g. golden_20260412_123456")
     parser.add_argument("--apply", action="store_true")

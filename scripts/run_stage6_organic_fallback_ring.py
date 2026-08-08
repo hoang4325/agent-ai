@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from benchmark.stage6_organic_fallback_ring import run_stage6_organic_fallback_ring  # noqa: E402
+from agent_ai.benchmark.stage6_organic_fallback_ring import run_stage6_organic_fallback_ring  # noqa: E402
 
 
 def main() -> None:

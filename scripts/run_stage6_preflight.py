@@ -18,11 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.frozen_corpus_builder import build_frozen_corpus
-from benchmark.io import dump_json, load_yaml, resolve_repo_path
-from benchmark.runner_core import run_benchmark
-from benchmark.stage6_preflight_contract_audit import run_stage6_preflight_contract_audit
-from benchmark.stage6_preflight_metric_pack import build_stage6_preflight_metric_pack
+from agent_ai.benchmark.frozen_corpus_builder import build_frozen_corpus
+from agent_ai.benchmark.io import dump_json, load_yaml, resolve_repo_path
+from agent_ai.benchmark.runner_core import run_benchmark
+from agent_ai.benchmark.stage6_preflight_contract_audit import run_stage6_preflight_contract_audit
+from agent_ai.benchmark.stage6_preflight_metric_pack import build_stage6_preflight_metric_pack
 
 
 def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
@@ -32,7 +32,7 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _materialize_runtime_overlay(repo_root: Path, benchmark_config: dict[str, Any], metric_pack: dict[str, Any]) -> tuple[Path, str]:
-    overlay_root = repo_root / "benchmark" / "reports" / f"stage6_preflight_runtime_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    overlay_root = repo_root / "agent_ai" / "benchmark" / "reports" / f"stage6_preflight_runtime_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     overlay_cases_dir = overlay_root / "cases"
     overlay_sets_dir = overlay_root / "sets"
     overlay_cases_dir.mkdir(parents=True, exist_ok=True)
@@ -87,18 +87,18 @@ def _materialize_runtime_overlay(repo_root: Path, benchmark_config: dict[str, An
 
 def run_stage6_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
     repo_root = Path(repo_root or REPO_ROOT)
-    benchmark_config = load_yaml(repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_config = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
 
     frozen_root = resolve_repo_path(
         repo_root,
-        ((benchmark_config.get("frozen_corpus") or {}).get("root")) or "benchmark/frozen_corpus/v1",
+        ((benchmark_config.get("frozen_corpus") or {}).get("root")) or "agent_ai/benchmark/frozen_corpus/v1",
     )
     if frozen_root is None:
         raise ValueError("Missing frozen corpus root in benchmark config.")
 
     frozen_build = build_frozen_corpus(
         repo_root=repo_root,
-        config_path="benchmark/benchmark_v1.yaml",
+        config_path="agent_ai/benchmark/benchmark_v1.yaml",
         output_root=frozen_root,
     )
     metric_pack = build_stage6_preflight_metric_pack(repo_root)
@@ -108,13 +108,13 @@ def run_stage6_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
         repo_root=repo_root,
         config_path=runtime_cfg_path,
         set_name=set_name,
-        report_dir=repo_root / "benchmark" / "reports" / f"{set_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        report_dir=repo_root / "agent_ai" / "benchmark" / "reports" / f"{set_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     )
 
     payload = {
         "schema_version": "stage6_preflight_result_v1",
-        "metric_pack_path": str(repo_root / "benchmark" / "stage6_preflight_metric_pack.json"),
-        "contract_audit_path": str(repo_root / "benchmark" / "stage6_preflight_contract_audit.json"),
+        "metric_pack_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_preflight_metric_pack.json"),
+        "contract_audit_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_preflight_contract_audit.json"),
         "replay_report_dir": str(replay_eval["report_dir"]),
         "frozen_corpus_readiness": (frozen_build.get("readiness") or {}).get("summary"),
         "contract_audit": {
@@ -123,7 +123,7 @@ def run_stage6_preflight(repo_root: str | Path | None = None) -> dict[str, Any]:
             "fallback_contract": audit.get("fallback_contract"),
         },
     }
-    dump_json(repo_root / "benchmark" / "stage6_preflight_result.json", payload)
+    dump_json(repo_root / "agent_ai" / "benchmark" / "stage6_preflight_result.json", payload)
     return payload
 
 

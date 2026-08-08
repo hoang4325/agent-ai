@@ -10,14 +10,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.runner_core import run_benchmark  # noqa: E402
+from agent_ai.benchmark.runner_core import run_benchmark  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the Agent-AI system benchmark scaffold.")
     parser.add_argument(
         "--config",
-        default=str(REPO_ROOT / "benchmark" / "benchmark_v1.yaml"),
+        default=str(REPO_ROOT / "agent_ai" / "benchmark" / "benchmark_v1.yaml"),
         help="Path to benchmark config YAML.",
     )
     parser.add_argument(

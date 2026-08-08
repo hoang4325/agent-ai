@@ -9,7 +9,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from stage3c.local_planner_bridge import ensure_carla_pythonapi
+from agent_ai.behavior.execution.local_planner_bridge import ensure_carla_pythonapi
 
 
 def _mp4_recording_disabled() -> bool:
@@ -169,7 +169,7 @@ def main() -> None:
     args = parse_args()
     configure_logging()
     ensure_carla_pythonapi(args.carla_pythonapi_root)
-    from stage4.online_orchestrator import Stage4OnlineOrchestrator
+    from agent_ai.runtime.online_orchestrator import Stage4OnlineOrchestrator
 
     orchestrator = Stage4OnlineOrchestrator(args)
     orchestrator.run()

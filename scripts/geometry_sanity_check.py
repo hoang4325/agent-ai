@@ -12,10 +12,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from carla_bevfusion_stage1.adapter import load_sample_meta, radar_native_to_cartesian as radar_native_to_cartesian_bev  # noqa: E402
-from carla_bevfusion_stage1.constants import DEFAULT_POINT_CLOUD_RANGE, LIDAR_SENSOR_NAME, RADAR_SENSOR_ORDER  # noqa: E402
-from carla_bevfusion_stage1.coordinate_utils import convert_lidar_points_carla_to_bevfusion, transform_points  # noqa: E402
-from carla_bevfusion_stage1.visualization import save_geometry_sanity_bundle, save_geometry_topdown as save_geometry_topdown_plot  # noqa: E402
+from agent_ai.perception.adapter import load_sample_meta, radar_native_to_cartesian as radar_native_to_cartesian_bev  # noqa: E402
+from agent_ai.perception.constants import DEFAULT_POINT_CLOUD_RANGE, LIDAR_SENSOR_NAME, RADAR_SENSOR_ORDER  # noqa: E402
+from agent_ai.perception.coordinate_utils import convert_lidar_points_carla_to_bevfusion, transform_points  # noqa: E402
+from agent_ai.perception.visualization import save_geometry_sanity_bundle, save_geometry_topdown as save_geometry_topdown_plot  # noqa: E402
 
 LOGGER = logging.getLogger("geometry_sanity_check")
 

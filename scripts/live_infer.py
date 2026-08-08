@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import re
 import sys
@@ -14,14 +13,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from carla_bevfusion_stage1.adapter import BEVFusionSampleAdapter
-from carla_bevfusion_stage1.bevfusion_runtime import build_bevfusion_model
-from carla_bevfusion_stage1.constants import (
+from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl
+from agent_ai.shared.artifact_io import load_json as _load_json
+from agent_ai.shared.artifact_io import write_json as _write_json
+from agent_ai.shared.logging_setup import configure_logging
+from agent_ai.perception.adapter import BEVFusionSampleAdapter
+from agent_ai.perception.bevfusion_runtime import build_bevfusion_model
+from agent_ai.perception.constants import (
     LIDAR_SENSOR_NAME,
     MODEL_CAMERA_ORDER,
     RADAR_SENSOR_ORDER,
 )
-from carla_bevfusion_stage1.visualization import (
+from agent_ai.perception.visualization import (
     save_prediction_comparison_bundle,
     save_prediction_debug_bundle,
 )
@@ -79,13 +82,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def configure_logging() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-
-
 def _import_carla():
     try:
         import carla
@@ -97,23 +93,6 @@ def _import_carla():
             "matching the simulator version."
         ) from exc
     return carla
-
-
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2)
-
-
-def _append_jsonl(path: Path, payload: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload) + "\n")
-
-
-def _load_json(path: Path) -> Dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
 
 
 def _make_session_root(output_root: Path, session_name: str | None) -> Path:
@@ -606,9 +585,9 @@ def _run_watch_mode(args: argparse.Namespace) -> None:
 def _run_capture_and_infer_mode(args: argparse.Namespace) -> None:
     carla = _import_carla()
 
-    from carla_bevfusion_stage1.collector import CarlaSynchronousMode, FrameCollector
-    from carla_bevfusion_stage1.dumper import SampleDumper
-    from carla_bevfusion_stage1.rig import default_nuscenes_like_rig, destroy_actors, spawn_rig
+    from agent_ai.perception.collector import CarlaSynchronousMode, FrameCollector
+    from agent_ai.perception.dumper import SampleDumper
+    from agent_ai.perception.rig import default_nuscenes_like_rig, destroy_actors, spawn_rig
 
     compare_zero_radar = bool(args.compare_zero_radar and args.radar_ablation == "none")
     output_root = Path(args.output_root)

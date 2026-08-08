@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stage9 import (
+from agent_ai.authority import (
     ActuatorCommand,
     AuthorityArbiter,
     AuthorityState,
@@ -240,7 +240,7 @@ def test_evaluator_empty_log(tmp_log: Path):
 
 def test_evaluator_from_real_log():
     print("\n[TEST] Stage9Evaluator — reads existing Phase 1 log")
-    log = Path("benchmark/reports/stage9_authority_log.jsonl")
+    log = Path("agent_ai/benchmark/reports/stage9_authority_log.jsonl")
     if not log.exists():
         print("    [SKIP] No log file found — run Phase 1 smoke first")
         return
@@ -288,7 +288,7 @@ def test_integration_tor_to_safe_stop():
         mpc=_StubMPC(),
         tor=tor,
         mrm=mrm,
-        log_path=Path("benchmark/reports/stage9_phase2_int_test.jsonl"),
+        log_path=Path("agent_ai/benchmark/reports/stage9_phase2_int_test.jsonl"),
     )
 
     # Step 1: ODD_EXCEEDED → should go to MRM immediately
@@ -331,7 +331,7 @@ def test_integration_human_override_wins():
         mpc=_StubMPC(),
         tor=TORManager(),
         mrm=MRMExecutor(),
-        log_path=Path("benchmark/reports/stage9_phase2_human_test.jsonl"),
+        log_path=Path("agent_ai/benchmark/reports/stage9_phase2_human_test.jsonl"),
     )
 
     w = _world(0, 0.0)
@@ -353,7 +353,7 @@ def test_integration_human_override_wins():
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    tmp_log = Path("benchmark/reports")
+    tmp_log = Path("agent_ai/benchmark/reports")
     tmp_log.mkdir(parents=True, exist_ok=True)
 
     print("=" * 66)

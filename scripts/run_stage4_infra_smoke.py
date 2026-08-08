@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -12,11 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2)
+from agent_ai.shared.artifact_io import load_json as _load_json  # noqa: E402
+from agent_ai.shared.artifact_io import write_json as _write_json  # noqa: E402
 
 
 def _utc_now() -> str:
@@ -67,7 +63,7 @@ def main() -> None:
 
     audit: Dict[str, Any] = {}
     if audit_path.exists():
-        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit = _load_json(audit_path)
 
     summary = {
         "smoke_version": "stage4_infra_smoke_v1",

@@ -21,11 +21,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path
-from benchmark.runner_core import run_benchmark
-from benchmark.shadow_artifacts import generate_mpc_shadow_artifacts
-from benchmark.stage6_shadow_contract_audit import run_stage6_shadow_contract_audit
-from benchmark.stage6_shadow_metric_pack import build_stage6_shadow_metric_pack
+from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path
+from agent_ai.benchmark.runner_core import run_benchmark
+from agent_ai.benchmark.shadow_artifacts import generate_mpc_shadow_artifacts
+from agent_ai.benchmark.stage6_shadow_contract_audit import run_stage6_shadow_contract_audit
+from agent_ai.benchmark.stage6_shadow_metric_pack import build_stage6_shadow_metric_pack
 from scripts.run_system_benchmark_e2e import run_e2e_benchmark
 
 
@@ -36,7 +36,7 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _load_shadow_subset(repo_root: Path) -> list[str]:
-    benchmark_cfg = load_yaml(repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_cfg = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
     set_path = resolve_repo_path(repo_root, benchmark_cfg["sets"]["stage6_shadow_golden"])
     payload = load_yaml(set_path)
     return list(payload.get("cases", []))
@@ -205,9 +205,9 @@ def _build_shadow_report(
         "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "stage": "6_shadow",
         "description": "MPC shadow-mode preflight rollout report on the promoted two-case subset.",
-        "shadow_readiness_path": str(repo_root / "benchmark" / "stage6_shadow_readiness.json"),
-        "shadow_metric_pack_path": str(repo_root / "benchmark" / "stage6_shadow_metric_pack.json"),
-        "shadow_contract_audit_path": str(repo_root / "benchmark" / "stage6_shadow_contract_audit.json"),
+        "shadow_readiness_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_readiness.json"),
+        "shadow_metric_pack_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_metric_pack.json"),
+        "shadow_contract_audit_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_contract_audit.json"),
         "scenario_replay_report_dir": e2e_result.get("report_dir"),
         "shadow_evaluation_report_dir": eval_result.get("report_dir"),
         "subset_cases": metric_pack.get("subset_cases"),
@@ -219,23 +219,23 @@ def _build_shadow_report(
             "Current shadow rollout uses an OSQP-backed minimal MPC shadow solver; shadow quality deltas remain non-authoritative until a fuller MPC solver is integrated.",
         ],
     }
-    dump_json(repo_root / "benchmark" / "stage6_shadow_report.json", report)
+    dump_json(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_report.json", report)
     return report
 
 
 def run_stage6_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
     repo_root = Path(repo_root or REPO_ROOT)
-    readiness = load_json(repo_root / "benchmark" / "stage6_shadow_readiness.json", default={}) or {}
+    readiness = load_json(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_readiness.json", default={}) or {}
     if str(readiness.get("status")) != "ready":
         raise RuntimeError(
-            "Stage 6 shadow rollout is blocked because benchmark/stage6_shadow_readiness.json is not ready."
+            "Stage 6 shadow rollout is blocked because agent_ai/benchmark/stage6_shadow_readiness.json is not ready."
         )
 
     metric_pack = build_stage6_shadow_metric_pack(repo_root)
     required_cases = _load_shadow_subset(repo_root)
 
     e2e_result = run_e2e_benchmark(
-        config_path=repo_root / "benchmark" / "benchmark_v1.yaml",
+        config_path=repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml",
         set_name="stage6_shadow_golden",
         benchmark_mode="scenario_replay",
         execute_stages=True,
@@ -299,9 +299,9 @@ def run_stage6_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any
         "failed_cases": failed_cases,
         "warnings": warning_cases,
         "notes": diagnostics.get("notes", []),
-        "shadow_contract_audit_path": str(repo_root / "benchmark" / "stage6_shadow_contract_audit.json"),
-        "shadow_metric_pack_path": str(repo_root / "benchmark" / "stage6_shadow_metric_pack.json"),
-        "shadow_report_path": str(repo_root / "benchmark" / "stage6_shadow_report.json"),
+        "shadow_contract_audit_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_contract_audit.json"),
+        "shadow_metric_pack_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_metric_pack.json"),
+        "shadow_report_path": str(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_report.json"),
         "scenario_replay_report_dir": e2e_result.get("report_dir"),
         "shadow_evaluation_report_dir": eval_result.get("report_dir"),
         "shadow_contract_status": contract_audit.get("shadow_output_contract"),
@@ -311,7 +311,7 @@ def run_stage6_shadow_gate(repo_root: str | Path | None = None) -> dict[str, Any
         "soft_guardrail_metrics": [item["metric"] for item in metric_pack.get("soft_guardrail_metrics") or []],
         "diagnostic_metrics": [item["metric"] for item in metric_pack.get("diagnostic_metrics") or []],
     }
-    dump_json(repo_root / "benchmark" / "stage6_shadow_gate_result.json", gate_payload)
+    dump_json(repo_root / "agent_ai" / "benchmark" / "stage6_shadow_gate_result.json", gate_payload)
     return {
         "gate_result": gate_payload,
         "shadow_report": shadow_report,

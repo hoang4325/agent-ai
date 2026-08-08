@@ -9,23 +9,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from stage3c_coverage.junction_execution_runner import run_junction_execution
-from stage3c_coverage.left_positive_scenario_helper import probe_left_positive, spawn_left_positive
-from stage3c_coverage.scenario_coverage_analyzer import analyze_stage3c_coverage
-from stage3c_coverage.visualization_stage3c_coverage import save_stage3c_coverage_visualization
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2)
-
-
-def _write_jsonl(path: Path, payloads: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        for payload in payloads:
-            handle.write(json.dumps(payload) + "\n")
+from agent_ai.shared.artifact_io import write_json as _write_json  # noqa: E402
+from agent_ai.shared.artifact_io import write_jsonl as _write_jsonl  # noqa: E402
+from agent_ai.behavior.coverage.junction_execution_runner import run_junction_execution
+from agent_ai.behavior.coverage.left_positive_scenario_helper import probe_left_positive, spawn_left_positive
+from agent_ai.behavior.coverage.scenario_coverage_analyzer import analyze_stage3c_coverage
+from agent_ai.behavior.coverage.visualization_stage3c_coverage import save_stage3c_coverage_visualization
 
 
 def parse_args() -> argparse.Namespace:

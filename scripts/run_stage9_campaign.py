@@ -5,7 +5,7 @@ Runs all 12 T9-001→T9-012 scenarios, computes promotion gate metrics,
 and saves a JSON campaign report.
 
 Run:
-  python scripts/run_stage9_campaign.py [--report-dir benchmark/reports]
+  python scripts/run_stage9_campaign.py [--report-dir agent_ai/benchmark/reports]
                                         [--run-id <label>]
 
 Exit code:
@@ -24,8 +24,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stage9.scenario_runner import ALL_SCENARIOS, ScenarioResult
-from stage9.stage9_evaluator import EvaluationReport
+from agent_ai.authority.scenario_runner import ALL_SCENARIOS, ScenarioResult
+from agent_ai.authority.stage9_evaluator import EvaluationReport
 
 
 # ── Promotion gates ───────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Stage 9 — Campaign Runner")
     parser.add_argument(
         "--report-dir",
-        default="benchmark/reports",
+        default="agent_ai/benchmark/reports",
         help="Directory to write campaign report and per-scenario logs",
     )
     parser.add_argument(

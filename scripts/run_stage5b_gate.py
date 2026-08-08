@@ -23,12 +23,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.frozen_corpus_builder import build_frozen_corpus
-from benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path
-from benchmark.runner_core import run_benchmark
-from benchmark.stage5b_artifact_audit import run_stage5b_artifact_audit
-from benchmark.stage5b_failure_replay_builder import build_stage5b_sets
-from benchmark.stage5b_metric_pack import build_stage5b_metric_pack
+from agent_ai.benchmark.frozen_corpus_builder import build_frozen_corpus
+from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path
+from agent_ai.benchmark.runner_core import run_benchmark
+from agent_ai.benchmark.stage5b_artifact_audit import run_stage5b_artifact_audit
+from agent_ai.benchmark.stage5b_failure_replay_builder import build_stage5b_sets
+from agent_ai.benchmark.stage5b_metric_pack import build_stage5b_metric_pack
 from scripts.run_system_benchmark_e2e import run_e2e_benchmark
 
 
@@ -39,7 +39,7 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _load_stage5b_case_sets(repo_root: Path) -> dict[str, list[str]]:
-    benchmark_cfg = load_yaml(repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_cfg = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
     result: dict[str, list[str]] = {}
     for set_name in ["stage5b_core_golden", "stage5b_failure_replay"]:
         set_path = resolve_repo_path(repo_root, benchmark_cfg["sets"][set_name])
@@ -226,10 +226,10 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
     print(f"  -> stage5b_core_golden: {stage5b_sets['stage5b_core_golden']}")
     print(f"  -> stage5b_failure_replay: {stage5b_sets['stage5b_failure_replay']}")
 
-    benchmark_cfg = load_yaml(repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_cfg = load_yaml(repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
     frozen_root = resolve_repo_path(
         repo_root,
-        ((benchmark_cfg.get("frozen_corpus") or {}).get("root")) or "benchmark/frozen_corpus/v1",
+        ((benchmark_cfg.get("frozen_corpus") or {}).get("root")) or "agent_ai/benchmark/frozen_corpus/v1",
     )
     if frozen_root is None:
         raise ValueError("frozen corpus root is missing from benchmark config")
@@ -237,7 +237,7 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
     print("\n[Phase 3] Refreshing frozen corpus...")
     frozen_build = build_frozen_corpus(
         repo_root=repo_root,
-        config_path="benchmark/benchmark_v1.yaml",
+        config_path="agent_ai/benchmark/benchmark_v1.yaml",
         output_root=frozen_root,
     )
     print(f"  -> Frozen corpus refreshed at {frozen_root}")
@@ -251,7 +251,7 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
 
     print("\n[Phase 5] Running stage5b_core_golden via scenario_replay...")
     core_result = run_e2e_benchmark(
-        config_path=repo_root / "benchmark" / "benchmark_v1.yaml",
+        config_path=repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml",
         set_name="stage5b_core_golden",
         benchmark_mode="scenario_replay",
         execute_stages=True,
@@ -271,7 +271,7 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
 
     print("\n[Phase 6] Running stage5b_failure_replay via scenario_replay...")
     failure_result = run_e2e_benchmark(
-        config_path=repo_root / "benchmark" / "benchmark_v1.yaml",
+        config_path=repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml",
         set_name="stage5b_failure_replay",
         benchmark_mode="scenario_replay",
         execute_stages=True,
@@ -307,8 +307,8 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
             "fallback": "benchmark_v1.default_metric_thresholds",
             "runner_resolution": "benchmark.runner_core._case_metric_thresholds",
         },
-        "artifact_audit_path": str(repo_root / "benchmark" / "stage5b_artifact_audit.json"),
-        "metric_pack_path": str(repo_root / "benchmark" / "stage5b_metric_pack.json"),
+        "artifact_audit_path": str(repo_root / "agent_ai" / "benchmark" / "stage5b_artifact_audit.json"),
+        "metric_pack_path": str(repo_root / "agent_ai" / "benchmark" / "stage5b_metric_pack.json"),
         "frozen_corpus_summary": frozen_build["readiness"]["summary"],
         "benchmark_runs": [
             {
@@ -327,7 +327,7 @@ def run_stage5b_gate(repo_root: str | Path | None = None) -> dict[str, Any]:
         ],
     }
 
-    output_path = repo_root / "benchmark" / "stage5b_gate_result.json"
+    output_path = repo_root / "agent_ai" / "benchmark" / "stage5b_gate_result.json"
     dump_json(output_path, gate_output)
 
     print("\n" + "=" * 72)

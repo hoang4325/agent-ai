@@ -14,7 +14,7 @@ Usage:
     --set stage7_agent_shadow_replay \\
     [--adapter-mode stub|api] \\
     [--adapter-model-id stub_v1] \\
-    [--output-dir benchmark/reports/stage7_shadow_YYYYMMDD]
+    [--output-dir agent_ai/benchmark/reports/stage7_shadow_YYYYMMDD]
 
 CRITICAL: This gate is SHADOW ONLY.
   - Baseline tactical + MPC are the sole authority at all times.
@@ -34,10 +34,10 @@ from typing import Any
 # Allow running from repo root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig, build_adapter
-from benchmark.io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
-from benchmark.stage7_agent_shadow_audit import run_stage7_contract_audit
-from benchmark.stage7_agent_shadow_metric_pack import (
+from agent_ai.benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig, build_adapter
+from agent_ai.benchmark.io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
+from agent_ai.benchmark.stage7_agent_shadow_audit import run_stage7_contract_audit
+from agent_ai.benchmark.stage7_agent_shadow_metric_pack import (
     build_agent_baseline_comparison,
     build_agent_shadow_summary,
     compute_agent_shadow_metrics,
@@ -373,7 +373,7 @@ def main() -> None:
     parser.add_argument(
         "--config",
         default=None,
-        help="Optional benchmark config override. Defaults to benchmark/benchmark_v1.yaml.",
+        help="Optional benchmark config override. Defaults to agent_ai/benchmark/benchmark_v1.yaml.",
     )
     parser.add_argument(
         "--set",
@@ -393,17 +393,17 @@ def main() -> None:
     )
     parser.add_argument("--adapter-model-id", default="stub_v1", help="Model identifier for provenance tagging")
     parser.add_argument("--adapter-timeout-s", type=float, default=2.0, help="Agent adapter hard timeout in seconds")
-    parser.add_argument("--output-dir", default=None, help="Override output directory (default: benchmark/reports/stage7_...)")
+    parser.add_argument("--output-dir", default=None, help="Override output directory (default: agent_ai/benchmark/reports/stage7_...)")
     parser.add_argument("--run-audit", action="store_true", help="Run Stage 7 contract audit before gate execution")
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
-    benchmark_config_path = Path(args.config).resolve() if args.config else (repo_root / "benchmark" / "benchmark_v1.yaml")
+    benchmark_config_path = Path(args.config).resolve() if args.config else (repo_root / "agent_ai" / "benchmark" / "benchmark_v1.yaml")
     benchmark_config = load_yaml(benchmark_config_path)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = Path(args.output_dir) if args.output_dir else (
-        repo_root / "benchmark" / "reports" / f"stage7_{args.set}_{ts}"
+        repo_root / "agent_ai" / "benchmark" / "reports" / f"stage7_{args.set}_{ts}"
     )
 
     # Optional: run audit first

@@ -168,8 +168,8 @@ def run_analysis(reports_root: Path, output_root: Path) -> tuple[dict[str, Any],
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Analyze online_e2e_smoke run-to-run stability.")
-    parser.add_argument("--reports-root", default="benchmark/reports")
-    parser.add_argument("--output-root", default="benchmark/reports/online_stability")
+    parser.add_argument("--reports-root", default="agent_ai/benchmark/reports")
+    parser.add_argument("--output-root", default="agent_ai/benchmark/reports/online_stability")
     args = parser.parse_args()
 
     stability, _ = run_analysis(Path(args.reports_root), Path(args.output_root))

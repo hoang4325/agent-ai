@@ -12,9 +12,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from carla_bevfusion_stage1.collector import CarlaSynchronousMode, FrameCollector
-from carla_bevfusion_stage1.dumper import SampleDumper
-from carla_bevfusion_stage1.rig import default_nuscenes_like_rig, destroy_actors, spawn_rig
+from agent_ai.perception.collector import CarlaSynchronousMode, FrameCollector
+from agent_ai.perception.dumper import SampleDumper
+from agent_ai.perception.rig import default_nuscenes_like_rig, destroy_actors, spawn_rig
 
 LOGGER = logging.getLogger("run_carla_dump")
 

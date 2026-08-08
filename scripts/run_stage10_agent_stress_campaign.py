@@ -75,7 +75,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--recording-fov", type=float, default=100.0)
     parser.add_argument("--recording-fps", type=float, default=0.0)
     parser.add_argument("--output-root", default=str(PROJECT_ROOT / "outputs" / "stage10_stress_campaign"))
-    parser.add_argument("--report-root", default=str(PROJECT_ROOT / "benchmark" / "reports" / "stage10_stress_campaign"))
+    parser.add_argument("--report-root", default=str(PROJECT_ROOT / "agent_ai" / "benchmark" / "reports" / "stage10_stress_campaign"))
     parser.add_argument("--ego-autopilot", action="store_true",
                         help="Enable CARLA Traffic Manager autopilot on the attached ego. Leave off for clean closed-loop A/B control.")
     parser.add_argument("--npc-handbrake", action="store_true", default=True)

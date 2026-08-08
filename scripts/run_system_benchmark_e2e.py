@@ -14,18 +14,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.io import load_yaml, resolve_repo_path  # noqa: E402
-from benchmark.contracts import default_trace_requirements, expected_stage_chain  # noqa: E402
-from benchmark.frozen_corpus_support import overlay_case_with_frozen_corpus  # noqa: E402
-from benchmark.orchestration import execute_case  # noqa: E402
-from benchmark.provenance import TraceLogger, new_id  # noqa: E402
-from benchmark.runner_core import run_benchmark  # noqa: E402
-from benchmark.carla_runtime import ensure_carla_ready, restart_carla  # noqa: E402
+from agent_ai.benchmark.io import load_yaml, resolve_repo_path  # noqa: E402
+from agent_ai.benchmark.contracts import default_trace_requirements, expected_stage_chain  # noqa: E402
+from agent_ai.benchmark.frozen_corpus_support import overlay_case_with_frozen_corpus  # noqa: E402
+from agent_ai.benchmark.orchestration import execute_case  # noqa: E402
+from agent_ai.benchmark.provenance import TraceLogger, new_id  # noqa: E402
+from agent_ai.benchmark.runner_core import run_benchmark  # noqa: E402
+from agent_ai.benchmark.carla_runtime import ensure_carla_ready, restart_carla  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run benchmark with optional scenario_replay / online_e2e orchestration.")
-    parser.add_argument("--config", default=str(REPO_ROOT / "benchmark" / "benchmark_v1.yaml"))
+    parser.add_argument("--config", default=str(REPO_ROOT / "agent_ai" / "benchmark" / "benchmark_v1.yaml"))
     parser.add_argument("--set", dest="set_name", required=True)
     parser.add_argument("--benchmark-mode", choices=["auto", "replay_regression", "scenario_replay", "online_e2e"], default="auto")
     parser.add_argument("--execute-stages", action="store_true", help="Actually execute stage runners for non-replay modes.")
@@ -80,7 +80,7 @@ def run_e2e_benchmark(
     carla_case_startup_cooldown_seconds: float = 8.0,
 ) -> dict[str, Any]:
     benchmark_cfg = load_yaml(Path(config_path))
-    modes_cfg = load_yaml(resolve_repo_path(REPO_ROOT, benchmark_cfg.get("benchmark_modes", "benchmark/benchmark_modes.yaml")))
+    modes_cfg = load_yaml(resolve_repo_path(REPO_ROOT, benchmark_cfg.get("benchmark_modes", "agent_ai/benchmark/benchmark_modes.yaml")))
     cases_dir = resolve_repo_path(REPO_ROOT, benchmark_cfg["cases_dir"])
     set_path = resolve_repo_path(REPO_ROOT, benchmark_cfg["sets"][set_name])
     if cases_dir is None or set_path is None:
@@ -90,7 +90,7 @@ def run_e2e_benchmark(
     case_ids = list(set_payload.get("cases", []))
 
     benchmark_run_id = new_id("benchmark_run")
-    default_report_root = REPO_ROOT / "benchmark" / "reports" / f"e2e_{set_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    default_report_root = REPO_ROOT / "agent_ai" / "benchmark" / "reports" / f"e2e_{set_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     report_root = Path(report_dir) if report_dir else default_report_root
     report_root.mkdir(parents=True, exist_ok=True)
 
@@ -105,7 +105,7 @@ def run_e2e_benchmark(
     temp_cases_dir.mkdir(parents=True, exist_ok=True)
     temp_sets_dir.mkdir(parents=True, exist_ok=True)
 
-    stage_profiles_dir = resolve_repo_path(REPO_ROOT, benchmark_cfg.get("stage_profiles_dir", "benchmark/stage_profiles"))
+    stage_profiles_dir = resolve_repo_path(REPO_ROOT, benchmark_cfg.get("stage_profiles_dir", "agent_ai/benchmark/stage_profiles"))
     if stage_profiles_dir is None:
         raise ValueError("stage_profiles_dir missing")
 

@@ -16,7 +16,7 @@ from pathlib import Path
 # Make sure project root is on path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stage9 import (
+from agent_ai.authority import (
     AuthorityArbiter,
     AuthorityState,
     AuthorityStateMachine,
@@ -219,7 +219,7 @@ def test_safety_supervisor_layers() -> None:
 
 def test_arbiter_baseline_to_active(tmp_path=None) -> None:
     print("\n[TEST] AuthorityArbiter — BASELINE → SUPERVISED → AGENT_ACTIVE_BOUNDED")
-    log = Path("benchmark/reports/stage9_smoke_test_log.jsonl")
+    log = Path("agent_ai/benchmark/reports/stage9_smoke_test_log.jsonl")
     arbiter = _build_arbiter(log_path=log)
 
     # Warmup: 30 frames at stall velocity to trigger baseline_stuck

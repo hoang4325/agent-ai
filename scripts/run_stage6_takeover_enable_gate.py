@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.stage6_takeover_enable_gate import run_stage6_takeover_enable_gate
+from agent_ai.benchmark.stage6_takeover_enable_gate import run_stage6_takeover_enable_gate
 
 
 def main() -> int:

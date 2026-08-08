@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from stage2.replay_runner import main
+from agent_ai.world_state.replay_runner import main
 
 
 if __name__ == "__main__":

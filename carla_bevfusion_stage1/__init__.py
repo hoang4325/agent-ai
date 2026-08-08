@@ -1,9 +1,26 @@
-"""CARLA -> BEVFusion stage-1 bridge package."""
+"""Backward-compatible shim for ``carla_bevfusion_stage1``.
 
-from .constants import MODEL_CAMERA_ORDER, RADAR_SENSOR_ORDER, SENSOR_NAMES
+Canonical package: ``agent_ai.perception``.
+This shim re-exports the canonical package so legacy imports keep working
+during migration. Prefer importing from ``agent_ai.perception`` in new code.
+"""
+from __future__ import annotations
 
-__all__ = [
-    "MODEL_CAMERA_ORDER",
-    "RADAR_SENSOR_ORDER",
-    "SENSOR_NAMES",
-]
+import importlib
+import sys
+from types import ModuleType
+
+_CANONICAL = "agent_ai.perception"
+
+
+def _load() -> ModuleType:
+    module = importlib.import_module(_CANONICAL)
+    sys.modules[__name__] = module
+    return module
+
+
+_module = _load()
+
+# Re-export public names for star-import / static analyzers when possible.
+globals().update({k: v for k, v in vars(_module).items() if not k.startswith("_")})
+__all__ = getattr(_module, "__all__", [k for k in globals() if not k.startswith("_")])

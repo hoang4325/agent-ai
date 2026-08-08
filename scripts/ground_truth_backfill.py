@@ -12,8 +12,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
-from benchmark.semantic_artifacts import ensure_semantic_artifacts  # noqa: E402
+from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
+from agent_ai.benchmark.semantic_artifacts import ensure_semantic_artifacts  # noqa: E402
 
 
 def _utc_now() -> str:
@@ -21,7 +21,7 @@ def _utc_now() -> str:
 
 
 def _default_output() -> Path:
-    return REPO_ROOT / "benchmark" / "reports" / "ground_truth_backfill_plan.json"
+    return REPO_ROOT / "agent_ai" / "benchmark" / "reports" / "ground_truth_backfill_plan.json"
 
 
 def _role_bucket(role: str) -> str:
@@ -51,7 +51,7 @@ def _case_specs(cases_dir: Path) -> list[dict[str, Any]]:
 
 
 def _gt_ref_path(scenario_id: str) -> Path:
-    return REPO_ROOT / "benchmark" / "reference_artifacts" / scenario_id / "ground_truth_actor_roles.json"
+    return REPO_ROOT / "agent_ai" / "benchmark" / "reference_artifacts" / scenario_id / "ground_truth_actor_roles.json"
 
 
 def _build_plan(case_spec: dict[str, Any]) -> dict[str, Any]:
@@ -117,7 +117,7 @@ def _apply_backfill(case_spec: dict[str, Any], generated_root: Path) -> dict[str
         generated_root=generated_root,
     )
 
-    ref_dir = REPO_ROOT / "benchmark" / "reference_artifacts" / scenario_id
+    ref_dir = REPO_ROOT / "agent_ai" / "benchmark" / "reference_artifacts" / scenario_id
     copied = {}
     copied["ground_truth_actor_roles"] = _copy_if_exists(
         semantic_paths.get("ground_truth_actor_roles"),
@@ -160,7 +160,7 @@ def run_backfill(config_path: Path, output_path: Path, apply: bool) -> dict[str,
     applied: list[dict[str, Any]] = []
 
     if apply:
-        generated_root = REPO_ROOT / "benchmark" / "reports" / "_generated_semantics_backfill"
+        generated_root = REPO_ROOT / "agent_ai" / "benchmark" / "reports" / "_generated_semantics_backfill"
         generated_root.mkdir(parents=True, exist_ok=True)
         by_scenario = {str(spec.get("scenario_id")): spec for spec in _case_specs(cases_dir)}
         for plan in plans:
@@ -182,7 +182,7 @@ def run_backfill(config_path: Path, output_path: Path, apply: bool) -> dict[str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build/apply ground-truth and semantic binding backfill plan.")
-    parser.add_argument("--config", default=str(REPO_ROOT / "benchmark" / "benchmark_v1.yaml"))
+    parser.add_argument("--config", default=str(REPO_ROOT / "agent_ai" / "benchmark" / "benchmark_v1.yaml"))
     parser.add_argument("--output", default=str(_default_output()))
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()

@@ -1,61 +1,26 @@
+"""Backward-compatible shim for ``stage9``.
+
+Canonical package: ``agent_ai.authority``.
+This shim re-exports the canonical package so legacy imports keep working
+during migration. Prefer importing from ``agent_ai.authority`` in new code.
 """
-Stage 9 — Package init (Phase 1 + Phase 2)
-"""
-# ── Schemas ───────────────────────────────────────────────────────────────────
-from .schemas import (
-    AuthorityState,
-    ActiveAuthority,
-    ODDStatus,
-    SensorHealth,
-    VetoSeverity,
-    MRMStrategy,
-    WorldState,
-    ManeuverContract,
-    TakeoverRequest,
-    AuthorityContext,
-    TrajectoryRequest,
-    TORSignal,
-    VetoSignal,
-    SafetyVerdict,
-    MRCPlan,
-    ActuatorCommand,
-    DrivableEnvelope,
-    Pose2D,
-)
+from __future__ import annotations
 
-# ── Phase 1 modules ───────────────────────────────────────────────────────────
-from .authority_state_machine import AuthorityStateMachine
-from .baseline_detector import BaselineDetector
-from .maneuver_contract import build_contract, validate_contract
-from .safety_supervisor import SafetySupervisor
-from .contract_resolver import ContractResolver
-from .handoff_planner import HandoffPlanner
-from .authority_logger import AuthorityLogger
-from .authority_arbiter import AuthorityArbiter
+import importlib
+import sys
+from types import ModuleType
 
-# ── Phase 2 modules ───────────────────────────────────────────────────────────
-from .tor_manager import TORManager
-from .minimal_risk_maneuver import MRMExecutor
-from .human_override_monitor import HumanOverrideMonitor
-from .stage9_evaluator import Stage9Evaluator, EvaluationReport
+_CANONICAL = "agent_ai.authority"
 
-# ── Phase 3 modules ───────────────────────────────────────────────────────────
-from .scenario_runner import ScenarioResult, ALL_SCENARIOS
 
-__all__ = [
-    # schemas
-    "AuthorityState", "ActiveAuthority", "ODDStatus", "SensorHealth",
-    "VetoSeverity", "MRMStrategy",
-    "WorldState", "ManeuverContract", "TakeoverRequest", "AuthorityContext",
-    "TrajectoryRequest", "TORSignal", "VetoSignal", "SafetyVerdict",
-    "MRCPlan", "ActuatorCommand", "DrivableEnvelope", "Pose2D",
-    # Phase 1
-    "AuthorityStateMachine", "BaselineDetector",
-    "build_contract", "validate_contract",
-    "SafetySupervisor", "ContractResolver", "HandoffPlanner",
-    "AuthorityLogger", "AuthorityArbiter",
-    # Phase 2
-    "TORManager", "MRMExecutor", "HumanOverrideMonitor",
-    "Stage9Evaluator", "EvaluationReport",
-]
+def _load() -> ModuleType:
+    module = importlib.import_module(_CANONICAL)
+    sys.modules[__name__] = module
+    return module
 
+
+_module = _load()
+
+# Re-export public names for star-import / static analyzers when possible.
+globals().update({k: v for k, v in vars(_module).items() if not k.startswith("_")})
+__all__ = getattr(_module, "__all__", [k for k in globals() if not k.startswith("_")])

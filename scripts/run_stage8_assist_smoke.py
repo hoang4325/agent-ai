@@ -29,9 +29,9 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
-from benchmark.stage8_assist_adapter import Stage8AssistAdapter
-from benchmark.io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
+from agent_ai.benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
+from agent_ai.benchmark.stage8_assist_adapter import Stage8AssistAdapter
+from agent_ai.benchmark.io import dump_json, dump_jsonl, load_json, load_jsonl, load_yaml, resolve_repo_path
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ def _utc_now() -> str:
 
 
 def _load_case(case_id: str, repo_root: Path) -> dict[str, Any]:
-    case_path = repo_root / "benchmark" / "cases" / f"{case_id}.yaml"
+    case_path = repo_root / "agent_ai" / "benchmark" / "cases" / f"{case_id}.yaml"
     if not case_path.exists():
         return {}
     spec = load_yaml(case_path)
@@ -188,7 +188,7 @@ def run_stage8_assist_smoke(
 ) -> dict[str, Any]:
     repo_root = Path(repo_root)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = repo_root / "benchmark" / "reports" / f"stage8_assist_smoke_{ts}"
+    run_dir = repo_root / "agent_ai" / "benchmark" / "reports" / f"stage8_assist_smoke_{ts}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
     api_key_present = bool(os.environ.get(api_key_env_var, "").strip())
@@ -338,8 +338,8 @@ def run_stage8_assist_smoke(
     dump_json(run_dir / "stage8_assist_gate_result.json", gate_result)
     dump_json(run_dir / "stage8_assist_smoke_report.json", report)
     # Canonical benchmark root
-    dump_json(repo_root / "benchmark" / "stage8_assist_gate_result.json", gate_result)
-    dump_json(repo_root / "benchmark" / "stage8_assist_smoke_report.json", report)
+    dump_json(repo_root / "agent_ai" / "benchmark" / "stage8_assist_gate_result.json", gate_result)
+    dump_json(repo_root / "agent_ai" / "benchmark" / "stage8_assist_smoke_report.json", report)
 
     return {"gate_result": gate_result, "report": report, "run_dir": str(run_dir)}
 
@@ -383,8 +383,8 @@ def main() -> None:
     print(f"\n[Stage8-Assist] ══════════════════════ FINAL: {status} ══════════════════════")
     print(f"[Stage8-Assist] AE Approved: {approved} | Vetoed: {vetoed} | Approval Rate: {approval_rate}")
     print(f"[Stage8-Assist] Mean Latency: {lat}ms | Contract Breaches: {breaches}")
-    print(f"[Stage8-Assist] Gate result  → benchmark/stage8_assist_gate_result.json")
-    print(f"[Stage8-Assist] Smoke report → benchmark/stage8_assist_smoke_report.json")
+    print(f"[Stage8-Assist] Gate result  → agent_ai/benchmark/stage8_assist_gate_result.json")
+    print(f"[Stage8-Assist] Smoke report → agent_ai/benchmark/stage8_assist_smoke_report.json")
 
     if gate.get("hard_failures"):
         print("[Stage8-Assist] Hard failures:")

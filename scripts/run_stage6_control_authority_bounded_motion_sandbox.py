@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from benchmark.stage6_control_authority_handoff_sandbox import (  # noqa: E402
+from agent_ai.benchmark.stage6_control_authority_handoff_sandbox import (  # noqa: E402
     run_stage6_control_authority_bounded_motion_sandbox,
 )
 

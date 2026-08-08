@@ -1,9 +1,9 @@
+"""Shim: ``benchmark.stage6_mpc_tuning_compare`` → ``agent_ai.benchmark.stage6_mpc_tuning_compare``."""
 from __future__ import annotations
 
-from pathlib import Path
+import importlib
+import sys
 
-from .stage6_mpc_tuning import run_stage6_mpc_tuning_compare
-
-
-def main(repo_root: str | Path) -> dict:
-    return run_stage6_mpc_tuning_compare(repo_root)
+_module = importlib.import_module("agent_ai.benchmark.stage6_mpc_tuning_compare")
+sys.modules[__name__] = _module
+globals().update({k: v for k, v in vars(_module).items() if not k.startswith("_")})

@@ -48,13 +48,17 @@ from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from carla_bevfusion_stage1.carla_sensor_sync import LiveFrame
-    from carla_bevfusion_stage1.world_state_builder import EgoTelemetry
+    from agent_ai.perception.carla_sensor_sync import LiveFrame
+    from agent_ai.perception.world_state_builder import EgoTelemetry
 
 # ── Ensure project root is on sys.path ───────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+from agent_ai.shared.artifact_io import append_jsonl as _append_jsonl_impl  # noqa: E402
+from agent_ai.shared.artifact_io import write_json as _write_json_impl  # noqa: E402
+from agent_ai.shared.numeric import clamp as _clamp  # noqa: E402
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -108,7 +112,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--enable-radar", action="store_true", default=True)
     p.add_argument("--radar-ablation", choices=("none", "zero_bev"), default="none",
                    help="Ablate radar branch (none=active, zero_bev=disabled)")
-    p.add_argument("--log-dir",      default="benchmark/reports/stage10_live",
+    p.add_argument("--log-dir",      default="agent_ai/benchmark/reports/stage10_live",
                    help="Directory to write JSONL authority log")
     p.add_argument("--no-stage9",    action="store_true",
                    help="Skip Stage 9 arbiter (perception-only dry run)")
@@ -173,10 +177,10 @@ class FolderWatcherSync:
 
     def tick(self) -> Optional[LiveFrame]:
         """Poll for the next newest ready sample."""
-        from carla_bevfusion_stage1.carla_sensor_sync import (
+        from agent_ai.perception.carla_sensor_sync import (
             LiveFrame, LiveCalibration, _camera_image_to_bgra, _lidar_to_xyzi, _radar_to_array
         )
-        from carla_bevfusion_stage1.constants import LIDAR_SENSOR_NAME, MODEL_CAMERA_ORDER, RADAR_SENSOR_ORDER
+        from agent_ai.perception.constants import LIDAR_SENSOR_NAME, MODEL_CAMERA_ORDER, RADAR_SENSOR_ORDER
         from PIL import Image
 
         while self._frame_counter < self._max:
@@ -220,7 +224,7 @@ class FolderWatcherSync:
 
             # Reconstruct Calibration from meta
             # (Simplification: meta stores matrix_world_from_sensor_bevfusion etc)
-            from carla_bevfusion_stage1.coordinate_utils import ensure_numpy_matrix
+            from agent_ai.perception.coordinate_utils import ensure_numpy_matrix
             s_meta = meta["sensors"]
             calib = LiveCalibration(
                 world_from_lidar_bev=ensure_numpy_matrix(s_meta[LIDAR_SENSOR_NAME]["matrix_world_from_sensor_bevfusion"]),
@@ -525,10 +529,6 @@ def _current_lane_change_permission(
     return allowed, f"{side}:{marking}:lane_change={lane_change}:{status}"
 
 
-def _clamp(value: float, lower: float, upper: float) -> float:
-    return max(float(lower), min(float(upper), float(value)))
-
-
 def _lane_id_int(lane_id: Any) -> Optional[int]:
     try:
         return int(str(lane_id))
@@ -603,7 +603,7 @@ def _map_lane_centering_control(
     source: str,
     max_steer: float = 0.42,
 ) -> Any:
-    from stage9.schemas import ActuatorCommand
+    from agent_ai.authority.schemas import ActuatorCommand
 
     target_wp = _find_target_lane_waypoint(carla_map, ego, target_lane_id)
     if target_wp is None:
@@ -777,15 +777,11 @@ def _apply_actuator_command(ego_actor, cmd) -> None:
 # ── Driving metric helpers ────────────────────────────────────────────────────
 
 def _append_jsonl(path: Path, payload: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, default=str) + "\n")
+    _append_jsonl_impl(path, payload, permissive=True)
 
 
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, default=str)
+    _write_json_impl(path, payload, permissive=True)
 
 
 def _location_to_xyz(location) -> np.ndarray:
@@ -1193,7 +1189,7 @@ def _trajectory_request_from_agent_intent(
     agent_intent: str,
     world_state: Any,
 ) -> Any:
-    from stage9.schemas import TrajectoryRequest
+    from agent_ai.authority.schemas import TrajectoryRequest
 
     ego_v = float(getattr(world_state, "ego_v_mps", 0.0))
     baseline_target_v = float(getattr(baseline_req, "target_v_desired_mps", 0.0))
@@ -1234,7 +1230,7 @@ def _trajectory_request_from_agent_intent(
 
 
 def _post_lane_change_cruise_request(*, baseline_req: Any, world_state: Any) -> Any:
-    from stage9.schemas import TrajectoryRequest
+    from agent_ai.authority.schemas import TrajectoryRequest
 
     ego_v = float(getattr(world_state, "ego_v_mps", 0.0))
     target_v = max(3.5, min(max(ego_v + 1.0, 3.5), 5.0))
@@ -1433,7 +1429,7 @@ def _build_stage9_arbiter(
     Returns None if imports fail (graceful degradation).
     """
     try:
-        from stage9 import (
+        from agent_ai.authority import (
             AuthorityArbiter,
             AuthorityStateMachine,
             BaselineDetector,
@@ -1450,7 +1446,7 @@ def _build_stage9_arbiter(
 
     # ── Real Adapter components (Stage 6 MPC + Stage 7 Agent) ────────────────
     try:
-        from carla_bevfusion_stage1.stage9_adapters import (
+        from agent_ai.perception.stage9_adapters import (
             RealMPCAdapter,
             RealBaselineAdapter,
             RealAgentAdapter,
@@ -1494,11 +1490,11 @@ def _build_stage9_arbiter(
         def timed_out(self): return False
 
     def _stub_traj():
-        from stage9.schemas import TrajectoryRequest
+        from agent_ai.authority.schemas import TrajectoryRequest
         return TrajectoryRequest()
 
     def _stub_cmd():
-        from stage9.schemas import ActuatorCommand
+        from agent_ai.authority.schemas import ActuatorCommand
         return ActuatorCommand(steer=0.0, throttle=0.0, brake=0.0)
 
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -1526,11 +1522,11 @@ def _build_stage9_arbiter(
 def run(args: argparse.Namespace) -> int:
     _ensure_carla_pythonapi_paths(args.carla_root)
 
-    from carla_bevfusion_stage1.bevfusion_runtime import build_bevfusion_model
-    from carla_bevfusion_stage1.bevfusion_live_adapter import BEVFusionLiveAdapter
-    from carla_bevfusion_stage1.carla_sensor_sync import CarlaSensorSync
-    from carla_bevfusion_stage1.rig import build_rig_preset
-    from carla_bevfusion_stage1.world_state_builder import WorldStateBuilder, EgoTelemetry
+    from agent_ai.perception.bevfusion_runtime import build_bevfusion_model
+    from agent_ai.perception.bevfusion_live_adapter import BEVFusionLiveAdapter
+    from agent_ai.perception.carla_sensor_sync import CarlaSensorSync
+    from agent_ai.perception.rig import build_rig_preset
+    from agent_ai.perception.world_state_builder import WorldStateBuilder, EgoTelemetry
 
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -1648,7 +1644,7 @@ def run(args: argparse.Namespace) -> int:
             LOGGER.warning("Stage10 MP4 recording disabled by AGENTAI_DISABLE_MP4; ignoring --record-mp4")
             effective_record_mp4 = False
         if effective_record_mp4:
-            from stage3c.video_recorder import Stage3CVideoRecorder
+            from agent_ai.behavior.execution.video_recorder import Stage3CVideoRecorder
 
             recording_path = (
                 Path(args.recording_path)
@@ -1688,7 +1684,7 @@ def run(args: argparse.Namespace) -> int:
     last_compare_agent_query_wall_s: Optional[float] = None
     if args.agent_mode == "compare":
         try:
-            from carla_bevfusion_stage1.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
+            from agent_ai.perception.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
             compare_agent = RealAgentAdapter(mode="api")
             compare_baseline = RealBaselineAdapter()
             LOGGER.info("Compare mode: side-by-side Agent vs Baseline logging ENABLED.")
@@ -1710,7 +1706,7 @@ def run(args: argparse.Namespace) -> int:
     agent_lane_change_decision_seen = False
     if args.agent_control_mode == "assist":
         try:
-            from carla_bevfusion_stage1.stage9_adapters import (
+            from agent_ai.perception.stage9_adapters import (
                 RealAgentAdapter,
                 RealBaselineAdapter,
                 RealMPCAdapter,
@@ -2477,7 +2473,7 @@ def run(args: argparse.Namespace) -> int:
 
 
 def _ttc_from_prev(dets, ego_v):
-    from carla_bevfusion_stage1.world_state_builder import _estimate_ttc
+    from agent_ai.perception.world_state_builder import _estimate_ttc
     return _estimate_ttc(dets, ego_v)
 
 

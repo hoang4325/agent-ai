@@ -7,12 +7,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.stage6_mpc_e2e_completion import run_stage6_mpc_e2e_completion
-from benchmark.stage6_full_authority_canary import run_stage6_full_authority_canary
-from benchmark.stage6_full_authority_ring import run_stage6_full_authority_ring
-from benchmark.stage6_full_authority_ring_stability import run_stage6_full_authority_ring_stability
-from benchmark.stage6_takeover_rollout_design import run_stage6_takeover_rollout_design
-from benchmark.stage6_takeover_rollout_phase import run_stage6_takeover_rollout_phase
+from agent_ai.benchmark.stage6_mpc_e2e_completion import run_stage6_mpc_e2e_completion
+from agent_ai.benchmark.stage6_full_authority_canary import run_stage6_full_authority_canary
+from agent_ai.benchmark.stage6_full_authority_ring import run_stage6_full_authority_ring
+from agent_ai.benchmark.stage6_full_authority_ring_stability import run_stage6_full_authority_ring_stability
+from agent_ai.benchmark.stage6_takeover_rollout_design import run_stage6_takeover_rollout_design
+from agent_ai.benchmark.stage6_takeover_rollout_phase import run_stage6_takeover_rollout_phase
 
 
 def main() -> int:

@@ -1,32 +1,20 @@
 from __future__ import annotations
 
 import argparse
-import json
+import sys
 from pathlib import Path
 from typing import Any
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-def _load_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise ValueError(f"Expected JSON object in {path}")
-    return payload
+from agent_ai.shared.artifact_io import load_json_object as _load_json  # noqa: E402
+from agent_ai.shared.artifact_io import load_jsonl as _load_jsonl_impl  # noqa: E402
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    if not path.exists():
-        return rows
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            row = json.loads(line)
-            if isinstance(row, dict):
-                rows.append(row)
-    return rows
+    return _load_jsonl_impl(path, missing_ok=True, objects_only=True)
 
 
 def _unique_lane_sequence(trace_rows: list[dict[str, Any]]) -> list[str]:

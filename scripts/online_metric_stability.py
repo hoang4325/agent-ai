@@ -89,8 +89,8 @@ def run_registry(stability_report_path: Path, output_path: Path) -> dict[str, An
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build online metric stability registry from stability reports.")
-    parser.add_argument("--stability-report", default="benchmark/reports/online_stability/online_smoke_stability_report.json")
-    parser.add_argument("--output", default="benchmark/reports/online_stability/online_metric_stability_registry.json")
+    parser.add_argument("--stability-report", default="agent_ai/benchmark/reports/online_stability/online_smoke_stability_report.json")
+    parser.add_argument("--output", default="agent_ai/benchmark/reports/online_stability/online_metric_stability_registry.json")
     args = parser.parse_args()
 
     payload = run_registry(Path(args.stability_report), Path(args.output))

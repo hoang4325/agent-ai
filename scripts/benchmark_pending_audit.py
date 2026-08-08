@@ -11,12 +11,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
-from benchmark.metrics import evaluate_case_metrics  # noqa: E402
+from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
+from agent_ai.benchmark.metrics import evaluate_case_metrics  # noqa: E402
 
 
 def _default_output() -> Path:
-    return REPO_ROOT / "benchmark" / "reports" / "benchmark_pending_audit.json"
+    return REPO_ROOT / "agent_ai" / "benchmark" / "reports" / "benchmark_pending_audit.json"
 
 
 def _load_case_specs(cases_dir: Path) -> list[dict[str, Any]]:
@@ -29,7 +29,7 @@ def _load_case_specs(cases_dir: Path) -> list[dict[str, Any]]:
 
 
 def _reference_ground_truth(repo_root: Path, scenario_id: str) -> dict[str, Any] | None:
-    ref = repo_root / "benchmark" / "reference_artifacts" / scenario_id / "ground_truth_actor_roles.json"
+    ref = repo_root / "agent_ai" / "benchmark" / "reference_artifacts" / scenario_id / "ground_truth_actor_roles.json"
     return load_json(ref)
 
 
@@ -58,7 +58,7 @@ def run_audit(config_path: Path, output_path: Path) -> dict[str, Any]:
     if cases_dir is None:
         raise ValueError("cases_dir is missing")
 
-    generated_root = REPO_ROOT / "benchmark" / "reports" / "_generated_semantics_audit"
+    generated_root = REPO_ROOT / "agent_ai" / "benchmark" / "reports" / "_generated_semantics_audit"
     generated_root.mkdir(parents=True, exist_ok=True)
 
     case_specs = _load_case_specs(cases_dir)
@@ -139,7 +139,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Audit pending/provisional benchmark cases.")
     parser.add_argument(
         "--config",
-        default=str(REPO_ROOT / "benchmark" / "benchmark_v1.yaml"),
+        default=str(REPO_ROOT / "agent_ai" / "benchmark" / "benchmark_v1.yaml"),
         help="Benchmark config path.",
     )
     parser.add_argument(

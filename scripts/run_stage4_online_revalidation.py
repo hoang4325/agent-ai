@@ -25,7 +25,7 @@ def _extract_json_from_stdout(stdout: str) -> Dict[str, Any]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Stage4 online e2e revalidation and summarize worker/stale status.")
-    parser.add_argument("--config", default="benchmark/benchmark_v1.yaml")
+    parser.add_argument("--config", default="agent_ai/benchmark/benchmark_v1.yaml")
     parser.add_argument("--set", default="online_e2e_smoke")
     parser.add_argument("--benchmark-mode", default="online_e2e")
     parser.add_argument("--output", default="outputs/stage4_infra_smoke/stage4_online_revalidation.json")

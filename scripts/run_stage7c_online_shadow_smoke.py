@@ -16,7 +16,7 @@ Usage:
   python scripts/run_stage7c_online_shadow_smoke.py --adapter-mode stub
   python scripts/run_stage7c_online_shadow_smoke.py --max-frames 60
     python scripts/run_stage7c_online_shadow_smoke.py --cases ml_right_positive_core,stop_follow_ambiguity_core,ml_left_positive_core,arbitration_stop_during_prepare_right
-  python scripts/run_stage7c_online_shadow_smoke.py --output-dir D:/Agent-AI/benchmark/reports/stage7c_run1
+  python scripts/run_stage7c_online_shadow_smoke.py --output-dir D:/Agent-AI/agent_ai/benchmark/reports/stage7c_run1
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmark.stage7_agent_shadow_online_smoke import run_stage7c_online_shadow_smoke
+from agent_ai.benchmark.stage7_agent_shadow_online_smoke import run_stage7c_online_shadow_smoke
 
 
 def main() -> None:
@@ -144,8 +144,8 @@ def main() -> None:
             print(f"  ✗ {b}")
 
     print()
-    print("➜ benchmark/stage7_agent_shadow_online_smoke_result.json")
-    print("➜ benchmark/stage7_agent_shadow_online_smoke_report.json")
+    print("➜ agent_ai/benchmark/stage7_agent_shadow_online_smoke_result.json")
+    print("➜ agent_ai/benchmark/stage7_agent_shadow_online_smoke_report.json")
     print()
 
     if overall not in {"pass", "partial"}:

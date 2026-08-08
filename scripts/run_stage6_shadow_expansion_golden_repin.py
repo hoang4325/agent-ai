@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.stage6_shadow_expansion import rerun_stage6_shadow_expansion_golden_from_stability
+from agent_ai.benchmark.stage6_shadow_expansion import rerun_stage6_shadow_expansion_golden_from_stability
 
 
 def main() -> int:

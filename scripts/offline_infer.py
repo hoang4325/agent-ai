@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List
@@ -11,9 +10,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from carla_bevfusion_stage1.adapter import BEVFusionSampleAdapter  # noqa: E402
-from carla_bevfusion_stage1.bevfusion_runtime import build_bevfusion_model  # noqa: E402
-from carla_bevfusion_stage1.visualization import (  # noqa: E402
+from agent_ai.shared.artifact_io import write_json as _write_json  # noqa: E402
+from agent_ai.shared.logging_setup import configure_logging  # noqa: E402
+from agent_ai.perception.adapter import BEVFusionSampleAdapter  # noqa: E402
+from agent_ai.perception.bevfusion_runtime import build_bevfusion_model  # noqa: E402
+from agent_ai.perception.visualization import (  # noqa: E402
     save_prediction_comparison_bundle,
     save_prediction_debug_bundle,
 )
@@ -36,19 +37,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-compare-zero-radar", dest="compare_zero_radar", action="store_false")
     parser.set_defaults(compare_zero_radar=None)
     return parser.parse_args()
-
-
-def configure_logging() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-
-
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2)
 
 
 def serialize_output(output: Dict[str, Any]) -> Dict[str, Any]:

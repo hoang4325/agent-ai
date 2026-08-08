@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
+from agent_ai.benchmark.io import dump_json, load_json, load_yaml, resolve_repo_path  # noqa: E402
 
 
 def _utc_now() -> str:
@@ -19,7 +19,7 @@ def _utc_now() -> str:
 
 
 def _default_stage5a_gate_result_path() -> Path:
-    return REPO_ROOT / "benchmark" / "stage5a_gate_result.json"
+    return REPO_ROOT / "agent_ai" / "benchmark" / "stage5a_gate_result.json"
 
 
 def _stage5a_run_map(stage5a_gate: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -146,7 +146,7 @@ def run_readiness(
             if c.get("case_status") in {"provisional", "planned"}
         ],
         "gate_notes": [
-            "Stage 5A readiness must be derived from benchmark/stage5a_gate_result.json, not a generic golden_* replay report.",
+            "Stage 5A readiness must be derived from agent_ai/benchmark/stage5a_gate_result.json, not a generic golden_* replay report.",
             "Scenario replay is the authoritative Stage 5A gate driver after frozen corpus materialization.",
             "Keep provisional/planned cases out of hard fail path.",
         ],
@@ -157,10 +157,10 @@ def run_readiness(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Summarize benchmark readiness-gate recommendation.")
-    parser.add_argument("--config", default=str(REPO_ROOT / "benchmark" / "benchmark_v1.yaml"))
+    parser.add_argument("--config", default=str(REPO_ROOT / "agent_ai" / "benchmark" / "benchmark_v1.yaml"))
     parser.add_argument("--report-dir", default=None)
     parser.add_argument("--stage5a-gate-result", default=str(_default_stage5a_gate_result_path()))
-    parser.add_argument("--output", default=str(REPO_ROOT / "benchmark" / "reports" / "benchmark_readiness_gate.json"))
+    parser.add_argument("--output", default=str(REPO_ROOT / "agent_ai" / "benchmark" / "reports" / "benchmark_readiness_gate.json"))
     args = parser.parse_args()
 
     payload = run_readiness(

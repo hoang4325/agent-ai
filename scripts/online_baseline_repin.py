@@ -80,10 +80,10 @@ def run_decision(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Decide whether to pin initial online baseline.")
-    parser.add_argument("--stability-report", default="benchmark/reports/online_stability/online_smoke_stability_report.json")
-    parser.add_argument("--metric-stability-registry", default="benchmark/reports/online_stability/online_metric_stability_registry.json")
-    parser.add_argument("--baseline-dir", default="benchmark/baselines/system_benchmark_v1_online")
-    parser.add_argument("--decision-output", default="benchmark/reports/online_stability/online_baseline_decision.json")
+    parser.add_argument("--stability-report", default="agent_ai/benchmark/reports/online_stability/online_smoke_stability_report.json")
+    parser.add_argument("--metric-stability-registry", default="agent_ai/benchmark/reports/online_stability/online_metric_stability_registry.json")
+    parser.add_argument("--baseline-dir", default="agent_ai/benchmark/baselines/system_benchmark_v1_online")
+    parser.add_argument("--decision-output", default="agent_ai/benchmark/reports/online_stability/online_baseline_decision.json")
     args = parser.parse_args()
 
     payload = run_decision(

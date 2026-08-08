@@ -30,8 +30,8 @@ Usage:
   python scripts/run_stage7_llm_shadow_smoke.py --adapter-mode api --api-key-env GEMINI_API_KEY
 
 Output:
-  benchmark/stage7_llm_shadow_smoke_result.json
-  benchmark/stage7_llm_shadow_smoke_report.json
+  agent_ai/benchmark/stage7_llm_shadow_smoke_result.json
+  agent_ai/benchmark/stage7_llm_shadow_smoke_report.json
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from benchmark.stage7_llm_shadow_smoke import run_stage7_llm_shadow_smoke
+from agent_ai.benchmark.stage7_llm_shadow_smoke import run_stage7_llm_shadow_smoke
 
 
 def _parse_args() -> argparse.Namespace:
@@ -121,8 +121,8 @@ def main() -> None:
     gate = result["gate_result"]
     status = gate["overall_status"].upper()
     print(f"\n[Stage7-LLM] ══════════════════════ FINAL: {status} ══════════════════════")
-    print(f"[Stage7-LLM] Result  → benchmark/stage7_llm_shadow_smoke_result.json")
-    print(f"[Stage7-LLM] Report  → benchmark/stage7_llm_shadow_smoke_report.json")
+    print(f"[Stage7-LLM] Result  → agent_ai/benchmark/stage7_llm_shadow_smoke_result.json")
+    print(f"[Stage7-LLM] Report  → agent_ai/benchmark/stage7_llm_shadow_smoke_report.json")
 
     if gate.get("hard_failures"):
         print("[Stage7-LLM] Hard failures:")
