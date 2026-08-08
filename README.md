@@ -1,199 +1,172 @@
-# Agent-AI — Agentic AI cho xe tự lái
+# Agent-AI: Bounded Agentic AI Framework for Autonomous Driving
 
-Agent-AI là workspace nghiên cứu cách ứng dụng **Agentic AI** vào hệ thống xe tự lái. Thay vì chỉ dùng một mô hình dự đoán hoặc một planner cố định, repo này mô tả một kiến trúc nhiều tầng, trong đó agent có thể quan sát môi trường, hiểu trạng thái thế giới, đề xuất hành vi lái, kiểm tra rủi ro, chạy replay/benchmark và phối hợp với lớp takeover/safety.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-88%20passing-brightgreen.svg)]()
+[![Architecture](https://img.shields.io/badge/architecture-Authority%20%26%20Safety%20Layer-orange.svg)]()
 
-Mục tiêu chính của repo là xây dựng một pipeline thử nghiệm cho autonomous driving trên CARLA, BEVFusion, runtime online, benchmark artifact và cơ chế điều phối quyền lái an toàn.
+**Agent-AI** là workspace nghiên cứu và thử nghiệm ứng dụng **Agentic AI** vào hệ thống xe tự lái (Autonomous Driving). Thay vì giao phó toàn bộ quyền điều khiển xe cho một mô hình end-to-end hoặc một planner tĩnh, Agent-AI áp dụng kiến trúc **Bounded Agentic Decision**: Agent đóng vai trò lớp suy luận chiến thuật (Tactical Reasoning Layer), đề xuất hành vi thông qua hợp đồng có giới hạn (**Bounded Maneuver Contract**), và luôn đặt dưới sự giám sát nghiêm ngặt của **Safety Supervisor**, **Authority State Machine**, và **MPC Controller**.
 
-## Agentic AI trong xe tự lái là gì?
+Workspace tích hợp thử nghiệm trên giả lập **CARLA**, kết nối cảm biến qua **BEVFusion**, xử lý runtime online/shadow execution, cùng hệ thống **Benchmark & Replay Corpus** phục vụ đánh giá an toàn.
 
-Trong repo này, Agentic AI không được hiểu là một AI điều khiển trực tiếp vô-lăng, ga hoặc phanh. Agent chỉ hoạt động ở tầng quyết định có ràng buộc. Nó có thể đề xuất một hành động lái dưới dạng **bounded maneuver contract**, ví dụ như tiếp tục đi thẳng, giảm tốc, đổi làn, nhường đường hoặc chuẩn bị dừng an toàn.
+---
 
-Mọi đề xuất của agent đều phải đi qua safety supervisor, authority state machine, trajectory planner và MPC trước khi trở thành actuator command. Điều này giúp hệ thống tận dụng khả năng lập luận của agent nhưng vẫn giữ lớp an toàn tách biệt và có quyền phủ quyết.
+## 1. Triết lý Thiết kế & 3 Tầng Quyền Lực (Authority Tiers)
 
-## Kiến trúc tổng thể
+Để đảm bảo xe không bao giờ bị mất kiểm soát bởi các quyết định không xác định từ Agent, hệ thống phân chia quyền lực thành 3 tầng phân cấp tuyệt đối:
 
-Pipeline của hệ thống được chia thành nhiều stage rõ ràng:
+| Tầng | Tên Quyền Hạn | Chủ Thể Nắm Giữ | Phạm Vi & Trách Nhiệm |
+| :--- | :--- | :--- | :--- |
+| **L1** | **Maneuver Authority** | Agentic AI | Đề xuất ý định hành vi chiến thuật (vd: `keep_lane`, `change_lane_left`, `decelerate_stop`, `yield`) qua hợp đồng **ManeuverContract**. |
+| **L2** | **Trajectory Authority** | Trajectory Planner / MPC | Chuyển đổi hợp đồng được duyệt thành quỹ đạo hình học ($x, y, v, \theta$) tối ưu toán học. |
+| **L3** | **Actuator Authority** | Controller $\rightarrow$ CARLA | Xuất tín hiệu điều khiển phần cứng trực tiếp (`steer`, `throttle`, `brake`). |
 
-1. **Perception layer** — lấy dữ liệu từ CARLA, chuẩn hóa sensor dump và đưa vào BEVFusion.
-2. **World-state layer** — chuyển output perception thành trạng thái thế giới, object tracking, scene summary và risk summary.
-3. **Behavior layer** — tạo behavior request, hiểu route/lane context và chuẩn bị dữ liệu cho planning.
-4. **Agentic decision layer** — agent phân tích tình huống, đề xuất maneuver contract và lý do hành động.
-5. **Runtime layer** — chạy online orchestration, shadow execution, monitoring và evaluation.
-6. **Benchmark layer** — dùng frozen corpus, replay, metric registry và gate report để kiểm tra chất lượng.
-7. **Authority/safety layer** — điều phối quyền lái giữa baseline, agent, human override, TOR và minimal risk maneuver.
+> ⚠️ **Nguyên tắc cốt lõi:** Agent **chỉ sở hữu L1**, tuyệt đối **không được phép can thiệp trực tiếp vào L2 hoặc L3**. Mọi đề xuất L1 của Agent bắt buộc phải đi qua **Safety Supervisor** kiểm duyệt trước khi được thực thi.
 
-Luồng dữ liệu tổng quát:
+---
+
+## 2. Kiến Trúc Tổng Thể & Luồng Dữ Liệu
+
+Pipeline hoạt động của hệ thống được tổ chức thành các khối chức năng chính:
 
 ```text
-sensor dump
-→ perception
-→ world state
-→ tactical context
-→ agentic behavior decision
-→ bounded maneuver contract
-→ safety supervisor
-→ trajectory request
-→ MPC
-→ actuator command
+┌────────────────────────────────────────────────────────────────────────┐
+│                        CARLA Sensor Rig / Bridge                       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Sensor Dump (LiDAR, Camera, Radar)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 1: Perception Bridge (BEVFusion Runtime & Coordinate Transformer)│
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ 3D Bounding Boxes & Map Features
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 2: World State Engine (Object Tracking, Scene & Risk Summary)    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ WorldState Payload
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 3: Tactical Behavior Layer (Lane Topology, Route Context)        │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Tactical Context
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 4: Agentic Reasoning & Online Shadow Execution Runtime           │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Proposed ManeuverContract
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 9: Safety Supervisor & Authority State Machine (ASM)             │
+│   - Check Veto: Freshness, ODD, TTC, Geometry & Confidence Gates       │
+│   - Decision: Baseline Active / Agent Granted / TOR Issued / MRM       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Approved Maneuver Contract
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Contract Resolver & MPC Controller ──► Output Actuators (Steer/Throttle)│
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-Điểm quan trọng là agent không được đi thẳng từ perception sang actuator. Agent chỉ được đề xuất hành vi ở tầng contract, còn quyền thực thi cuối cùng thuộc về safety, planner và controller.
+---
 
-## Cấu trúc package chuẩn (`agent_ai/`)
+## 3. Cấu Trúc Package chuẩn (`agent_ai/`)
 
-Source chính dùng **tên domain**, không còn package `stage*`.
+Mã nguồn được tái cấu trúc hoàn toàn theo domain chức năng, loại bỏ các package prefix `stage*` cũ:
 
-| Package | Vai trò |
-|---------|---------|
-| `agent_ai.perception` | Sensor bridge + BEVFusion |
-| `agent_ai.world_state` | Tracking, risk, world state |
-| `agent_ai.behavior.lane` | Lane context + behavior request |
-| `agent_ai.behavior.route` | Route-aware behavior |
-| `agent_ai.behavior.execution` | Execution / local planner |
-| `agent_ai.behavior.coverage` | Planner coverage tooling |
-| `agent_ai.runtime` | Online orchestration + shadow |
-| `agent_ai.authority` | Authority / safety / TOR / MRM |
-| `agent_ai.benchmark` | Cases, metrics, corpus + subpackages `gates` / `shadow` / `takeover` / `assist` |
-| `agent_ai.shared` | I/O, numeric, ports, logging |
-| `agent_ai.cli` | Entry CLI thống nhất |
+| Package / Module | Trách Nhiệm Kỹ Thuật |
+| :--- | :--- |
+| **`agent_ai.perception`** | Sensor collection, rig calibration, BEVFusion inference bridge & geometry utilities. |
+| **`agent_ai.world_state`** | Object tracking, scene representation, spatial-temporal risk modeling. |
+| **`agent_ai.behavior`** | Phân mảnh thành các subpackage:<br>• `.lane`: Ngữ cảnh làn đường & lane topology.<br>• `.route`: Lập kế hoạch hành vi theo lộ trình.<br>• `.execution`: Local planner & execution helpers.<br>• `.coverage`: Tooling kiểm thử độ bao phủ kịch bản. |
+| **`agent_ai.runtime`** | Vòng lặp điều phối online 10Hz, shadow execution, monitoring & metrics logger. |
+| **`agent_ai.authority`** | Lớp an toàn trung tâm:<br>• `authority_state_machine.py`: Trạng thái ASM & chuyển vùng quyền lực.<br>• `safety_supervisor.py`: Động cơ Veto với các hard safety gates.<br>• `authority_arbiter.py`: Điều phối luồng 10Hz.<br>• `baseline_detector.py`: Phát hiện baseline bị stuck/dao động.<br>• `contract_resolver.py`: Chuyển contract thành Trajectory Request.<br>• `tor_manager.py` & `minimal_risk_maneuver.py`: Xử lý Takeover Request & MRM fallback. |
+| **`agent_ai.benchmark`** | Frozen corpus, metric registry, gate evaluations (`gates/`, `shadow/`, `takeover/`, `assist/`). |
+| **`agent_ai.shared`** | I/O artifacts, numeric math, common data schemas, logging. |
+| **`agent_ai.cli`** | Endpoint CLI thống nhất cho toàn bộ hệ thống. |
 
-Import:
+---
 
-```python
-from agent_ai.runtime.orchestrator import Stage4OnlineOrchestrator
-from agent_ai.authority import AuthorityArbiter, ManeuverContract
-from agent_ai.shared.artifact_io import write_json
-```
+## 4. Hướng Dẫn Sử Dụng CLI (`agent_ai.cli`)
 
-### CLI (tên domain)
+Hệ thống cung cấp giao diện dòng lệnh thống nhất qua module `agent_ai.cli`:
 
 ```bash
-# Cách chính — đầy đủ commands
+# 1. Liệt kê toàn bộ CLI commands hỗ trợ
 python -m agent_ai.cli list
-python -m agent_ai.cli world_replay --help
-python -m agent_ai.cli online_runtime --output-dir /tmp/out ...
-python -m agent_ai.cli authority_campaign
-python -m agent_ai.cli shadow_gate
 
-# Không còn thư mục scripts/ — chỉ dùng module CLI
+# 2. Xem trợ giúp chi tiết từng command
 python -m agent_ai.cli world_replay --help
-python -m agent_ai.cli online_runtime --output-dir /tmp/out ...
+
+# 3. Chạy Replay Stage 2 dựa trên kết quả Stage 1 session
+python -m agent_ai.cli world_replay \
+  --stage1-session /path/to/stage1_session \
+  --output-dir /tmp/stage2_output
+
+# 4. Chạy Online Runtime Orchestrator
+python -m agent_ai.cli online_runtime \
+  --output-dir /tmp/online_runtime_out
+
+# 5. Đánh giá chiến dịch Authority & Safety (Stage 9 Campaign)
+python -m agent_ai.cli authority_campaign
+
+# 6. Chạy Gate kiểm định Shadow Execution
+python -m agent_ai.cli shadow_gate
 ```
 
-### Quy ước đặt tên
+---
 
-- **Không** dùng `stageN_` trong tên file/package Python mới
-- Package = domain; file = vai trò (`arbiter`, `builder`, `replay_runner`)
-- CLI = hành động domain (`world_replay`, `online_runtime`, `shadow_gate`)
-- Map chi tiết: `agent_ai/module_map.py`
-- Root package `stage*` / `common` / `carla_bevfusion_stage1` **đã xóa** — chỉ dùng `agent_ai.*`
-- ID pipeline trong YAML corpus (`stage1`…`stage4`) giữ nguyên (hợp đồng dữ liệu)
+## 5. Cơ Chế An Toàn & Quản Lý Trạng Thái (Authority State Machine - ASM)
 
-## Các stage chính
+Trạng thái điều phối quyền kiểm soát xe được quản lý bởi **Authority State Machine (ASM)** gồm các trạng thái chính:
 
-### Stage 1 — Perception bridge (`agent_ai.perception`)
+1. **`BASELINE_ACTIVE`**: Hệ thống baseline mặc định nắm quyền lái xe.
+2. **`AGENT_REQUESTED`**: Agent phát hiện cơ hội/sự cố và xin cấp quyền **ManeuverContract**.
+3. **`AGENT_ACTIVE`**: Safety Supervisor duyệt contract; Agent tạm thời giữ quyền L1.
+4. **`HUMAN_OVERRIDE`**: Người lái can thiệp tay; vĩnh viễn tước quyền Agent & Baseline.
+5. **`TOR_ISSUED`**: Cảnh báo **Takeover Request** gửi tới tài xế khi gặp tình huống nguy hiểm ngoài ODD.
+6. **`MRM_EXECUTING`**: Kích hoạt **Minimal Risk Maneuver** (tấp lề an toàn/dừng khẩn cấp) nếu tài xế không phản hồi TOR.
 
-Stage 1 kết nối CARLA sensor dump với BEVFusion runtime. Thành phần này xử lý việc lấy mẫu sensor, đồng bộ frame, chuyển đổi tọa độ, tạo input cho model và sinh artifact phục vụ debug geometry.
+### Các Safety Gates Độc Lập
+- **Freshness Gate**: Hủy bỏ quyết định nếu dữ liệu perception quá $N$ frames.
+- **TTC (Time-to-Collision) Gate**: Phủ quyết hành vi nếu TTC rơi vào vùng nguy hiểm ($< 2.5s$).
+- **Geometry & ODD Gate**: Kiểm tra giới hạn làn, chướng ngại vật & vùng hoạt động an toàn.
+- **Confidence Gate**: Đảm bảo độ tin cậy nhận dạng cảm biến đạt ngưỡng quy định.
 
-Các nhóm file tiêu biểu:
+---
 
-- `collector.py`, `dumper.py`, `rig.py` — lấy mẫu và đồng bộ sensor
-- `adapter.py`, `bevfusion_runtime.py`, `config_loader.py` — bridge dữ liệu vào model
-- `coordinate_utils.py`, `visualization.py` — xử lý tọa độ và trực quan hóa
+## 6. Đánh Giá & Benchmark (`agent_ai.benchmark`)
 
-### Stage 2 — World state (`agent_ai.world_state`)
+Hệ thống đánh giá sự ổn định và an toàn thông qua:
+- **Corpus Replay**: Chạy lại các kịch bản giao thông nguy hiểm đã đóng băng.
+- **Metrics Registry**: Theo dõi tỉ lệ Grant/Revoke contract, tần suất TOR, độ lệch quỹ đạo, điểm vi phạm hình học, và mức độ ổn định hành vi.
+- **Shadow Gate Execution**: So sánh song song quyết định của Agent với Baseline mà không ảnh hưởng tới luồng điều khiển thực tế.
 
-Stage 2 biến output perception thành dữ liệu có thể dùng cho reasoning và planning, gồm normalized prediction, tracked objects, scene summary, risk summary, world state và planner interface payload.
+---
 
-Đây là lớp giúp agent không phải xử lý trực tiếp raw sensor, mà làm việc trên biểu diễn thế giới đã được chuẩn hóa.
+## 7. Kiểm Thử Hệ Thống (Testing)
 
-### Stage 3 / 3B / 3C — Behavior (`agent_ai.behavior.*`)
+Bộ test toàn diện bảo đảm tính đúng đắn cho các module thuật toán, MPC bounds, CLI và package layout:
 
-Các stage này bổ sung ngữ cảnh về lane, route, maneuver validation, behavior request và replay artifact. Mục tiêu là giúp agent hiểu tình huống lái theo bối cảnh giao thông thay vì chỉ nhìn object rời rạc.
+```bash
+# Chạy toàn bộ unit test suite
+PYTHONPATH=. python3 -m unittest discover tests
+```
 
-Stage 3C và coverage được dùng để kiểm tra chất lượng planner, độ bao phủ scenario và độ ổn định của behavior decision.
+---
 
-### Stage 4 — Online runtime (`agent_ai.runtime`)
+## 8. Lộ Trình Đọc Mã Nguồn Cho Developer
 
-Stage 4 tập trung vào runtime online, shadow execution, monitoring và evaluation. Đây là lớp cho phép so sánh quyết định của agent trong môi trường chạy thật hoặc replay mà chưa cần giao toàn quyền điều khiển.
+Khuyến nghị thứ tự nghiên cứu mã nguồn repo:
 
-Shadow execution đặc biệt quan trọng vì nó cho phép đánh giá agent trong nhiều tình huống trước khi cho agent tham gia vào luồng điều khiển chính.
+1. [README.md](file:///home/hoangnh/Documents/agent-ai/README.md): Nắm tổng quan kiến trúc và triết lý an toàn.
+2. [agent_ai/authority/schemas.py](file:///home/hoangnh/Documents/agent-ai/agent_ai/authority/schemas.py): Định nghĩa data structure (`ManeuverContract`, `WorldState`, `SafetyVerdict`).
+3. [agent_ai/authority/authority_state_machine.py](file:///home/hoangnh/Documents/agent-ai/agent_ai/authority/authority_state_machine.py): Logic chuyển trạng thái ASM.
+4. [agent_ai/authority/safety_supervisor.py](file:///home/hoangnh/Documents/agent-ai/agent_ai/authority/safety_supervisor.py): Bộ kiểm duyệt an toàn và quy tắc phủ quyết.
+5. [agent_ai/authority/authority_arbiter.py](file:///home/hoangnh/Documents/agent-ai/agent_ai/authority/authority_arbiter.py): Vòng lặp điều phối chính (10Hz Orchestration).
+6. [agent_ai/benchmark/](file:///home/hoangnh/Documents/agent-ai/agent_ai/benchmark/): Quy trình replay và đánh giá bằng metrics.
+7. [agent_ai/perception/](file:///home/hoangnh/Documents/agent-ai/agent_ai/perception/) & [agent_ai/runtime/](file:///home/hoangnh/Documents/agent-ai/agent_ai/runtime/): Cầu nối cảm biến và runtime online.
 
-### Stage 9 — Authority and safety (`agent_ai.authority`)
+---
 
-Stage 9 là lớp điều phối quyền lái. Nó quyết định khi nào baseline tiếp tục điều khiển, khi nào agent được đề xuất maneuver, khi nào cần yêu cầu người lái takeover, và khi nào phải kích hoạt minimal risk maneuver.
+## 9. Tóm Tắt
 
-Các thành phần chính:
-
-- `authority_state_machine.py` — quản lý trạng thái quyền lái, cooldown và hysteresis
-- `authority_arbiter.py` — vòng lặp điều phối chính
-- `safety_supervisor.py` — kiểm tra hard gate, freshness, ODD, TTC, confidence và feasibility
-- `baseline_detector.py` — phát hiện baseline bị kẹt, dao động hoặc suy giảm
-- `contract_resolver.py` — chuyển maneuver contract thành trajectory request
-- `handoff_planner.py` — blend ở mức reference/objective, không blend raw actuator
-- `tor_manager.py` — quản lý takeover request và escalation
-- `minimal_risk_maneuver.py` — fallback an toàn khi hệ thống không còn đáng tin
-- `human_override_monitor.py` — phát hiện can thiệp của người lái
-- `authority_logger.py` — ghi audit log JSONL
-- `stage9_evaluator.py` — đánh giá bằng metric
-
-## Vai trò của Agentic AI
-
-Agentic AI trong hệ thống này có thể đảm nhận các vai trò sau:
-
-- phân tích world state và tactical context để hiểu tình huống lái
-- phát hiện khi baseline đang bị kẹt hoặc đưa ra hành vi không ổn định
-- đề xuất maneuver contract có giới hạn rõ ràng
-- giải thích lý do chọn hành vi dựa trên risk, lane, route và object context
-- chạy ở chế độ shadow để so sánh với baseline mà chưa can thiệp thật
-- tạo artifact phục vụ replay, benchmark và evaluation
-- phối hợp với authority layer để xin quyền, nhường quyền hoặc kích hoạt takeover
-
-Tuy nhiên, agent không được phép bypass safety supervisor, không được xuất actuator command trực tiếp và không được giữ quyền điều khiển nếu dữ liệu perception, ODD, TTC hoặc confidence không đạt ngưỡng an toàn.
-
-## Nguyên tắc an toàn
-
-Hệ thống được thiết kế theo hướng agent có năng lực lập luận nhưng bị kiểm soát bởi các ràng buộc an toàn:
-
-- agent chỉ đề xuất maneuver bounded, không điều khiển actuator trực tiếp
-- safety supervisor có quyền veto trước và trong lúc agent active
-- human override luôn có ưu tiên cao nhất
-- nếu takeover timeout hoặc rủi ro tăng cao, hệ thống chuyển sang minimal risk maneuver
-- mọi quyết định quan trọng đều được ghi log để audit và replay
-- benchmark và frozen corpus được dùng để kiểm tra hồi quy trước khi chạy online
-
-## Benchmark và đánh giá
-
-Benchmark không chỉ là phần phụ trợ, mà là lớp trung tâm để kiểm tra chất lượng hệ thống. Repo sử dụng replay corpus, metric registry, gate scripts và report để đánh giá các thay đổi giữa nhiều lần chạy.
-
-Các metric có thể dùng để đánh giá gồm tỷ lệ grant/revoke, takeover success, safety gate consistency, obstacle geometry violation, minimal risk maneuver activation và độ ổn định của behavior decision.
-
-## Giới hạn hiện tại
-
-Repo này là workspace nghiên cứu, không phải hệ thống autonomous driving production. Một số giới hạn cần lưu ý:
-
-- chưa phải ứng dụng end-to-end chạy hoàn chỉnh từ root repo
-- phụ thuộc vào CARLA server, BEVFusion và các artifact session
-- dữ liệu CARLA có thể lệch domain so với dữ liệu huấn luyện thực tế
-- radar, coordinate frame và sweep timing cần được kiểm tra kỹ khi replay
-- agentic layer chỉ nên dùng cho nghiên cứu decision/planning, không dùng để điều khiển xe thật
-
-## Cách đọc repo
-
-Thứ tự đọc hợp lý:
-
-1. `README.md` để nắm tổng quan + bảng package map
-2. `agent_ai/authority/schemas.py` để hiểu data model
-3. `agent_ai/authority/authority_state_machine.py` để hiểu state transition
-4. `agent_ai/authority/safety_supervisor.py` để hiểu safety gate
-5. `agent_ai/authority/authority_arbiter.py` để hiểu vòng điều phối quyền lái
-6. `agent_ai/authority/scenario_runner.py` để xem các scenario test
-7. `agent_ai/benchmark/` để hiểu cách replay và đánh giá
-8. `agent_ai/perception/` để hiểu perception bridge
-9. `agent_ai/runtime/` để hiểu online orchestration
-
-## Tóm tắt
-
-Agent-AI là một kiến trúc nghiên cứu ứng dụng Agentic AI vào xe tự lái theo hướng an toàn và có kiểm soát. Agent không thay thế toàn bộ stack lái xe, mà đóng vai trò như một lớp reasoning và behavior decision nằm giữa world state và authority/safety layer.
-
-Cách thiết kế này giúp kết hợp khả năng lập luận của agent với các cơ chế kiểm soát truyền thống như state machine, safety veto, trajectory planner, MPC, replay benchmark và human override.
+**Agent-AI** chứng minh phương pháp đưa **Agentic AI** vào hệ thống tự lái một cách an toàn và có thể giải thích được. Thay vì một "hộp đen" end-to-end, Agent hoạt động như một lớp lập luận chiến thuật có giới hạn, đảm bảo luôn đáp ứng các tiêu chuẩn an toàn kỹ thuật khắt khe.
