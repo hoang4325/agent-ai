@@ -459,10 +459,24 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
             heading_error_rad=0.0,
             max_steer=0.46,
             lane_change_assist=True,
+            target_lane_reached=False,
         )
         self.assertEqual(phase, "cross_lane")
         self.assertLessEqual(steer, -0.18)
         self.assertGreaterEqual(steer, -0.46)
+
+    def test_near_lookahead_target_stays_in_cross_phase_before_lane_id_changes(self) -> None:
+        """Heading geometry alone must not end a physical lane change."""
+        steer, phase = _lane_center_steering_control(
+            local_x_m=5.0,
+            local_y_m=0.2,
+            heading_error_rad=0.0,
+            max_steer=0.46,
+            lane_change_assist=True,
+            target_lane_reached=False,
+        )
+        self.assertEqual(phase, "cross_lane")
+        self.assertGreaterEqual(steer, 0.18)
 
     def test_lane_change_steering_settles_without_crossing_floor(self) -> None:
         steer, phase = _lane_center_steering_control(
@@ -471,6 +485,7 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
             heading_error_rad=0.0,
             max_steer=0.46,
             lane_change_assist=True,
+            target_lane_reached=True,
         )
         self.assertEqual(phase, "settle_target_lane")
         self.assertGreater(steer, 0.0)

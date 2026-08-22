@@ -790,26 +790,31 @@ def _lane_center_steering_control(
     heading_error_rad: float,
     max_steer: float,
     lane_change_assist: bool,
+    target_lane_reached: bool,
 ) -> tuple[float, str]:
     """Return bounded steering for either crossing or settling into a lane.
 
     The lane-change phase has a shorter look-ahead and a small directional
-    floor while the target lane is still more than two metres away.  This
-    prevents pure-pursuit cancellation before the vehicle crosses the lane
-    boundary; it never bypasses the live TTC, map-permission, or emergency
-    safety gates checked by the caller.
+    floor until the HD-map lane ID confirms entry into the target lane.  This
+    avoids a false "settle" transition caused solely by ego yaw changing the
+    relative look-ahead geometry before the vehicle crosses the lane boundary;
+    it never bypasses the live TTC, map-permission, or emergency safety gates
+    checked by the caller.
     """
     max_steer_abs = max(0.0, float(max_steer))
     local_x = max(float(local_x_m), 1.0)
     local_y = float(local_y_m)
-    if lane_change_assist:
+    if lane_change_assist and not target_lane_reached:
         pure_pursuit = math.atan2(3.0 * local_y, max(local_x * local_x, 1.0))
         steer = 0.80 * float(heading_error_rad) + 1.40 * pure_pursuit
-        phase = "cross_lane" if abs(local_y) >= 2.0 else "settle_target_lane"
-        if phase == "cross_lane":
-            crossing_floor = min(max_steer_abs, 0.18)
-            if abs(steer) < crossing_floor:
-                steer = math.copysign(crossing_floor, local_y)
+        phase = "cross_lane"
+        crossing_floor = min(max_steer_abs, 0.18)
+        if abs(steer) < crossing_floor and abs(local_y) > 1e-3:
+            steer = math.copysign(crossing_floor, local_y)
+    elif lane_change_assist:
+        pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
+        steer = 0.75 * float(heading_error_rad) + 1.25 * pure_pursuit
+        phase = "settle_target_lane"
     else:
         pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
         steer = 0.75 * float(heading_error_rad) + 1.25 * pure_pursuit
@@ -837,6 +842,14 @@ def _map_lane_centering_control(
     current_speed = float(math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2))
     ego_tf = ego.get_transform()
     ego_loc = ego_tf.location
+    try:
+        current_wp = carla_map.get_waypoint(ego_loc, project_to_road=True)
+        target_lane_reached = bool(
+            current_wp is not None
+            and str(getattr(current_wp, "lane_id", "")) == str(target_lane_id)
+        )
+    except (AttributeError, RuntimeError):
+        target_lane_reached = False
 
     if lane_change_assist:
         lookahead_m = _clamp(3.0 + current_speed * 0.55, 3.0, 5.5)
@@ -861,6 +874,7 @@ def _map_lane_centering_control(
         heading_error_rad=heading_error_rad,
         max_steer=max_steer,
         lane_change_assist=lane_change_assist,
+        target_lane_reached=target_lane_reached,
     )
 
     lateral_abs = abs(float(local_y))
@@ -886,6 +900,7 @@ def _map_lane_centering_control(
     setattr(command, "target_lane_lateral_error_m", float(local_y))
     setattr(command, "target_lane_heading_error_rad", float(heading_error_rad))
     setattr(command, "steering_phase", steering_phase)
+    setattr(command, "target_lane_reached", bool(target_lane_reached))
     return command
 
 
@@ -3350,6 +3365,9 @@ def run(args: argparse.Namespace) -> int:
                                         cmd, "target_lane_heading_error_rad", None
                                     ),
                                     "steering_phase": getattr(cmd, "steering_phase", None),
+                                    "target_lane_reached": bool(
+                                        getattr(cmd, "target_lane_reached", False)
+                                    ),
                                 },
                             }
                         )
@@ -3553,6 +3571,9 @@ def run(args: argparse.Namespace) -> int:
                                 cmd, "target_lane_heading_error_rad", None
                             ),
                             "steering_phase": getattr(cmd, "steering_phase", None),
+                            "target_lane_reached": bool(
+                                getattr(cmd, "target_lane_reached", False)
+                            ),
                         }
                         assist_record["agent_intent"] = active_assist_intent
                         accepted_new_assist = True
@@ -3640,6 +3661,9 @@ def run(args: argparse.Namespace) -> int:
                                     cmd, "target_lane_heading_error_rad", None
                                 ),
                                 "steering_phase": getattr(cmd, "steering_phase", None),
+                                "target_lane_reached": bool(
+                                    getattr(cmd, "target_lane_reached", False)
+                                ),
                             },
                         }
                     )
