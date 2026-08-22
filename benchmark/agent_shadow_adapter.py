@@ -38,6 +38,35 @@ class AgentAPIHTTPError(Exception):
     """Raised when the API returns a non-retriable HTTP error."""
 
 
+def _decode_openai_response(body: str | bytes) -> dict[str, Any]:
+    """Decode an OpenAI-compatible response with tolerant SSE termination.
+
+    Some OpenAI-compatible proxies return a normal JSON response followed by
+    an SSE-style ``data: [DONE]`` sentinel even when the request is not
+    streamed.  The sentinel is not part of the JSON document and would make a
+    strict ``json.loads`` call fail with ``Extra data``.  Strip only that
+    well-known terminal marker; malformed or genuinely streaming responses
+    still fail closed through ``AgentAPIParseError``.
+    """
+    text = body.decode("utf-8", errors="replace") if isinstance(body, bytes) else str(body)
+    text = text.strip()
+    if not text:
+        raise AgentAPIParseError("Empty API response body")
+
+    done_marker = "data: [DONE]"
+    marker_index = text.find(done_marker)
+    if marker_index >= 0:
+        text = text[:marker_index].rstrip()
+
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise AgentAPIParseError(f"Invalid JSON API response: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise AgentAPIParseError("API response JSON must be an object")
+    return parsed
+
+
 ALLOWED_AGENT_INTENTS = frozenset({
     "keep_lane",
     "follow",
@@ -510,6 +539,7 @@ class AgentShadowAdapter:
                     ],
                     "max_tokens": max_tokens,
                     "temperature": 0.0,
+                    "stream": False,
                     "response_format": {"type": "json_object"},
                 }
                 if is_qwen_model:
@@ -589,7 +619,7 @@ class AgentShadowAdapter:
                 payload_data, payload_label = payload_candidates[payload_idx]
                 req = _urlreq.Request(endpoint, data=payload_data, headers=headers)
                 with _urlreq.urlopen(req, timeout=timeout_s) as resp:
-                    resp_body = _json.loads(resp.read().decode("utf-8"))
+                    resp_body = _decode_openai_response(resp.read())
                 
                 if is_openai_compat:
                     message = resp_body["choices"][0]["message"]
