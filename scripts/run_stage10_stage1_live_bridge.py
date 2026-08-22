@@ -134,6 +134,8 @@ def _parse_args() -> argparse.Namespace:
                    help="Minimum Agent confidence required before bounded assist can override the baseline request")
     p.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                    help="Wall-clock rate limit for real Agent API calls; set <=0 to disable")
+    p.add_argument("--agent-max-requests-per-episode", type=int, default=0,
+                   help="Maximum submitted Agent requests per episode; 0 disables the cap")
     p.add_argument("--agent-api-timeout-s", type=float, default=5.0,
                    help="Per-request Agent API timeout. The control loop never waits for it")
     p.add_argument("--agent-api-max-retries", type=int, default=0,
@@ -614,6 +616,28 @@ def _find_target_lane_waypoint(carla_map: Any, ego: Any, target_lane_id: str) ->
     return None
 
 
+def _lane_center_longitudinal_control(
+    *,
+    current_speed_mps: float,
+    requested_speed_mps: float,
+    lateral_distance_m: float,
+) -> tuple[float, float]:
+    """Return mutually exclusive throttle/brake for bounded lane centering."""
+    target_speed = float(requested_speed_mps)
+    lateral_abs = abs(float(lateral_distance_m))
+    if lateral_abs > 2.2:
+        target_speed = min(target_speed, 2.0)
+    elif lateral_abs > 1.2:
+        target_speed = min(target_speed, 2.5)
+
+    speed_error = target_speed - float(current_speed_mps)
+    throttle = _clamp(0.20 * speed_error, 0.0, 0.42)
+    brake = _clamp(-0.35 * speed_error, 0.0, 0.65)
+    if lateral_abs > 2.8:
+        throttle = min(throttle, 0.28)
+    return throttle, brake
+
+
 def _map_lane_centering_control(
     *,
     carla_map: Any,
@@ -654,17 +678,16 @@ def _map_lane_centering_control(
     steer = _clamp(0.75 * heading_error_rad + 1.25 * pure_pursuit, -max_steer, max_steer)
 
     lateral_abs = abs(float(local_y))
-    target_speed = float(target_speed_mps)
-    if lateral_abs > 2.2:
-        target_speed = min(target_speed, 1.5)
-    elif lateral_abs > 1.2:
-        target_speed = min(target_speed, 2.5)
-    speed_error = target_speed - current_speed
-    throttle = _clamp(0.20 * speed_error, 0.0, 0.42)
-    brake = _clamp(-0.35 * speed_error, 0.0, 0.65)
-    if lateral_abs > 2.8:
-        brake = max(brake, 0.20)
-        throttle = min(throttle, 0.10)
+    # A target in the adjacent lane is normally 3-4 m lateral from ego.
+    # Applying throttle and a forced brake at the same time prevented the
+    # vehicle from generating enough forward motion for pure pursuit to cross
+    # the lane boundary. The helper keeps speed bounded while ensuring the
+    # longitudinal actuators remain mutually exclusive.
+    throttle, brake = _lane_center_longitudinal_control(
+        current_speed_mps=current_speed,
+        requested_speed_mps=float(target_speed_mps),
+        lateral_distance_m=lateral_abs,
+    )
 
     return ActuatorCommand(
         steer=steer,
@@ -1302,6 +1325,21 @@ def _apply_agent_rate_limit(
     return False, f"rate_limited_{rpm:.1f}_rpm_wait_{remaining_s:.2f}s_after_{trigger_reason}"
 
 
+def _apply_agent_episode_limit(
+    *,
+    requested: bool,
+    trigger_reason: str,
+    submitted_count: int,
+    max_requests: int,
+) -> tuple[bool, str]:
+    """Bound high-level Agent calls without affecting the local control loop."""
+    if not requested:
+        return False, trigger_reason
+    if max_requests <= 0 or submitted_count < max_requests:
+        return True, trigger_reason
+    return False, f"episode_request_cap_{max_requests}_reached"
+
+
 def _agent_response_freshness(
     *,
     args: argparse.Namespace,
@@ -1495,11 +1533,27 @@ def _post_lane_change_cruise_request(*, baseline_req: Any, world_state: Any) -> 
 
 def _assist_hold_frames(args: argparse.Namespace) -> int:
     delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
-    return max(12, min(35, int(round(3.0 / delta_t))))
+    return max(40, min(100, int(round(8.0 / delta_t))))
 
 
 def _assist_commit_promotion_frames(args: argparse.Namespace) -> int:
-    return max(3, _assist_hold_frames(args) // 2)
+    delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
+    return max(5, min(20, int(round(1.0 / delta_t))))
+
+
+def _assist_lifecycle_action(
+    *,
+    accepted_new_assist: bool,
+    preserve_active_after_fallback: bool,
+    response_received: bool,
+    can_continue_active: bool,
+) -> str:
+    """Choose whether to retain, advance, or clear the active maneuver."""
+    if accepted_new_assist:
+        return "accepted"
+    if preserve_active_after_fallback or (not response_received and can_continue_active):
+        return "continue"
+    return "clear"
 
 
 def _promote_lane_change_intent(agent_intent: str) -> str:
@@ -1894,6 +1948,8 @@ def run(args: argparse.Namespace) -> int:
         raise ValueError("--agent-api-max-retries must be non-negative")
     if float(args.agent_response_max_age_s) <= 0.0:
         raise ValueError("--agent-response-max-age-s must be positive")
+    if int(args.agent_max_requests_per_episode) < 0:
+        raise ValueError("--agent-max-requests-per-episode must be non-negative")
     random.seed(int(args.seed))
     np.random.seed(int(args.seed))
     _ensure_carla_pythonapi_paths(args.carla_root)
@@ -2074,6 +2130,7 @@ def run(args: argparse.Namespace) -> int:
     compare_log: List[Dict[str, Any]] = []
     compare_skipped_frames = 0
     last_compare_agent_query_wall_s: Optional[float] = None
+    compare_agent_queries_submitted = 0
     if args.agent_mode == "compare":
         try:
             from carla_bevfusion_stage1.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
@@ -2099,6 +2156,7 @@ def run(args: argparse.Namespace) -> int:
     assist_mpc = None
     assist_log: List[Dict[str, Any]] = []
     last_assist_agent_query_wall_s: Optional[float] = None
+    assist_agent_queries_submitted = 0
     active_assist_request: Any = None
     active_assist_intent: Optional[str] = None
     active_assist_hold_remaining = 0
@@ -2357,13 +2415,19 @@ def run(args: argparse.Namespace) -> int:
                         min_ttc_s=assist_ttc,
                         world_state=world_state,
                     )
-                    assist_should_query, assist_trigger_reason = _apply_agent_rate_limit(
-                        args=args,
-                        requested=assist_should_query,
-                        trigger_reason=assist_trigger_reason,
-                        now_s=time.monotonic(),
-                        last_query_s=last_assist_agent_query_wall_s,
-                    )
+                assist_should_query, assist_trigger_reason = _apply_agent_rate_limit(
+                    args=args,
+                    requested=assist_should_query,
+                    trigger_reason=assist_trigger_reason,
+                    now_s=time.monotonic(),
+                    last_query_s=last_assist_agent_query_wall_s,
+                )
+                assist_should_query, assist_trigger_reason = _apply_agent_episode_limit(
+                    requested=assist_should_query,
+                    trigger_reason=assist_trigger_reason,
+                    submitted_count=assist_agent_queries_submitted,
+                    max_requests=int(args.agent_max_requests_per_episode),
+                )
                 assist_result = assist_agent_worker.poll()
                 assist_submit_outcome = None
                 if assist_should_query:
@@ -2381,6 +2445,7 @@ def run(args: argparse.Namespace) -> int:
                         ),
                     )
                     last_assist_agent_query_wall_s = time.monotonic()
+                    assist_agent_queries_submitted += 1
                 assist_record: Dict[str, Any] = {
                     "frame_id": live_frame.frame_id,
                     "frame_idx": frame_idx,
@@ -2401,6 +2466,7 @@ def run(args: argparse.Namespace) -> int:
                     "assist_applied": False,
                     "assist_reject_reason": None,
                     "agent_max_requests_per_minute": float(args.agent_max_requests_per_minute),
+                    "agent_max_requests_per_episode": int(args.agent_max_requests_per_episode),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
@@ -2483,6 +2549,7 @@ def run(args: argparse.Namespace) -> int:
                         min_ttc_s=assist_ttc,
                     )
                 )
+                accepted_new_assist = False
                 if preserve_active_after_agent_fallback:
                     # A new API request is advisory. Do not tear down a maneuver
                     # that was previously accepted by the safety gate merely
@@ -2640,14 +2707,15 @@ def run(args: argparse.Namespace) -> int:
                             "source": str(getattr(cmd, "source", "unknown")),
                         }
                         assist_record["agent_intent"] = active_assist_intent
+                        accepted_new_assist = True
                     else:
                         active_assist_request = None
                         active_assist_intent = None
                         active_assist_hold_remaining = 0
                         active_assist_applied_frames = 0
                         active_assist_metadata = {}
-                if preserve_active_after_agent_fallback or (
-                    assist_result is None
+                can_continue_active = bool(
+                    active_assist_request is not None
                     and _can_continue_active_assist(
                         args=args,
                         active_request=active_assist_request,
@@ -2656,7 +2724,18 @@ def run(args: argparse.Namespace) -> int:
                         world_state=world_state,
                         min_ttc_s=assist_ttc,
                     )
-                ):
+                )
+                lifecycle_action = _assist_lifecycle_action(
+                    accepted_new_assist=accepted_new_assist,
+                    preserve_active_after_fallback=preserve_active_after_agent_fallback,
+                    response_received=assist_result is not None,
+                    can_continue_active=can_continue_active,
+                )
+                if lifecycle_action == "accepted":
+                    # The first command was produced above. Keep the accepted
+                    # maneuver intact so subsequent frames can continue it.
+                    pass
+                elif lifecycle_action == "continue":
                     active_assist_hold_remaining = max(0, active_assist_hold_remaining - 1)
                     active_assist_applied_frames += 1
                     active_assist_intent = _retune_active_assist_request(
@@ -2838,6 +2917,12 @@ def run(args: argparse.Namespace) -> int:
                         now_s=time.monotonic(),
                         last_query_s=last_compare_agent_query_wall_s,
                     )
+                    should_query_agent, trigger_reason = _apply_agent_episode_limit(
+                        requested=should_query_agent,
+                        trigger_reason=trigger_reason,
+                        submitted_count=compare_agent_queries_submitted,
+                        max_requests=int(args.agent_max_requests_per_episode),
+                    )
                     if not should_query_agent:
                         compare_skipped_frames += 1
                     else:
@@ -2857,6 +2942,7 @@ def run(args: argparse.Namespace) -> int:
                             context=context,
                         )
                         last_compare_agent_query_wall_s = time.monotonic()
+                        compare_agent_queries_submitted += 1
                 except Exception as exc:
                     LOGGER.debug("Compare-mode error frame=%d: %s", frame_idx, exc)
 

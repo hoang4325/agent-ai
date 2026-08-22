@@ -7,7 +7,12 @@ from types import SimpleNamespace
 
 from benchmark.async_agent_worker import AsyncAgentRequest, AsyncAgentResult
 from scripts.run_stage10_stage1_live_bridge import (
+    _apply_agent_episode_limit,
     _agent_response_freshness,
+    _assist_commit_promotion_frames,
+    _assist_hold_frames,
+    _assist_lifecycle_action,
+    _lane_center_longitudinal_control,
     _summarize_assist_log,
 )
 
@@ -110,6 +115,65 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         self.assertEqual(summary["assist_rejected_frames"], 1)
         self.assertEqual(summary["agent_query_rejection_rate"], 1.0)
         self.assertEqual(summary["stale_response_discard_rate"], 1.0)
+
+    def test_episode_request_cap_allows_one_high_level_decision(self) -> None:
+        allowed, reason = _apply_agent_episode_limit(
+            requested=True,
+            trigger_reason="scenario_lane_change_right",
+            submitted_count=0,
+            max_requests=1,
+        )
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "scenario_lane_change_right")
+
+        allowed, reason = _apply_agent_episode_limit(
+            requested=True,
+            trigger_reason="periodic_stride_10",
+            submitted_count=1,
+            max_requests=1,
+        )
+        self.assertFalse(allowed)
+        self.assertEqual(reason, "episode_request_cap_1_reached")
+
+    def test_lane_change_hold_outlives_commit_promotion(self) -> None:
+        args = argparse.Namespace(delta_t=0.1)
+        self.assertEqual(_assist_hold_frames(args), 80)
+        self.assertEqual(_assist_commit_promotion_frames(args), 10)
+        self.assertLess(_assist_commit_promotion_frames(args), _assist_hold_frames(args))
+
+    def test_newly_accepted_assist_is_not_cleared_on_response_frame(self) -> None:
+        action = _assist_lifecycle_action(
+            accepted_new_assist=True,
+            preserve_active_after_fallback=False,
+            response_received=True,
+            can_continue_active=True,
+        )
+        self.assertEqual(action, "accepted")
+
+        action = _assist_lifecycle_action(
+            accepted_new_assist=False,
+            preserve_active_after_fallback=False,
+            response_received=False,
+            can_continue_active=True,
+        )
+        self.assertEqual(action, "continue")
+
+    def test_adjacent_lane_control_never_commands_throttle_and_brake_together(self) -> None:
+        throttle, brake = _lane_center_longitudinal_control(
+            current_speed_mps=0.0,
+            requested_speed_mps=1.5,
+            lateral_distance_m=3.5,
+        )
+        self.assertGreater(throttle, 0.0)
+        self.assertEqual(brake, 0.0)
+
+        throttle, brake = _lane_center_longitudinal_control(
+            current_speed_mps=3.0,
+            requested_speed_mps=1.5,
+            lateral_distance_m=3.5,
+        )
+        self.assertEqual(throttle, 0.0)
+        self.assertGreater(brake, 0.0)
 
 
 if __name__ == "__main__":

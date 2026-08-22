@@ -26,7 +26,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--map", default="Town10HD_Opt")
     parser.add_argument("--cases", default="ab_blocked_clear")
     parser.add_argument("--seeds", default="0,1,2,3,4")
-    parser.add_argument("--max-frames", type=int, default=500)
+    parser.add_argument("--max-frames", type=int, default=600)
     parser.add_argument("--delta-t", type=float, default=0.1)
     parser.add_argument("--rig-profile", choices=["default", "low_memory_shadow"], default="default")
     parser.add_argument("--image-width", type=int, default=1600)
@@ -39,9 +39,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-risk-ttc-threshold", type=float, default=2.0)
     parser.add_argument("--agent-assist-min-confidence", type=float, default=0.70)
     parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0)
-    parser.add_argument("--agent-api-timeout-s", type=float, default=5.0)
+    parser.add_argument("--agent-max-requests-per-episode", type=int, default=1)
+    parser.add_argument("--agent-api-timeout-s", type=float, default=15.0)
     parser.add_argument("--agent-api-max-retries", type=int, default=0)
-    parser.add_argument("--agent-response-max-age-s", type=float, default=3.0)
+    parser.add_argument("--agent-response-max-age-s", type=float, default=10.0)
     parser.add_argument("--radar-ablation", choices=["none", "zero_bev"], default="none")
     parser.add_argument(
         "--output-root",
@@ -84,6 +85,7 @@ def _common_campaign_args(args: argparse.Namespace) -> List[str]:
         "--agent-risk-ttc-threshold", str(args.agent_risk_ttc_threshold),
         "--agent-assist-min-confidence", str(args.agent_assist_min_confidence),
         "--agent-max-requests-per-minute", str(args.agent_max_requests_per_minute),
+        "--agent-max-requests-per-episode", str(args.agent_max_requests_per_episode),
         "--agent-api-timeout-s", str(args.agent_api_timeout_s),
         "--agent-api-max-retries", str(args.agent_api_max_retries),
         "--agent-response-max-age-s", str(args.agent_response_max_age_s),
@@ -163,6 +165,8 @@ def main() -> int:
         raise ValueError("--agent-api-max-retries must be non-negative")
     if float(args.agent_response_max_age_s) <= 0.0:
         raise ValueError("--agent-response-max-age-s must be positive")
+    if int(args.agent_max_requests_per_episode) < 0:
+        raise ValueError("--agent-max-requests-per-episode must be non-negative")
 
     common = _common_campaign_args(args)
     baseline_command = common + [

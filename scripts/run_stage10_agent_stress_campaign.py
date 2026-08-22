@@ -75,6 +75,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-assist-min-confidence", type=float, default=0.50)
     parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                         help="Wall-clock rate limit for real Agent API calls")
+    parser.add_argument("--agent-max-requests-per-episode", type=int, default=0,
+                        help="Cap submitted Agent requests per episode; 0 disables the cap")
     parser.add_argument("--agent-api-timeout-s", type=float, default=5.0,
                         help="Agent API timeout used by the non-blocking worker")
     parser.add_argument("--agent-api-max-retries", type=int, default=0,
@@ -621,6 +623,7 @@ def main() -> int:
                 "--agent-risk-ttc-threshold", str(args.agent_risk_ttc_threshold),
                 "--agent-assist-min-confidence", str(args.agent_assist_min_confidence),
                 "--agent-max-requests-per-minute", str(args.agent_max_requests_per_minute),
+                "--agent-max-requests-per-episode", str(args.agent_max_requests_per_episode),
                 "--agent-api-timeout-s", str(args.agent_api_timeout_s),
                 "--agent-api-max-retries", str(args.agent_api_max_retries),
                 "--agent-response-max-age-s", str(args.agent_response_max_age_s),
