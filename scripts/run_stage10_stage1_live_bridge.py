@@ -2930,6 +2930,10 @@ def run(args: argparse.Namespace) -> int:
                             "agent_prompt_token_count": provenance.get("prompt_token_count"),
                             "agent_completion_token_count": provenance.get("completion_token_count"),
                             "agent_total_token_count": provenance.get("total_token_count"),
+                            "agent_prompt_context_schema": provenance.get("prompt_context_schema"),
+                            "agent_prompt_context_object_count": provenance.get(
+                                "prompt_context_object_count"
+                            ),
                             "assist_reject_reason": None if assist_allowed else assist_reason,
                         }
                     )
@@ -3178,6 +3182,10 @@ def run(args: argparse.Namespace) -> int:
                             "agent_prompt_token_count": provenance.get("prompt_token_count"),
                             "agent_completion_token_count": provenance.get("completion_token_count"),
                             "agent_total_token_count": provenance.get("total_token_count"),
+                            "agent_prompt_context_schema": provenance.get("prompt_context_schema"),
+                            "agent_prompt_context_object_count": provenance.get(
+                                "prompt_context_object_count"
+                            ),
                             "agrees": agrees,
                             "disagreement_useful": disagreement_useful and not agrees,
                             "compare_latency_ms": round(float(compare_result.latency_ms), 1),
