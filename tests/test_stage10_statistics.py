@@ -34,6 +34,7 @@ class Stage10StatisticsTests(unittest.TestCase):
                         "sim_frames": 10,
                         "agent_query_frames": 2,
                         "agent_query_rate": 0.2,
+                        "agent_fallback_rate": 0.5,
                         "assist_applied_frames": 3,
                         "latency": {"p95_api_call_ms": 900.0},
                     }
@@ -44,6 +45,7 @@ class Stage10StatisticsTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["agent_queried_frames"], 2)
             self.assertEqual(rows[0]["query_ratio"], 0.2)
+            self.assertEqual(rows[0]["agent_fallback_rate"], 0.5)
             self.assertEqual(rows[0]["control_loop_p95_ms"], 80.0)
 
     def test_paired_difference_uses_common_seed(self) -> None:

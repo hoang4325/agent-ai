@@ -188,7 +188,7 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                 "agent_fallback_rate": (
                     float(evaluation["agent_fallback_rate"])
                     if evaluation.get("agent_fallback_rate") is not None
-                    else None
+                    else _optional_float(assist.get("agent_fallback_rate"))
                 ),
                 "low_ttc_agent_cautious_rate": (
                     float(low_ttc_analysis["agent_cautious_rate"])

@@ -1665,6 +1665,11 @@ def _summarize_assist_log(
 ) -> Dict[str, Any]:
     submitted = [r for r in assist_log if r.get("agent_queried")]
     attempted = [r for r in assist_log if r.get("agent_response_received")]
+    fallback_frames = [
+        r
+        for r in attempted
+        if bool(r.get("agent_fallback_to_baseline")) or r.get("agent_worker_error_type")
+    ]
     accepted = [r for r in assist_log if r.get("assist_applied")]
     rejected = [
         r for r in assist_log
@@ -1746,6 +1751,8 @@ def _summarize_assist_log(
         "random_seed": int(args.seed),
         "agent_query_frames": len(submitted),
         "agent_response_frames": len(attempted),
+        "agent_fallback_frames": len(fallback_frames),
+        "agent_fallback_rate": round(len(fallback_frames) / max(len(attempted), 1), 4),
         "assist_applied_frames": len(accepted),
         "agent_decision_applied_frames": len(agent_decision_applied),
         "assist_hold_applied_frames": len(assist_hold_applied),
@@ -2486,6 +2493,8 @@ def run(args: argparse.Namespace) -> int:
                             "agent_response_frame_id": int(live_frame.frame_id),
                             "agent_response_frame_idx": frame_idx,
                             "agent_async_latency_ms": round(float(assist_result.latency_ms), 3),
+                            "agent_call_latency_ms": round(float(assist_result.latency_ms), 3),
+                            "agent_worker_error_type": assist_result.error_type,
                         }
                     )
                 if assist_lane_change_completed:
@@ -2641,7 +2650,10 @@ def run(args: argparse.Namespace) -> int:
                                 if intent_record is not None else []
                             ),
                             "agent_raw_intent": provenance.get("raw_intent_received"),
-                            "agent_fallback_reason": provenance.get("fallback_reason"),
+                            "agent_fallback_reason": (
+                                provenance.get("fallback_reason")
+                                or getattr(assist_result, "error_type", None)
+                            ),
                             "agent_call_latency_ms": (
                                 provenance.get("call_latency_ms")
                                 if provenance.get("call_latency_ms") is not None
