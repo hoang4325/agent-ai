@@ -326,6 +326,7 @@ class BEVFusionLiveAdapter:
         self._lidar_max_points = lidar_max_points
         self._radar_max_points = radar_max_points
         self._logged_first_sensor_counts = False
+        self._logged_first_nonempty_radar = False
 
         # Pull preprocessing params from cfg (same as BEVFusionSampleAdapter)
         from .adapter import BEVFusionSampleAdapter
@@ -388,6 +389,13 @@ class BEVFusionLiveAdapter:
                 radar_np.shape[0],
             )
             self._logged_first_sensor_counts = True
+        if radar_np.shape[0] > 0 and not self._logged_first_nonempty_radar:
+            LOGGER.info(
+                "Active live radar confirmed frame=%d radar_points=%d",
+                frame.frame_id,
+                radar_np.shape[0],
+            )
+            self._logged_first_nonempty_radar = True
 
         # Safety Check: CUDA `hard_voxelize` will literally crash with `invalid configuration argument` 
         # if the input tensor has 0 points (it causes grid dimension calculations to yield 0).
