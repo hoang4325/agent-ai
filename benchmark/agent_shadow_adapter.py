@@ -504,9 +504,24 @@ class AgentShadowAdapter:
             and current_lane_blocked
             and adjacent_lane_clear
         )
+        # Do not expose an out-of-schema sentinel such as ``none`` in the
+        # model-facing prompt.  Reasoning models occasionally copy that token
+        # into ``tactical_intent`` even though it is not an allowed intent.
+        blocked_clear_state = "eligible" if blocked_clear_event else "inactive"
         blocked_clear_action = (
-            f"prepare_lane_change_{preferred_lane}" if blocked_clear_event else "none"
+            f"prepare_lane_change_{preferred_lane}" if blocked_clear_event else "baseline"
         )
+        if blocked_clear_event:
+            blocked_clear_instruction = (
+                f"This is an eligible blocked-lane recovery event. If risk is not high or critical, "
+                f"choose exactly '{blocked_clear_action}' with target_lane='{preferred_lane}'. "
+                "Do not choose keep_lane merely because the baseline currently says keep_lane."
+            )
+        else:
+            blocked_clear_instruction = (
+                "This is not an eligible blocked-lane recovery event; keep the conservative baseline "
+                "unless the high-risk policy below requires stop or yield."
+            )
 
         active_maneuver = baseline_context.get("active_maneuver")
         maneuver_ctx = f"CRITICAL: You are mid-maneuver '{active_maneuver}'. Continue it unless unsafe! " if active_maneuver else ""
@@ -521,11 +536,7 @@ class AgentShadowAdapter:
             f"Scene facts: current_lane_blocked={current_lane_blocked}, "
             f"adjacent_preferred_lane_clear={adjacent_lane_clear}, "
             f"preferred_lane_permission={preferred_lane_permitted}. "
-            f"Decision policy: when conflicts contains blocked_clear_adjacent_lane and the three scene facts "
-            f"confirm a permitted clear adjacent lane, this is a blocked-lane recovery event rather than "
-            f"ordinary route following. If risk is not high or critical, choose exactly "
-            f"'{blocked_clear_action}' with target_lane='{preferred_lane}'. Do not choose keep_lane merely "
-            f"because the baseline currently says keep_lane. If risk is high or critical, choose stop or yield. "
+            f"Decision policy: {blocked_clear_instruction} If risk is high or critical, choose stop or yield. "
             f"For all other scenes, keep the conservative baseline. "
             f"Return JSON only: {{\"tactical_intent\": \"<intent>\", \"target_lane\": \"<lane>\", "
             f"\"confidence\": <0.0-1.0>, \"reason_tags\": [\"<tag1>\"]}} "
@@ -540,11 +551,13 @@ class AgentShadowAdapter:
             f"route_conflicts={route_conflicts}; risk={risk_level}; front_free_m={front_free_m}; "
             f"left_ok={bool(lc_perm.get('left', True))}; right_ok={bool(lc_perm.get('right', True))}; "
             f"current_lane_blocked={current_lane_blocked}; adjacent_lane_clear={adjacent_lane_clear}; "
-            f"preferred_lane_ok={preferred_lane_permitted}; blocked_clear_action={blocked_clear_action}; "
-            f"active_maneuver={active_maneuver or 'none'}. "
-            f"If blocked_clear_action is not none and risk is not high or critical, choose exactly that action "
+            f"preferred_lane_ok={preferred_lane_permitted}; blocked_clear_state={blocked_clear_state}; "
+            f"active_maneuver={active_maneuver or 'inactive'}. "
+            f"If blocked_clear_state is eligible and risk is not high or critical, choose exactly "
+            f"prepare_lane_change_{preferred_lane} "
             f"and set target_lane to preferred_lane even when baseline=keep_lane. If risk is high or critical, "
-            f"choose stop or yield. Otherwise keep the conservative baseline. "
+            f"choose stop or yield. If blocked_clear_state is inactive, keep the conservative baseline. "
+            f"Never output blocked_clear_state or the word inactive as tactical_intent. "
             f"JSON schema: "
             f"{{\"tactical_intent\":\"...\",\"target_lane\":\"...\",\"confidence\":0.0,\"reason_tags\":[\"...\"]}}"
         )

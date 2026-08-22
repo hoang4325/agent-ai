@@ -155,7 +155,8 @@ class AgentAPIRuntimePolicyTests(unittest.TestCase):
         self.assertFalse(result.fallback_to_baseline)
         self.assertEqual(result.tactical_intent, "prepare_lane_change_right")
         prompt = captured_payloads[0]["messages"][1]["content"]
-        self.assertIn("blocked_clear_action=prepare_lane_change_right", prompt)
+        self.assertIn("blocked_clear_state=eligible", prompt)
+        self.assertIn("prepare_lane_change_right", prompt)
         self.assertIn("even when baseline=keep_lane", prompt)
         self.assertEqual(captured_payloads[0].get("response_format"), {"type": "json_object"})
         self.assertIn("Never return an ellipsis", captured_payloads[0]["messages"][0]["content"])
