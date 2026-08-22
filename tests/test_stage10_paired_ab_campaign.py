@@ -2,10 +2,26 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.run_stage10_paired_ab_campaign import _geometry_signature
+from scripts.run_stage10_paired_ab_campaign import (
+    _blocker_distance_args,
+    _geometry_signature,
+)
 
 
 class PairedABManifestTests(unittest.TestCase):
+    def test_blocker_distance_override_is_optional(self) -> None:
+        self.assertEqual(_blocker_distance_args(None), [])
+
+    def test_blocker_distance_override_is_forwarded(self) -> None:
+        self.assertEqual(
+            _blocker_distance_args(16.0),
+            ["--blocker-distance-m", "16.0"],
+        )
+
+    def test_blocker_distance_override_must_be_positive(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be positive"):
+            _blocker_distance_args(0.0)
+
     def test_actor_ids_do_not_affect_geometry_signature(self) -> None:
         base = {
             "town": "Carla/Maps/Town10HD_Opt",

@@ -26,6 +26,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--map", default="Town10HD_Opt")
     parser.add_argument("--cases", default="ab_blocked_clear")
     parser.add_argument("--seeds", default="0,1,2,3,4")
+    parser.add_argument(
+        "--blocker-distance-m",
+        type=float,
+        default=None,
+        help=(
+            "Override the blocker center distance for every selected case. "
+            "The same value is passed to both baseline and Agent-assist runs."
+        ),
+    )
     parser.add_argument("--max-frames", type=int, default=600)
     parser.add_argument("--delta-t", type=float, default=0.1)
     parser.add_argument("--rig-profile", choices=["default", "low_memory_shadow"], default="default")
@@ -66,6 +75,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--record-mp4", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
+
+
+def _blocker_distance_args(blocker_distance_m: float | None) -> List[str]:
+    if blocker_distance_m is None:
+        return []
+    distance_m = float(blocker_distance_m)
+    if distance_m <= 0.0:
+        raise ValueError("--blocker-distance-m must be positive")
+    return ["--blocker-distance-m", str(distance_m)]
 
 
 def _common_campaign_args(args: argparse.Namespace) -> List[str]:
@@ -115,6 +133,7 @@ def _common_campaign_args(args: argparse.Namespace) -> List[str]:
         "--output-root", str(args.output_root),
         "--report-root", str(args.report_root),
     ]
+    command.extend(_blocker_distance_args(args.blocker_distance_m))
     if args.record_mp4:
         command.append("--record-mp4")
     return command
