@@ -466,6 +466,8 @@ class AgentShadowAdapter:
 
     def __init__(self, config: AgentShadowAdapterConfig | None = None) -> None:
         self.config = config or AgentShadowAdapterConfig()
+        self._last_api_attempt_count = 0
+        self._last_api_payload_variant: str | None = None
 
     def call(
         self,
@@ -484,6 +486,8 @@ class AgentShadowAdapter:
         Always falls back to baseline if anything goes wrong.
         """
         t0 = time.monotonic()
+        self._last_api_attempt_count = 0
+        self._last_api_payload_variant = None
         baseline_intent = str(baseline_context.get("requested_behavior", "keep_lane"))
         lane_change_permission = dict(baseline_context.get("lane_change_permission") or {})
         fallback_reason_override: str | None = None
@@ -602,6 +606,8 @@ class AgentShadowAdapter:
             "prompt_token_count": raw.get("_prompt_token_count"),
             "completion_token_count": raw.get("_completion_token_count"),
             "total_token_count": raw.get("_total_token_count"),
+            "api_attempt_count": int(self._last_api_attempt_count),
+            "api_payload_variant": self._last_api_payload_variant,
             "prompt_context_schema": raw.get("_prompt_context_schema"),
             "prompt_context_object_count": raw.get("_prompt_context_object_count"),
             "fallback_reason": (
@@ -1037,6 +1043,8 @@ class AgentShadowAdapter:
         for attempt in range(max_attempts):
             try:
                 payload_data, payload_label = payload_candidates[payload_idx]
+                self._last_api_attempt_count = attempt + 1
+                self._last_api_payload_variant = payload_label
                 req = _urlreq.Request(endpoint, data=payload_data, headers=headers)
                 with _urlreq.urlopen(req, timeout=timeout_s) as resp:
                     resp_body = _decode_openai_response(resp.read())

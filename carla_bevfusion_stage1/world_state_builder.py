@@ -347,9 +347,14 @@ class WorldStateBuilder:
             ], dtype=np.float32)
             delta = np.array([loc.x - wp_loc.x, loc.y - wp_loc.y], dtype=np.float32)
             lateral_error = float(np.cross(wp_fwd, delta))
+            ego_yaw_deg = float(ego_actor.get_transform().rotation.yaw)
+            waypoint_yaw_deg = float(waypoint.transform.rotation.yaw)
+            heading_error_deg = (ego_yaw_deg - waypoint_yaw_deg + 180.0) % 360.0 - 180.0
+            heading_error = float(np.radians(heading_error_deg))
         else:
             lane_id = "unknown"
             lateral_error = 0.0
+            heading_error = 0.0
 
         return EgoTelemetry(
             frame_id=frame_id,
@@ -358,6 +363,6 @@ class WorldStateBuilder:
             ego_v_mps=ego_v,
             ego_a_mps2=0.0,        # filled by builder using prev_v
             ego_lateral_error_m=lateral_error,
-            heading_error_rad=0.0, # TODO: compute from waypoint vs ego heading
+            heading_error_rad=heading_error,
             ego_location_xyz=ego_xy,
         )

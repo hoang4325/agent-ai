@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from benchmark.async_agent_worker import AsyncAgentRequest, AsyncAgentResult
 from scripts.run_stage10_stage1_live_bridge import (
     _apply_agent_episode_limit,
+    _apply_agent_retry_cooldown,
     _agent_response_freshness,
     _assist_commit_promotion_frames,
     _assist_completion_metadata,
@@ -16,6 +17,7 @@ from scripts.run_stage10_stage1_live_bridge import (
     _assist_lifecycle_action,
     _lane_center_longitudinal_control,
     _summarize_assist_log,
+    _update_lane_transition_stability,
 )
 
 
@@ -160,7 +162,11 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
     def test_completion_tracking_survives_active_hold_cleanup(self) -> None:
         tracked = {"origin_lane_id": "-1", "target_lane_id": "-2"}
         metadata = _assist_completion_metadata({}, tracked)
-        world = SimpleNamespace(ego_lane_id="-2", ego_lateral_error_m=2.0)
+        world = SimpleNamespace(
+            ego_lane_id="-2",
+            ego_lateral_error_m=0.2,
+            heading_error_rad=0.05,
+        )
         self.assertTrue(
             _assist_lane_transition_completed(
                 world_state=world,
@@ -204,6 +210,37 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         self.assertEqual(maneuver["completion_source"], "lane_transition")
         self.assertIsNone(maneuver["post_lane_change_cruise_timestamp_s"])
 
+    def test_summary_records_terminal_maneuver_failure(self) -> None:
+        rows = [
+            {
+                "frame_id": 1,
+                "timestamp_s": 0.0,
+                "agent_queried": True,
+                "agent_response_received": True,
+                "agent_intent": "prepare_lane_change_right",
+                "assist_applied": True,
+                "agent_call_latency_ms": 800.0,
+            },
+            {
+                "frame_id": 2,
+                "timestamp_s": 15.0,
+                "agent_queried": False,
+                "agent_response_received": False,
+                "assist_applied": False,
+                "maneuver_failure_reason": "maneuver_timeout",
+                "maneuver_failure_timestamp_s": 15.0,
+            },
+        ]
+        summary = _summarize_assist_log(
+            rows,
+            {"frames": 2, "tick_latency_samples_ms": []},
+            argparse.Namespace(delta_t=0.1, seed=0),
+        )
+        maneuver = summary["lane_change_maneuver"]
+        self.assertFalse(maneuver["completed"])
+        self.assertEqual(maneuver["failure_reason"], "maneuver_timeout")
+        self.assertEqual(summary["maneuver_failure_reason_counts"], {"maneuver_timeout": 1})
+
     def test_episode_request_cap_allows_one_high_level_decision(self) -> None:
         allowed, reason = _apply_agent_episode_limit(
             requested=True,
@@ -225,9 +262,56 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
 
     def test_lane_change_hold_outlives_commit_promotion(self) -> None:
         args = argparse.Namespace(delta_t=0.1)
-        self.assertEqual(_assist_hold_frames(args), 80)
+        self.assertEqual(_assist_hold_frames(args), 150)
         self.assertEqual(_assist_commit_promotion_frames(args), 10)
         self.assertLess(_assist_commit_promotion_frames(args), _assist_hold_frames(args))
+
+    def test_lane_change_completion_requires_consecutive_stable_frames(self) -> None:
+        stable = 0
+        completed = False
+        for _ in range(4):
+            stable, completed = _update_lane_transition_stability(
+                candidate=True,
+                previous_frames=stable,
+                required_frames=5,
+            )
+            self.assertFalse(completed)
+        stable, completed = _update_lane_transition_stability(
+            candidate=True,
+            previous_frames=stable,
+            required_frames=5,
+        )
+        self.assertEqual(stable, 5)
+        self.assertTrue(completed)
+
+        stable, completed = _update_lane_transition_stability(
+            candidate=False,
+            previous_frames=stable,
+            required_frames=5,
+        )
+        self.assertEqual(stable, 0)
+        self.assertFalse(completed)
+
+    def test_failed_agent_retry_obeys_cooldown(self) -> None:
+        allowed, reason = _apply_agent_retry_cooldown(
+            requested=True,
+            trigger_reason="scenario_lane_change_right",
+            now_s=11.0,
+            last_failure_s=10.0,
+            cooldown_s=2.0,
+        )
+        self.assertFalse(allowed)
+        self.assertIn("retry_cooldown_wait", reason)
+
+        allowed, reason = _apply_agent_retry_cooldown(
+            requested=True,
+            trigger_reason="scenario_lane_change_right",
+            now_s=12.0,
+            last_failure_s=10.0,
+            cooldown_s=2.0,
+        )
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "scenario_lane_change_right")
 
     def test_newly_accepted_assist_is_not_cleared_on_response_frame(self) -> None:
         action = _assist_lifecycle_action(

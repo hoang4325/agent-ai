@@ -142,6 +142,16 @@ def _parse_args() -> argparse.Namespace:
                    help="Provider retries in the background Agent worker")
     p.add_argument("--agent-response-max-age-s", type=float, default=3.0,
                    help="Discard an Agent response older than this many simulated seconds")
+    p.add_argument("--agent-retry-cooldown-s", type=float, default=2.0,
+                   help="Wall-clock cooldown before retrying a failed/stale Agent decision")
+    p.add_argument("--agent-maneuver-timeout-s", type=float, default=15.0,
+                   help="Maximum duration of an accepted lane-change maneuver; safety is revalidated every frame")
+    p.add_argument("--agent-lane-stable-frames", type=int, default=5,
+                   help="Consecutive target-lane frames required before lane-change completion")
+    p.add_argument("--agent-lane-center-tolerance-m", type=float, default=0.60,
+                   help="Maximum target-lane lateral error used for stable completion")
+    p.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20,
+                   help="Maximum absolute heading error used for stable completion")
     p.add_argument("--record-mp4", action="store_true",
                    help="Record the Stage10 live CARLA run to an MP4 attached to the ego vehicle")
     p.add_argument("--recording-path", default=None,
@@ -1487,6 +1497,24 @@ def _apply_agent_episode_limit(
     return False, f"episode_request_cap_{max_requests}_reached"
 
 
+def _apply_agent_retry_cooldown(
+    *,
+    requested: bool,
+    trigger_reason: str,
+    now_s: float,
+    last_failure_s: Optional[float],
+    cooldown_s: float,
+) -> tuple[bool, str]:
+    """Delay only replacement calls after a failed/stale Agent response."""
+    if not requested or last_failure_s is None or cooldown_s <= 0.0:
+        return requested, trigger_reason
+    elapsed_s = max(0.0, float(now_s) - float(last_failure_s))
+    if elapsed_s >= float(cooldown_s):
+        return True, trigger_reason
+    remaining_s = max(0.0, float(cooldown_s) - elapsed_s)
+    return False, f"retry_cooldown_wait_{remaining_s:.2f}s_after_{trigger_reason}"
+
+
 def _agent_response_freshness(
     *,
     args: argparse.Namespace,
@@ -1699,8 +1727,19 @@ def _post_lane_change_cruise_request(*, baseline_req: Any, world_state: Any) -> 
 
 
 def _assist_hold_frames(args: argparse.Namespace) -> int:
+    """Return the bounded maneuver deadline in frames.
+
+    The legacy name is retained because reports and tests already use it.  The
+    duration is now configurable and defaults to 15 s, long enough to cover the
+    observed 7.6--11.8 s maneuvers without granting unbounded control authority.
+    """
     delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
-    return max(40, min(100, int(round(8.0 / delta_t))))
+    timeout_s = max(float(getattr(args, "agent_maneuver_timeout_s", 15.0)), delta_t)
+    return max(1, int(math.ceil(timeout_s / delta_t)))
+
+
+def _assist_lane_stable_required_frames(args: argparse.Namespace) -> int:
+    return max(1, int(getattr(args, "agent_lane_stable_frames", 5)))
 
 
 def _assist_commit_promotion_frames(args: argparse.Namespace) -> int:
@@ -1729,6 +1768,24 @@ def _promote_lane_change_intent(agent_intent: str) -> str:
     if agent_intent == "prepare_lane_change_right":
         return "commit_lane_change_right"
     return agent_intent
+
+
+def _assist_maneuver_phase(
+    *,
+    intent: Optional[str],
+    completed: bool,
+    failure_reason: Optional[str],
+) -> str:
+    if completed:
+        return "completed"
+    if failure_reason:
+        return "failed"
+    value = str(intent or "")
+    if value.startswith("prepare_lane_change_"):
+        return "prepare"
+    if value.startswith("commit_lane_change_"):
+        return "commit"
+    return "idle"
 
 
 def _merge_active_and_new_agent_intent(active_intent: Optional[str], new_intent: str) -> str:
@@ -1783,7 +1840,14 @@ def _assist_lane_transition_completed(
     *,
     world_state: Any,
     active_metadata: Dict[str, Any],
+    lateral_tolerance_m: float = 0.60,
+    heading_tolerance_rad: float = 0.20,
 ) -> bool:
+    """Return whether the current frame is a target-lane stability candidate.
+
+    Consecutive-frame confirmation is maintained by the live loop so this
+    helper remains pure and can be reused by unit tests.
+    """
     if world_state is None:
         return False
     origin_lane_id = str(active_metadata.get("origin_lane_id") or "")
@@ -1791,12 +1855,27 @@ def _assist_lane_transition_completed(
         return False
     current_lane_id = str(getattr(world_state, "ego_lane_id", "") or "")
     target_lane_id = str(active_metadata.get("target_lane_id") or "")
-    if target_lane_id:
-        return bool(current_lane_id) and current_lane_id == target_lane_id
+    if target_lane_id and current_lane_id != target_lane_id:
+        return False
     if not target_lane_id and current_lane_id == origin_lane_id:
         return False
     lateral_error_m = abs(float(getattr(world_state, "ego_lateral_error_m", 99.0)))
-    return bool(current_lane_id) and lateral_error_m <= 0.55
+    heading_error_rad = abs(float(getattr(world_state, "heading_error_rad", 99.0)))
+    return bool(current_lane_id) and (
+        lateral_error_m <= max(0.0, float(lateral_tolerance_m))
+        and heading_error_rad <= max(0.0, float(heading_tolerance_rad))
+    )
+
+
+def _update_lane_transition_stability(
+    *,
+    candidate: bool,
+    previous_frames: int,
+    required_frames: int,
+) -> tuple[int, bool]:
+    stable_frames = int(previous_frames) + 1 if candidate else 0
+    required = max(1, int(required_frames))
+    return stable_frames, stable_frames >= required
 
 
 def _assist_completion_metadata(
@@ -1817,6 +1896,7 @@ def _can_continue_active_assist(
     baseline_intent: str,
     world_state: Any,
     min_ttc_s: float,
+    lane_change_completed: bool = False,
 ) -> bool:
     if active_request is None or world_state is None:
         return False
@@ -1829,9 +1909,35 @@ def _can_continue_active_assist(
         return False
     if not bool(getattr(world_state, "lane_change_permission", False)):
         return False
-    if _assist_lane_transition_completed(world_state=world_state, active_metadata=active_metadata):
+    if lane_change_completed:
         return False
     return True
+
+
+def _active_assist_stop_reason(
+    *,
+    args: argparse.Namespace,
+    active_request: Any,
+    baseline_intent: str,
+    world_state: Any,
+    min_ttc_s: float,
+    lane_change_completed: bool,
+) -> Optional[str]:
+    """Explain why a previously accepted maneuver can no longer continue."""
+    if active_request is None or world_state is None:
+        return "active_assist_unavailable"
+    if lane_change_completed:
+        return "lane_change_completed"
+    active_intent = str(getattr(active_request, "tactical_intent", ""))
+    if active_intent not in _ASSIST_LANE_CHANGE_INTENTS:
+        return "active_intent_not_lane_change"
+    if baseline_intent not in {"stop_before_obstacle", "follow", "keep_lane"}:
+        return "safety_abort_baseline_conflict"
+    if float(min_ttc_s) < max(1.5, float(args.agent_risk_ttc_threshold) - 0.25):
+        return "safety_abort_low_ttc"
+    if not bool(getattr(world_state, "lane_change_permission", False)):
+        return "safety_abort_lane_change_not_permitted"
+    return None
 
 
 def _summarize_assist_log(
@@ -1917,6 +2023,16 @@ def _summarize_assist_log(
         for row in attempted
         if row.get("agent_response_age_s") is not None
     ]
+    api_attempt_counts = [
+        int(row["agent_api_attempt_count"])
+        for row in attempted
+        if row.get("agent_api_attempt_count") is not None
+    ]
+    api_payload_variant_counts: Dict[str, int] = {}
+    for row in attempted:
+        if row.get("agent_api_payload_variant"):
+            variant = str(row["agent_api_payload_variant"])
+            api_payload_variant_counts[variant] = api_payload_variant_counts.get(variant, 0) + 1
     stale_responses = [
         row for row in attempted if row.get("agent_response_fresh") is False
     ]
@@ -1955,15 +2071,68 @@ def _summarize_assist_log(
         None,
     )
     maneuver_end = lane_transition_end if lane_transition_end is not None else post_cruise_end
+    explicit_failure_row = next(
+        (row for row in assist_log if row.get("maneuver_failure_reason")),
+        None,
+    )
+    explicit_failure_reason = (
+        str(explicit_failure_row.get("maneuver_failure_reason"))
+        if explicit_failure_row is not None else None
+    )
+    explicit_failure_timestamp_s = (
+        float(explicit_failure_row["maneuver_failure_timestamp_s"])
+        if explicit_failure_row is not None
+        and explicit_failure_row.get("maneuver_failure_timestamp_s") is not None
+        else None
+    )
+    if maneuver_end is not None:
+        maneuver_failure_reason = None
+        maneuver_failure_timestamp_s = None
+    elif explicit_failure_reason:
+        maneuver_failure_reason = explicit_failure_reason
+        maneuver_failure_timestamp_s = explicit_failure_timestamp_s
+    elif maneuver_start is not None:
+        maneuver_failure_reason = "episode_ended_before_completion"
+        maneuver_failure_timestamp_s = None
+    elif fallback_frames:
+        maneuver_failure_reason = "agent_api_failure"
+        maneuver_failure_timestamp_s = None
+    elif arbitration_rejected:
+        maneuver_failure_reason = "safety_arbitration_rejected"
+        maneuver_failure_timestamp_s = None
+    elif agent_decision_applied:
+        maneuver_failure_reason = "no_lane_change_intent"
+        maneuver_failure_timestamp_s = None
+    elif submitted:
+        maneuver_failure_reason = "agent_response_not_applied"
+        maneuver_failure_timestamp_s = None
+    else:
+        maneuver_failure_reason = "agent_not_queried"
+        maneuver_failure_timestamp_s = None
     latency_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
     control_loop_latencies = [
         float(value) for value in stats.get("tick_latency_samples_ms", [])
     ]
     return {
-        "schema_version": "stage10_agent_assist_evaluation_v3",
+        "schema_version": "stage10_agent_assist_evaluation_v4",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "sim_frames": sim_frames,
         "random_seed": int(args.seed),
+        "policy": {
+            "max_requests_per_episode": int(getattr(args, "agent_max_requests_per_episode", 0)),
+            "retry_cooldown_s": float(getattr(args, "agent_retry_cooldown_s", 0.0)),
+            "api_timeout_s": float(getattr(args, "agent_api_timeout_s", 0.0)),
+            "api_max_retries": int(getattr(args, "agent_api_max_retries", 0)),
+            "response_max_age_s": float(getattr(args, "agent_response_max_age_s", 0.0)),
+            "maneuver_timeout_s": float(getattr(args, "agent_maneuver_timeout_s", 15.0)),
+            "lane_stable_frames": int(getattr(args, "agent_lane_stable_frames", 5)),
+            "lane_center_tolerance_m": float(
+                getattr(args, "agent_lane_center_tolerance_m", 0.60)
+            ),
+            "lane_heading_tolerance_rad": float(
+                getattr(args, "agent_lane_heading_tolerance_rad", 0.20)
+            ),
+        },
         "agent_query_frames": len(submitted),
         "agent_response_frames": len(attempted),
         "agent_fallback_frames": len(fallback_frames),
@@ -2016,6 +2185,12 @@ def _summarize_assist_log(
         "non_query_reason_counts": non_query_reason_counts,
         "agent_validation_status_counts": validation_status_counts,
         "agent_fallback_reason_counts": fallback_reason_counts,
+        "agent_api_attempt_count_total": sum(api_attempt_counts),
+        "agent_api_attempt_count_max": max(api_attempt_counts) if api_attempt_counts else None,
+        "agent_api_payload_variant_counts": api_payload_variant_counts,
+        "maneuver_failure_reason_counts": (
+            {maneuver_failure_reason: 1} if maneuver_failure_reason else {}
+        ),
         "safety_arbitration_rejection_reason_counts": arbitration_rejection_reason_counts,
         "async_worker": dict(worker_stats or {}),
         "control_loop_latency": {
@@ -2080,6 +2255,8 @@ def _summarize_assist_log(
                 if maneuver_start is not None and maneuver_end is not None else None
             ),
             "completed": maneuver_end is not None,
+            "failure_reason": maneuver_failure_reason,
+            "failure_timestamp_s": maneuver_failure_timestamp_s,
             "completion_source": (
                 "lane_transition"
                 if lane_transition_end is not None
@@ -2205,6 +2382,16 @@ def run(args: argparse.Namespace) -> int:
         raise ValueError("--agent-response-max-age-s must be positive")
     if int(args.agent_max_requests_per_episode) < 0:
         raise ValueError("--agent-max-requests-per-episode must be non-negative")
+    if float(args.agent_retry_cooldown_s) < 0.0:
+        raise ValueError("--agent-retry-cooldown-s must be non-negative")
+    if float(args.agent_maneuver_timeout_s) <= 0.0:
+        raise ValueError("--agent-maneuver-timeout-s must be positive")
+    if int(args.agent_lane_stable_frames) <= 0:
+        raise ValueError("--agent-lane-stable-frames must be positive")
+    if float(args.agent_lane_center_tolerance_m) < 0.0:
+        raise ValueError("--agent-lane-center-tolerance-m must be non-negative")
+    if float(args.agent_lane_heading_tolerance_rad) < 0.0:
+        raise ValueError("--agent-lane-heading-tolerance-rad must be non-negative")
     random.seed(int(args.seed))
     np.random.seed(int(args.seed))
     _ensure_carla_pythonapi_paths(args.carla_root)
@@ -2414,7 +2601,10 @@ def run(args: argparse.Namespace) -> int:
     assist_mpc = None
     assist_log: List[Dict[str, Any]] = []
     last_assist_agent_query_wall_s: Optional[float] = None
+    last_assist_agent_failure_wall_s: Optional[float] = None
     assist_agent_queries_submitted = 0
+    assist_agent_valid_decisions = 0
+    assist_agent_terminal_decision = False
     active_assist_request: Any = None
     active_assist_intent: Optional[str] = None
     active_assist_hold_remaining = 0
@@ -2423,6 +2613,9 @@ def run(args: argparse.Namespace) -> int:
     assist_maneuver_tracking_metadata: Dict[str, Any] = {}
     assist_lane_change_completed = False
     assist_lane_change_completed_timestamp_s: Optional[float] = None
+    assist_lane_transition_stable_frames = 0
+    assist_maneuver_failure_reason: Optional[str] = None
+    assist_maneuver_failure_timestamp_s: Optional[float] = None
     agent_lane_change_decision_seen = False
     if args.agent_control_mode == "assist":
         try:
@@ -2553,17 +2746,32 @@ def run(args: argparse.Namespace) -> int:
             # ── D. WorldState ──────────────────────────────────────────────
             world_state = ws_builder.build(det_list, ego_tel)
             if world_state is not None:
-                transition_stable = _assist_lane_transition_completed(
+                # WorldState's stable public schema predates heading tracking;
+                # attach the CARLA-derived value for completion validation.
+                setattr(world_state, "heading_error_rad", float(ego_tel.heading_error_rad))
+                transition_candidate = _assist_lane_transition_completed(
                     world_state=world_state,
                     active_metadata=_assist_completion_metadata(
                         active_assist_metadata,
                         assist_maneuver_tracking_metadata,
                     ),
+                    lateral_tolerance_m=float(args.agent_lane_center_tolerance_m),
+                    heading_tolerance_rad=float(args.agent_lane_heading_tolerance_rad),
+                )
+                (
+                    assist_lane_transition_stable_frames,
+                    transition_stable,
+                ) = _update_lane_transition_stability(
+                    candidate=transition_candidate,
+                    previous_frames=assist_lane_transition_stable_frames,
+                    required_frames=_assist_lane_stable_required_frames(args),
                 )
                 if transition_stable:
                     if not assist_lane_change_completed:
                         assist_lane_change_completed = True
                         assist_lane_change_completed_timestamp_s = float(live_frame.timestamp_s)
+                        assist_maneuver_failure_reason = None
+                        assist_maneuver_failure_timestamp_s = None
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
@@ -2627,6 +2835,8 @@ def run(args: argparse.Namespace) -> int:
                     "z": float(ego_tel.ego_location_xyz[2]),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "ego_a_mps2": float(ego_tel.ego_a_mps2),
+                    "ego_lateral_error_m": float(ego_tel.ego_lateral_error_m),
+                    "heading_error_rad": float(ego_tel.heading_error_rad),
                     "longitudinal_jerk_mps3": (
                         float(stats["longitudinal_jerk_samples_mps3"][-1])
                         if stats["longitudinal_jerk_samples_mps3"] else None
@@ -2654,6 +2864,14 @@ def run(args: argparse.Namespace) -> int:
                 and assist_baseline is not None
                 and assist_mpc is not None
             ):
+                maneuver_failure_event: Optional[str] = None
+                if active_assist_request is not None and active_assist_hold_remaining <= 0:
+                    maneuver_failure_event = "maneuver_timeout"
+                    assist_maneuver_failure_reason = maneuver_failure_event
+                    assist_maneuver_failure_timestamp_s = float(live_frame.timestamp_s)
+                    assist_agent_terminal_decision = True
+                    assist_maneuver_tracking_metadata = {}
+                    assist_lane_transition_stable_frames = 0
                 if active_assist_hold_remaining <= 0:
                     active_assist_request = None
                     active_assist_intent = None
@@ -2670,8 +2888,22 @@ def run(args: argparse.Namespace) -> int:
                     ws_builder._prev_detections and
                     _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
                 )
+                assist_result = assist_agent_worker.poll()
+                worker_state = assist_agent_worker.stats()
+                worker_busy = bool(worker_state.get("inflight") or worker_state.get("pending"))
                 if assist_lane_change_completed:
                     assist_should_query, assist_trigger_reason = False, "lane_change_completed_post_cruise"
+                elif assist_maneuver_failure_reason is not None:
+                    assist_should_query, assist_trigger_reason = False, "maneuver_terminal_failure"
+                elif active_assist_request is not None:
+                    assist_should_query, assist_trigger_reason = False, "active_maneuver_in_progress"
+                elif assist_agent_terminal_decision:
+                    assist_should_query, assist_trigger_reason = False, "agent_decision_terminal"
+                elif assist_result is not None:
+                    # Consume and classify the response before scheduling a replacement.
+                    assist_should_query, assist_trigger_reason = False, "agent_response_processing"
+                elif worker_busy:
+                    assist_should_query, assist_trigger_reason = False, "agent_request_inflight"
                 else:
                     assist_should_query, assist_trigger_reason = _should_query_agent(
                         args=args,
@@ -2680,6 +2912,13 @@ def run(args: argparse.Namespace) -> int:
                         min_ttc_s=assist_ttc,
                         world_state=world_state,
                     )
+                assist_should_query, assist_trigger_reason = _apply_agent_retry_cooldown(
+                    requested=assist_should_query,
+                    trigger_reason=assist_trigger_reason,
+                    now_s=time.monotonic(),
+                    last_failure_s=last_assist_agent_failure_wall_s,
+                    cooldown_s=float(args.agent_retry_cooldown_s),
+                )
                 assist_should_query, assist_trigger_reason = _apply_agent_rate_limit(
                     args=args,
                     requested=assist_should_query,
@@ -2693,7 +2932,6 @@ def run(args: argparse.Namespace) -> int:
                     submitted_count=assist_agent_queries_submitted,
                     max_requests=int(args.agent_max_requests_per_episode),
                 )
-                assist_result = assist_agent_worker.poll()
                 assist_submit_outcome = None
                 if assist_should_query:
                     assist_submit_outcome = assist_agent_worker.submit(
@@ -2737,6 +2975,8 @@ def run(args: argparse.Namespace) -> int:
                     "assist_reject_reason": None,
                     "agent_max_requests_per_minute": float(args.agent_max_requests_per_minute),
                     "agent_max_requests_per_episode": int(args.agent_max_requests_per_episode),
+                    "agent_requests_submitted_episode": int(assist_agent_queries_submitted),
+                    "agent_valid_decisions_episode": int(assist_agent_valid_decisions),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "min_ttc_s": assist_ttc,
                     "route_progress_m": route_info.get("route_progress_m"),
@@ -2746,6 +2986,13 @@ def run(args: argparse.Namespace) -> int:
                     "lane_change_overshoot": bool(getattr(world_state, "lane_change_overshoot", False)),
                     "lane_change_permission": bool(getattr(world_state, "lane_change_permission", False)),
                     "lane_change_rule": str(getattr(world_state, "lane_change_rule", "unknown")),
+                    "lane_change_stability_candidate": bool(transition_candidate),
+                    "lane_change_stable_frames": int(assist_lane_transition_stable_frames),
+                    "lane_change_required_stable_frames": _assist_lane_stable_required_frames(args),
+                    "maneuver_failure_reason": maneuver_failure_event,
+                    "maneuver_failure_timestamp_s": (
+                        float(live_frame.timestamp_s) if maneuver_failure_event else None
+                    ),
                 }
                 if assist_result is not None:
                     assist_record.update(
@@ -2819,6 +3066,7 @@ def run(args: argparse.Namespace) -> int:
                         baseline_intent=assist_baseline_intent,
                         world_state=world_state,
                         min_ttc_s=assist_ttc,
+                        lane_change_completed=assist_lane_change_completed,
                     )
                 )
                 accepted_new_assist = False
@@ -2844,27 +3092,13 @@ def run(args: argparse.Namespace) -> int:
                             ),
                         }
                     )
-                elif _assist_lane_transition_completed(
-                    world_state=world_state,
-                    active_metadata=_assist_completion_metadata(
-                        active_assist_metadata,
-                        assist_maneuver_tracking_metadata,
-                    ),
-                ):
-                    if not assist_lane_change_completed:
-                        assist_lane_change_completed = True
-                        assist_lane_change_completed_timestamp_s = float(live_frame.timestamp_s)
+                elif assist_lane_change_completed:
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
                     active_assist_applied_frames = 0
                     active_assist_metadata = {}
                 elif assist_result is not None:
-                    if (
-                        str(getattr(world_state, "agent_preferred_lane", "current")) in {"left", "right"}
-                        and bool(getattr(world_state, "lane_change_permission", False))
-                    ):
-                        agent_lane_change_decision_seen = True
                     intent_record = assist_result.intent_record
                     response_fresh, freshness_reason, response_age_s = _agent_response_freshness(
                         args=args,
@@ -2889,6 +3123,18 @@ def run(args: argparse.Namespace) -> int:
                         )
                     else:
                         assist_allowed, assist_reason = False, freshness_reason
+                    response_is_fallback = bool(
+                        assist_result.error_type
+                        or intent_record is None
+                        or bool(getattr(intent_record, "fallback_to_baseline", False))
+                        or not response_fresh
+                    )
+                    if response_is_fallback:
+                        last_assist_agent_failure_wall_s = time.monotonic()
+                    else:
+                        assist_agent_valid_decisions += 1
+                        assist_agent_terminal_decision = True
+                        agent_lane_change_decision_seen = True
                     provenance = getattr(intent_record, "provenance", {}) or {}
                     assist_record.update(
                         {
@@ -2930,6 +3176,8 @@ def run(args: argparse.Namespace) -> int:
                             "agent_prompt_token_count": provenance.get("prompt_token_count"),
                             "agent_completion_token_count": provenance.get("completion_token_count"),
                             "agent_total_token_count": provenance.get("total_token_count"),
+                            "agent_api_attempt_count": provenance.get("api_attempt_count"),
+                            "agent_api_payload_variant": provenance.get("api_payload_variant"),
                             "agent_prompt_context_schema": provenance.get("prompt_context_schema"),
                             "agent_prompt_context_object_count": provenance.get(
                                 "prompt_context_object_count"
@@ -2961,6 +3209,9 @@ def run(args: argparse.Namespace) -> int:
                             "origin_lane_id": str(getattr(world_state, "ego_lane_id", "") or ""),
                             "target_lane_id": str(agent_target_lane_id or ""),
                         }
+                        assist_lane_transition_stable_frames = 0
+                        assist_maneuver_failure_reason = None
+                        assist_maneuver_failure_timestamp_s = None
                         if not preserve_progress or not assist_maneuver_tracking_metadata:
                             assist_maneuver_tracking_metadata = dict(active_assist_metadata)
                         active_assist_intent = _retune_active_assist_request(
@@ -3009,8 +3260,17 @@ def run(args: argparse.Namespace) -> int:
                         baseline_intent=assist_baseline_intent,
                         world_state=world_state,
                         min_ttc_s=assist_ttc,
+                        lane_change_completed=assist_lane_change_completed,
                     )
                 )
+                continuation_stop_reason = _active_assist_stop_reason(
+                    args=args,
+                    active_request=active_assist_request,
+                    baseline_intent=assist_baseline_intent,
+                    world_state=world_state,
+                    min_ttc_s=assist_ttc,
+                    lane_change_completed=assist_lane_change_completed,
+                ) if active_assist_request is not None else None
                 lifecycle_action = _assist_lifecycle_action(
                     accepted_new_assist=accepted_new_assist,
                     preserve_active_after_fallback=preserve_active_after_agent_fallback,
@@ -3065,16 +3325,24 @@ def run(args: argparse.Namespace) -> int:
                         }
                     )
                 else:
-                    if _assist_lane_transition_completed(
-                        world_state=world_state,
-                        active_metadata=_assist_completion_metadata(
-                            active_assist_metadata,
-                            assist_maneuver_tracking_metadata,
-                        ),
+                    if (
+                        active_assist_request is not None
+                        and not assist_lane_change_completed
+                        and continuation_stop_reason is not None
+                        and continuation_stop_reason.startswith("safety_abort_")
                     ):
-                        if not assist_lane_change_completed:
-                            assist_lane_change_completed = True
-                            assist_lane_change_completed_timestamp_s = float(live_frame.timestamp_s)
+                        assist_maneuver_failure_reason = continuation_stop_reason
+                        assist_maneuver_failure_timestamp_s = float(live_frame.timestamp_s)
+                        assist_maneuver_tracking_metadata = {}
+                        assist_lane_transition_stable_frames = 0
+                        assist_agent_terminal_decision = True
+                        assist_record.update(
+                            {
+                                "maneuver_failure_reason": continuation_stop_reason,
+                                "maneuver_failure_timestamp_s": float(live_frame.timestamp_s),
+                                "assist_reject_reason": continuation_stop_reason,
+                            }
+                        )
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
@@ -3087,6 +3355,20 @@ def run(args: argparse.Namespace) -> int:
                     {
                         "lane_change_completed": bool(assist_lane_change_completed),
                         "lane_change_completion_timestamp_s": assist_lane_change_completed_timestamp_s,
+                        "assist_maneuver_phase": _assist_maneuver_phase(
+                            intent=active_assist_intent,
+                            completed=assist_lane_change_completed,
+                            failure_reason=assist_maneuver_failure_reason,
+                        ),
+                        "agent_valid_decisions_episode": int(assist_agent_valid_decisions),
+                        "maneuver_failure_reason": (
+                            assist_record.get("maneuver_failure_reason")
+                            or assist_maneuver_failure_reason
+                        ),
+                        "maneuver_failure_timestamp_s": (
+                            assist_record.get("maneuver_failure_timestamp_s")
+                            or assist_maneuver_failure_timestamp_s
+                        ),
                     }
                 )
                 assist_log.append(assist_record)

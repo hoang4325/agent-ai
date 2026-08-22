@@ -5,7 +5,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.summarize_stage10_stress_tables import _load_rows, _paired_ab_statistics
+from scripts.summarize_stage10_stress_tables import (
+    _assist_only_statistics,
+    _load_rows,
+    _paired_ab_statistics,
+)
 
 
 class Stage10StatisticsTests(unittest.TestCase):
@@ -45,6 +49,14 @@ class Stage10StatisticsTests(unittest.TestCase):
                         "end_to_end_query_success_rate": 0.5,
                         "assist_applied_frames": 3,
                         "latency": {"p95_api_call_ms": 900.0},
+                        "agent_api_attempt_count_total": 2,
+                        "agent_api_attempt_count_max": 1,
+                        "agent_api_payload_variant_counts": {"compact_json": 2},
+                        "lane_change_maneuver": {
+                            "completed": False,
+                            "completion_time_s": None,
+                            "failure_reason": "agent_api_failure",
+                        },
                     }
                 ),
                 encoding="utf-8",
@@ -57,6 +69,8 @@ class Stage10StatisticsTests(unittest.TestCase):
             self.assertEqual(rows[0]["agent_timeout_rate"], 0.5)
             self.assertEqual(rows[0]["legal_lane_crossing_count"], 1)
             self.assertEqual(rows[0]["control_loop_p95_ms"], 80.0)
+            self.assertEqual(rows[0]["lane_change_failure_reason"], "agent_api_failure")
+            self.assertEqual(rows[0]["assist_api_attempt_count_total"], 2)
 
     def test_paired_difference_uses_common_seed(self) -> None:
         rows = [
@@ -97,6 +111,29 @@ class Stage10StatisticsTests(unittest.TestCase):
         paired = _paired_ab_statistics(rows)
         self.assertEqual(paired["case"]["num_pairs"], 1)
         self.assertEqual(paired["case"]["metrics"]["route_progress_m"]["mean"], 3.0)
+
+    def test_assist_only_statistics_reports_completion_and_failures(self) -> None:
+        rows = [
+            {
+                "case": "case_assist",
+                "random_seed": 0,
+                "lane_change_completed": 1.0,
+                "lane_change_completion_time_s": 8.0,
+                "lane_change_failure_reason": None,
+            },
+            {
+                "case": "case_assist",
+                "random_seed": 1,
+                "lane_change_completed": 0.0,
+                "lane_change_completion_time_s": None,
+                "lane_change_failure_reason": "maneuver_timeout",
+            },
+        ]
+        result = _assist_only_statistics(rows)["case"]
+        self.assertEqual(result["completed_runs"], 1)
+        self.assertEqual(result["completion_rate"], 0.5)
+        self.assertEqual(result["successful_completion_time_s"]["mean"], 8.0)
+        self.assertEqual(result["failure_reason_counts"], {"maneuver_timeout": 1})
 
 
 if __name__ == "__main__":

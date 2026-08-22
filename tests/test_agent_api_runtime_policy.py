@@ -121,6 +121,8 @@ class AgentAPIRuntimePolicyTests(unittest.TestCase):
         self.assertFalse(result.fallback_to_baseline)
         self.assertEqual(result.provenance["backend_model_id"], "provider/backend-fixed")
         self.assertEqual(result.provenance["total_token_count"], 30)
+        self.assertEqual(result.provenance["api_attempt_count"], 1)
+        self.assertEqual(result.provenance["api_payload_variant"], "rich_json")
 
     @mock.patch("urllib.request.urlopen")
     def test_blocked_clear_prompt_requests_progress_even_when_baseline_keeps_lane(self, urlopen) -> None:

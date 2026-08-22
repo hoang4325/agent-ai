@@ -298,10 +298,16 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                     1.0 if lane_change_maneuver.get("completed") is True
                     else (0.0 if assist else None)
                 ),
+                "lane_change_failure_reason": lane_change_maneuver.get("failure_reason"),
                 "assist_reject_reason_counts": assist.get("assist_reject_reason_counts"),
                 "query_rejection_reason_counts": assist.get("query_rejection_reason_counts"),
                 "assist_validation_status_counts": assist.get("agent_validation_status_counts"),
                 "assist_fallback_reason_counts": assist.get("agent_fallback_reason_counts"),
+                "assist_api_attempt_count_total": assist.get("agent_api_attempt_count_total"),
+                "assist_api_attempt_count_max": assist.get("agent_api_attempt_count_max"),
+                "assist_api_payload_variant_counts": assist.get(
+                    "agent_api_payload_variant_counts"
+                ),
                 "assist_agent_intent_distribution": assist.get("agent_intent_distribution"),
             }
         )
@@ -391,6 +397,12 @@ def _paired_ab_statistics(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
             "num_pairs": len(common_seeds),
             "paired_seeds": common_seeds,
             "difference_definition": "assist_minus_baseline",
+            "non_pairable_metrics": {
+                "lane_change_completion_time_s": (
+                    "Baseline does not initiate the Agent lane-change maneuver; "
+                    "use assist_only_statistics for completion rate and time."
+                )
+            },
             "metrics": {
                 field: _sample_statistics(
                     [
@@ -402,6 +414,46 @@ def _paired_ab_statistics(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
                 )
                 for field in STATISTIC_FIELDS
             },
+        }
+    return result
+
+
+def _assist_only_statistics(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Summarize Agent maneuver completion without inventing a baseline time."""
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for row in rows:
+        case = str(row.get("case", ""))
+        if not case.endswith("_assist"):
+            continue
+        grouped.setdefault(case[: -len("_assist")], []).append(row)
+
+    result: Dict[str, Any] = {}
+    for base_case, case_rows in sorted(grouped.items()):
+        completed_rows = [row for row in case_rows if row.get("lane_change_completed") == 1.0]
+        failure_counts: Dict[str, int] = {}
+        for row in case_rows:
+            if row.get("lane_change_completed") == 1.0:
+                continue
+            reason = str(row.get("lane_change_failure_reason") or "unspecified")
+            failure_counts[reason] = failure_counts.get(reason, 0) + 1
+        result[base_case] = {
+            "num_assist_runs": len(case_rows),
+            "seeds": sorted(
+                int(row["random_seed"])
+                for row in case_rows
+                if row.get("random_seed") is not None
+            ),
+            "completed_runs": len(completed_rows),
+            "completion_rate": round(len(completed_rows) / len(case_rows), 6)
+            if case_rows else None,
+            "successful_completion_time_s": _sample_statistics(
+                [
+                    float(row["lane_change_completion_time_s"])
+                    for row in completed_rows
+                    if row.get("lane_change_completion_time_s") is not None
+                ]
+            ),
+            "failure_reason_counts": failure_counts,
         }
     return result
 
@@ -478,7 +530,7 @@ def main() -> int:
         ),
     }
     summary = {
-        "schema_version": "stage10_stress_tables_summary_v3",
+        "schema_version": "stage10_stress_tables_summary_v4",
         "report_root": str(report_root),
         "run_glob": str(args.run_glob),
         "table2_rows": [
@@ -541,10 +593,16 @@ def main() -> int:
                 "control_loop_over_budget_rate": row["control_loop_over_budget_rate"],
                 "lane_change_completion_time_s": row["lane_change_completion_time_s"],
                 "lane_change_completed": row["lane_change_completed"],
+                "lane_change_failure_reason": row["lane_change_failure_reason"],
                 "assist_reject_reason_counts": row["assist_reject_reason_counts"],
                 "query_rejection_reason_counts": row["query_rejection_reason_counts"],
                 "assist_validation_status_counts": row["assist_validation_status_counts"],
                 "assist_fallback_reason_counts": row["assist_fallback_reason_counts"],
+                "assist_api_attempt_count_total": row["assist_api_attempt_count_total"],
+                "assist_api_attempt_count_max": row["assist_api_attempt_count_max"],
+                "assist_api_payload_variant_counts": row[
+                    "assist_api_payload_variant_counts"
+                ],
                 "assist_agent_intent_distribution": row["assist_agent_intent_distribution"],
             }
             for row in rows
@@ -552,6 +610,7 @@ def main() -> int:
         "overall": overall,
         "grouped_statistics": _grouped_statistics(rows),
         "paired_ab_statistics": _paired_ab_statistics(rows),
+        "assist_only_statistics": _assist_only_statistics(rows),
     }
 
     if args.summary_json:
@@ -592,9 +651,12 @@ def main() -> int:
         "assist_p50_api_call_ms,assist_p95_api_call_ms,assist_over_step_budget_rate,"
         "stale_response_discard_rate,control_loop_p50_ms,control_loop_p95_ms,"
         "control_loop_over_budget_rate,"
-        "lane_change_completion_time_s,lane_change_completed,query_rejection_reason_counts,"
+        "lane_change_completion_time_s,lane_change_completed,lane_change_failure_reason,"
+        "query_rejection_reason_counts,"
         "safety_arbitration_rejection_reason_counts,"
-        "assist_validation_status_counts,assist_fallback_reason_counts"
+        "assist_validation_status_counts,assist_fallback_reason_counts,"
+        "assist_api_attempt_count_total,assist_api_attempt_count_max,"
+        "assist_api_payload_variant_counts"
     )
     for row in summary["table3_rows"]:
         useful_count = _fmt_int(row["useful_disagreement_count"])
@@ -612,6 +674,9 @@ def main() -> int:
         )
         validation_counts = json.dumps(row["assist_validation_status_counts"] or {}, sort_keys=True)
         fallback_reasons = json.dumps(row["assist_fallback_reason_counts"] or {}, sort_keys=True)
+        payload_variants = json.dumps(
+            row["assist_api_payload_variant_counts"] or {}, sort_keys=True
+        )
         print(
             f"{row['case']},{row['random_seed']},{_fmt_float(row['agreement_rate'])},"
             f"{_fmt_float(row['disagreement_rate'])},"
@@ -627,8 +692,11 @@ def main() -> int:
             f"{_fmt_float(row['control_loop_p50_ms'])},{_fmt_float(row['control_loop_p95_ms'])},"
             f"{_fmt_float(row['control_loop_over_budget_rate'])},"
             f"{_fmt_float(row['lane_change_completion_time_s'])},"
-            f"{_fmt_float(row['lane_change_completed'])},{reject_reasons},{arbitration_reasons},"
-            f"{validation_counts},{fallback_reasons}"
+            f"{_fmt_float(row['lane_change_completed'])},{row['lane_change_failure_reason'] or ''},"
+            f"{reject_reasons},{arbitration_reasons},"
+            f"{validation_counts},{fallback_reasons},"
+            f"{_fmt_int(row['assist_api_attempt_count_total'])},"
+            f"{_fmt_int(row['assist_api_attempt_count_max'])},{payload_variants}"
         )
 
     print("\n=== OVERALL ===")
@@ -637,6 +705,8 @@ def main() -> int:
     print(json.dumps(summary["grouped_statistics"], indent=2))
     print("\n=== PAIRED A/B STATISTICS (assist minus baseline) ===")
     print(json.dumps(summary["paired_ab_statistics"], indent=2))
+    print("\n=== ASSIST-ONLY MANEUVER STATISTICS ===")
+    print(json.dumps(summary["assist_only_statistics"], indent=2))
     return 0
 
 

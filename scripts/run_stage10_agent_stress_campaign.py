@@ -83,6 +83,11 @@ def _parse_args() -> argparse.Namespace:
                         help="Provider retries used by the non-blocking worker")
     parser.add_argument("--agent-response-max-age-s", type=float, default=3.0,
                         help="Discard tactical responses older than this simulated age")
+    parser.add_argument("--agent-retry-cooldown-s", type=float, default=2.0)
+    parser.add_argument("--agent-maneuver-timeout-s", type=float, default=15.0)
+    parser.add_argument("--agent-lane-stable-frames", type=int, default=5)
+    parser.add_argument("--agent-lane-center-tolerance-m", type=float, default=0.60)
+    parser.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20)
     parser.add_argument("--radar-ablation", default="none", choices=["none", "zero_bev"])
     parser.add_argument("--record-mp4", action="store_true",
                         help="Record each Stage10 stress run to MP4")
@@ -335,6 +340,7 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "control_loop_over_budget_rate": control_loop_latency.get("over_step_budget_rate"),
             "lane_change_completion_time_s": lane_change_maneuver.get("completion_time_s"),
             "lane_change_completed": lane_change_maneuver.get("completed"),
+            "lane_change_failure_reason": lane_change_maneuver.get("failure_reason"),
             "assist_agent_query_frames": assist_query_frames,
             "assist_agent_query_rate": assist.get("agent_query_rate"),
             "agent_decision_applied_frames": assist.get("agent_decision_applied_frames"),
@@ -608,6 +614,16 @@ def main() -> int:
         raise ValueError("--agent-api-max-retries must be non-negative")
     if float(args.agent_response_max_age_s) <= 0.0:
         raise ValueError("--agent-response-max-age-s must be positive")
+    if float(args.agent_retry_cooldown_s) < 0.0:
+        raise ValueError("--agent-retry-cooldown-s must be non-negative")
+    if float(args.agent_maneuver_timeout_s) <= 0.0:
+        raise ValueError("--agent-maneuver-timeout-s must be positive")
+    if int(args.agent_lane_stable_frames) <= 0:
+        raise ValueError("--agent-lane-stable-frames must be positive")
+    if float(args.agent_lane_center_tolerance_m) < 0.0:
+        raise ValueError("--agent-lane-center-tolerance-m must be non-negative")
+    if float(args.agent_lane_heading_tolerance_rad) < 0.0:
+        raise ValueError("--agent-lane-heading-tolerance-rad must be non-negative")
     python_exe = sys.executable
     output_root = Path(args.output_root)
     report_root = Path(args.report_root)
@@ -667,6 +683,11 @@ def main() -> int:
                 "--agent-api-timeout-s", str(args.agent_api_timeout_s),
                 "--agent-api-max-retries", str(args.agent_api_max_retries),
                 "--agent-response-max-age-s", str(args.agent_response_max_age_s),
+                "--agent-retry-cooldown-s", str(args.agent_retry_cooldown_s),
+                "--agent-maneuver-timeout-s", str(args.agent_maneuver_timeout_s),
+                "--agent-lane-stable-frames", str(args.agent_lane_stable_frames),
+                "--agent-lane-center-tolerance-m", str(args.agent_lane_center_tolerance_m),
+                "--agent-lane-heading-tolerance-rad", str(args.agent_lane_heading_tolerance_rad),
                 "--radar-ablation", str(args.radar_ablation),
             ]
             if bool(args.record_mp4):
