@@ -331,7 +331,13 @@ class RealAgentAdapter:
     based on current WorldState without directly issuing actuator commands.
     """
 
-    def __init__(self, mode: str = "stub") -> None:
+    def __init__(
+        self,
+        mode: str = "stub",
+        *,
+        api_timeout_s: float | None = None,
+        api_max_retries: int | None = None,
+    ) -> None:
         try:
             # Add Agent-AI to path so benchmark package is importable
             _root = str(os.environ.get("AGENT_AI_ROOT", "/workspace/Agent-AI"))
@@ -339,19 +345,35 @@ class RealAgentAdapter:
                 sys.path.insert(0, _root)
             from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
             resolved_model_id = str(os.environ.get("AGENT_MODEL_ID", f"stage10_{mode}"))
-            api_timeout_s = float(os.environ.get("AGENT_API_TIMEOUT_S", "30.0"))
+            resolved_timeout_s = float(
+                api_timeout_s
+                if api_timeout_s is not None
+                else os.environ.get("AGENT_API_TIMEOUT_S", "3.0")
+            )
+            resolved_max_retries = int(
+                api_max_retries
+                if api_max_retries is not None
+                else os.environ.get("AGENT_API_MAX_RETRIES", "0")
+            )
+            if resolved_timeout_s <= 0.0:
+                raise ValueError("api_timeout_s must be positive")
+            if resolved_max_retries < 0:
+                raise ValueError("api_max_retries must be non-negative")
             self._adapter = AgentShadowAdapter(
                 config=AgentShadowAdapterConfig(
                     mode=mode,
                     model_id=resolved_model_id,
-                    api_timeout_s=api_timeout_s,
+                    api_timeout_s=resolved_timeout_s,
+                    api_max_retries=resolved_max_retries,
                 )
             )
             LOGGER.info(
-                "RealAgentAdapter: AgentShadowAdapter loaded in mode=%s model_id=%s timeout_s=%.1f",
+                "RealAgentAdapter: AgentShadowAdapter loaded in mode=%s model_id=%s "
+                "timeout_s=%.1f max_retries=%d",
                 mode,
                 resolved_model_id,
-                api_timeout_s,
+                resolved_timeout_s,
+                resolved_max_retries,
             )
         except ImportError as exc:
             LOGGER.warning("RealAgentAdapter: AgentShadowAdapter unavailable (%s). Using fallback.", exc)
@@ -361,22 +383,30 @@ class RealAgentAdapter:
 
     def observe_intent(self, world) -> Optional[Any]:
         """Return the full shadow intent record for evaluation/logging."""
+        return self.observe_intent_request(self.build_intent_request(world))
+
+    def build_intent_request(self, world) -> dict[str, Any]:
+        """Freeze WorldState into primitive values safe for a worker thread."""
+        return {
+            "case_id": "stage10_live",
+            "frame_id": int(getattr(world, "frame_id", 0)),
+            "ego_state": self._world_to_ego_state(world),
+            "tracked_objects": [],
+            "lane_context": self._world_to_lane_context(world),
+            "route_context": self._world_to_route_context(world),
+            "stop_context": {},
+            "baseline_context": self._world_to_baseline_context(world),
+        }
+
+    def observe_intent_request(self, request: dict[str, Any]) -> Optional[Any]:
+        """Execute a previously frozen request (normally on the async worker)."""
         if self._adapter is None:
             return None
 
         try:
-            return self._adapter.call(
-                case_id="stage10_live",
-                frame_id=int(getattr(world, "frame_id", 0)),
-                ego_state=self._world_to_ego_state(world),
-                tracked_objects=[],
-                lane_context=self._world_to_lane_context(world),
-                route_context=self._world_to_route_context(world),
-                stop_context={},
-                baseline_context=self._world_to_baseline_context(world),
-            )
+            return self._adapter.call(**request)
         except Exception as exc:
-            LOGGER.debug("observe_intent error: %s", exc)
+            LOGGER.debug("observe_intent_request error: %s", exc)
             return None
 
     def propose_contract(self, world) -> Optional[Any]:

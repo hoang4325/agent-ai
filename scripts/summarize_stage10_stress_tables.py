@@ -27,6 +27,9 @@ STATISTIC_FIELDS = (
     "assist_query_rejection_rate",
     "assist_p95_api_call_ms",
     "assist_over_step_budget_rate",
+    "stale_response_discard_rate",
+    "control_loop_p95_ms",
+    "control_loop_over_budget_rate",
     "lane_change_completion_time_s",
 )
 
@@ -127,9 +130,25 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
         low_ttc_analysis = evaluation.get("low_ttc_analysis") or {}
         comfort = driving.get("comfort") or {}
         assist_latency = assist.get("latency") or {}
+        compare_latency = evaluation.get("latency") or {}
+        control_loop_latency = (
+            assist.get("control_loop_latency")
+            or compare_latency.get("control_loop")
+            or ((driving.get("runtime") or {}).get("control_loop_latency"))
+            or {}
+        )
         lane_change_maneuver = assist.get("lane_change_maneuver") or {}
-        queried_frames = int(evaluation.get("agent_queried_frames") or 0)
-        sim_frames = int(evaluation.get("sim_frames") or driving.get("frames") or 0)
+        queried_frames = int(
+            evaluation.get("agent_queried_frames")
+            or assist.get("agent_query_frames")
+            or 0
+        )
+        sim_frames = int(
+            evaluation.get("sim_frames")
+            or assist.get("sim_frames")
+            or driving.get("frames")
+            or 0
+        )
         query_ratio = queried_frames / sim_frames if sim_frames else 0.0
         collision_count = int(driving.get("collision_count") or 0)
         safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
@@ -202,9 +221,31 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                     else None
                 ),
                 "assist_query_rejection_rate": _optional_float(assist.get("agent_query_rejection_rate")),
-                "assist_p50_api_call_ms": _optional_float(assist_latency.get("p50_api_call_ms")),
-                "assist_p95_api_call_ms": _optional_float(assist_latency.get("p95_api_call_ms")),
-                "assist_over_step_budget_rate": _optional_float(assist_latency.get("over_step_budget_rate")),
+                "assist_p50_api_call_ms": _optional_float(
+                    assist_latency.get("p50_api_call_ms")
+                    if assist_latency.get("p50_api_call_ms") is not None
+                    else compare_latency.get("p50_compare_ms")
+                ),
+                "assist_p95_api_call_ms": _optional_float(
+                    assist_latency.get("p95_api_call_ms")
+                    if assist_latency.get("p95_api_call_ms") is not None
+                    else compare_latency.get("p95_compare_ms")
+                ),
+                "assist_over_step_budget_rate": _optional_float(
+                    assist_latency.get("over_step_budget_rate")
+                    if assist_latency.get("over_step_budget_rate") is not None
+                    else compare_latency.get("over_step_budget_rate")
+                ),
+                "stale_response_discard_rate": _optional_float(
+                    assist.get("stale_response_discard_rate")
+                    if assist.get("stale_response_discard_rate") is not None
+                    else evaluation.get("stale_response_rate")
+                ),
+                "control_loop_p50_ms": _optional_float(control_loop_latency.get("p50_ms")),
+                "control_loop_p95_ms": _optional_float(control_loop_latency.get("p95_ms")),
+                "control_loop_over_budget_rate": _optional_float(
+                    control_loop_latency.get("over_step_budget_rate")
+                ),
                 "lane_change_completion_time_s": _optional_float(
                     lane_change_maneuver.get("completion_time_s")
                 ),
@@ -409,6 +450,10 @@ def main() -> int:
                 "assist_p50_api_call_ms": row["assist_p50_api_call_ms"],
                 "assist_p95_api_call_ms": row["assist_p95_api_call_ms"],
                 "assist_over_step_budget_rate": row["assist_over_step_budget_rate"],
+                "stale_response_discard_rate": row["stale_response_discard_rate"],
+                "control_loop_p50_ms": row["control_loop_p50_ms"],
+                "control_loop_p95_ms": row["control_loop_p95_ms"],
+                "control_loop_over_budget_rate": row["control_loop_over_budget_rate"],
                 "lane_change_completion_time_s": row["lane_change_completion_time_s"],
                 "assist_reject_reason_counts": row["assist_reject_reason_counts"],
                 "query_rejection_reason_counts": row["query_rejection_reason_counts"],
@@ -451,6 +496,8 @@ def main() -> int:
         "assist_agent_query_frames,assist_agent_query_rate,"
         "assist_applied_frames,assist_intervention_rate,assist_query_rejection_rate,"
         "assist_p50_api_call_ms,assist_p95_api_call_ms,assist_over_step_budget_rate,"
+        "stale_response_discard_rate,control_loop_p50_ms,control_loop_p95_ms,"
+        "control_loop_over_budget_rate,"
         "lane_change_completion_time_s,query_rejection_reason_counts,"
         "assist_validation_status_counts,assist_fallback_reason_counts"
     )
@@ -475,6 +522,9 @@ def main() -> int:
             f"{assist_applied},{assist_rate},{_fmt_float(row['assist_query_rejection_rate'])},"
             f"{_fmt_float(row['assist_p50_api_call_ms'])},{_fmt_float(row['assist_p95_api_call_ms'])},"
             f"{_fmt_float(row['assist_over_step_budget_rate'])},"
+            f"{_fmt_float(row['stale_response_discard_rate'])},"
+            f"{_fmt_float(row['control_loop_p50_ms'])},{_fmt_float(row['control_loop_p95_ms'])},"
+            f"{_fmt_float(row['control_loop_over_budget_rate'])},"
             f"{_fmt_float(row['lane_change_completion_time_s'])},{reject_reasons},"
             f"{validation_counts},{fallback_reasons}"
         )

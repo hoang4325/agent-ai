@@ -3,8 +3,9 @@ scripts/run_stage10_stage1_live_bridge.py
 ==========================================
 Stage 10 — Live CARLA → BEVFusion → Stage 9 bridge.
 
-Connects every module we have built (Stage 1 → Stage 9) into a single
-synchronous closed-loop:
+Connects every module we have built (Stage 1 → Stage 9) into a CARLA
+synchronous closed-loop. Slow tactical Agent API calls run on a latest-only
+background worker and never block the control loop:
 
   CARLA sensors ──► CarlaSensorSync
                        │  LiveFrame
@@ -56,6 +57,8 @@ if TYPE_CHECKING:
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+from benchmark.async_agent_worker import AsyncAgentResult, LatestOnlyAgentWorker
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -131,6 +134,12 @@ def _parse_args() -> argparse.Namespace:
                    help="Minimum Agent confidence required before bounded assist can override the baseline request")
     p.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                    help="Wall-clock rate limit for real Agent API calls; set <=0 to disable")
+    p.add_argument("--agent-api-timeout-s", type=float, default=3.0,
+                   help="Per-request Agent API timeout. The control loop never waits for it")
+    p.add_argument("--agent-api-max-retries", type=int, default=0,
+                   help="Provider retries in the background Agent worker")
+    p.add_argument("--agent-response-max-age-s", type=float, default=3.0,
+                   help="Discard an Agent response older than this many simulated seconds")
     p.add_argument("--record-mp4", action="store_true",
                    help="Record the Stage10 live CARLA run to an MP4 attached to the ego vehicle")
     p.add_argument("--recording-path", default=None,
@@ -1112,6 +1121,8 @@ def _build_driving_metrics(
         sum(abs_jerk_samples) / len(abs_jerk_samples)
         if abs_jerk_samples else None
     )
+    tick_latencies = [float(value) for value in stats.get("tick_latency_samples_ms", [])]
+    step_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
 
     return {
         "schema_version": "stage10_driving_metrics_v2",
@@ -1168,6 +1179,31 @@ def _build_driving_metrics(
                 float(stats.get("total_det", 0)) / max(1, int(stats.get("frames", 0))),
                 3,
             ) if int(stats.get("frames", 0)) else None,
+            "control_loop_latency": {
+                "sample_count": len(tick_latencies),
+                "mean_ms": (
+                    round(sum(tick_latencies) / len(tick_latencies), 3)
+                    if tick_latencies else None
+                ),
+                "p50_ms": (
+                    round(float(_percentile(tick_latencies, 50.0)), 3)
+                    if tick_latencies else None
+                ),
+                "p95_ms": (
+                    round(float(_percentile(tick_latencies, 95.0)), 3)
+                    if tick_latencies else None
+                ),
+                "max_ms": round(max(tick_latencies), 3) if tick_latencies else None,
+                "simulation_step_budget_ms": round(step_budget_ms, 3),
+                "over_step_budget_rate": (
+                    round(
+                        sum(value > step_budget_ms for value in tick_latencies)
+                        / len(tick_latencies),
+                        4,
+                    )
+                    if tick_latencies else None
+                ),
+            },
         },
         "artifacts": {
             "ego_trace": str(Path(args.log_dir) / "ego_trace.jsonl"),
@@ -1239,6 +1275,74 @@ def _apply_agent_rate_limit(
 
     remaining_s = max(0.0, min_interval_s - (now_s - last_query_s))
     return False, f"rate_limited_{rpm:.1f}_rpm_wait_{remaining_s:.2f}s_after_{trigger_reason}"
+
+
+def _agent_response_freshness(
+    *,
+    args: argparse.Namespace,
+    result: AsyncAgentResult,
+    current_timestamp_s: float,
+    current_world_state: Any,
+    current_min_ttc_s: float,
+) -> tuple[bool, str, float]:
+    """Revalidate an asynchronous tactical response against the live scene."""
+    response_age_s = max(
+        0.0,
+        float(current_timestamp_s) - float(result.request.sim_timestamp_s),
+    )
+    if result.error_type:
+        return False, f"async_worker_error_{result.error_type}", response_age_s
+    if result.intent_record is None:
+        return False, "no_agent_intent", response_age_s
+    if response_age_s > float(args.agent_response_max_age_s):
+        return False, "stale_response_age", response_age_s
+
+    context = result.request.context
+    requested_lane_id = str(context.get("ego_lane_id", "") or "")
+    current_lane_id = str(getattr(current_world_state, "ego_lane_id", "") or "")
+    if requested_lane_id and current_lane_id and requested_lane_id != current_lane_id:
+        return False, "stale_response_lane_changed", response_age_s
+
+    requested_preferred_lane = str(context.get("preferred_lane", "current") or "current")
+    current_preferred_lane = str(
+        getattr(current_world_state, "agent_preferred_lane", "current") or "current"
+    )
+    if requested_preferred_lane != current_preferred_lane:
+        return False, "stale_response_route_changed", response_age_s
+
+    intent = str(getattr(result.intent_record, "tactical_intent", "keep_lane"))
+    if intent in _ASSIST_LANE_CHANGE_INTENTS:
+        if not bool(getattr(current_world_state, "lane_change_permission", False)):
+            return False, "stale_response_lane_change_not_permitted", response_age_s
+        if float(current_min_ttc_s) < float(args.agent_risk_ttc_threshold):
+            return False, "stale_response_low_ttc", response_age_s
+
+    return True, "fresh", response_age_s
+
+
+def _agent_request_context(
+    *,
+    baseline_intent: str,
+    min_ttc_s: float,
+    world_state: Any,
+    route_info: Dict[str, Any],
+    num_detections: int,
+) -> Dict[str, Any]:
+    return {
+        "baseline_intent": str(baseline_intent),
+        "min_ttc_s": float(min_ttc_s),
+        "ego_v_mps": float(getattr(world_state, "ego_v_mps", 0.0)),
+        "ego_lane_id": str(getattr(world_state, "ego_lane_id", "") or ""),
+        "preferred_lane": str(
+            getattr(world_state, "agent_preferred_lane", "current") or "current"
+        ),
+        "lane_change_permission": bool(
+            getattr(world_state, "lane_change_permission", False)
+        ),
+        "route_completion_rate": route_info.get("route_completion_rate"),
+        "route_progress_m": route_info.get("route_progress_m"),
+        "num_detections": int(num_detections),
+    }
 
 
 _ASSIST_LANE_CHANGE_INTENTS = {
@@ -1478,14 +1582,19 @@ def _summarize_assist_log(
     assist_log: List[Dict[str, Any]],
     stats: Dict[str, Any],
     args: argparse.Namespace,
+    worker_stats: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    attempted = [r for r in assist_log if r.get("agent_queried")]
+    submitted = [r for r in assist_log if r.get("agent_queried")]
+    attempted = [r for r in assist_log if r.get("agent_response_received")]
     accepted = [r for r in assist_log if r.get("assist_applied")]
-    rejected = [r for r in assist_log if r.get("agent_queried") and not r.get("assist_applied")]
+    rejected = [
+        r for r in assist_log
+        if r.get("agent_response_received") and not r.get("assist_applied")
+    ]
     agent_decision_applied = [
         r
         for r in accepted
-        if r.get("agent_queried") and not r.get("post_lane_change_cruise")
+        if r.get("agent_response_received") and not r.get("post_lane_change_cruise")
     ]
     assist_hold_applied = [r for r in accepted if r.get("assist_continued")]
     post_lane_change_applied = [r for r in accepted if r.get("post_lane_change_cruise")]
@@ -1503,9 +1612,9 @@ def _summarize_assist_log(
         if row.get("assist_reject_reason"):
             reason = str(row["assist_reject_reason"])
             rejection_counts[reason] = rejection_counts.get(reason, 0) + 1
-            if row.get("agent_queried") and not row.get("assist_applied"):
+            if row.get("agent_response_received") and not row.get("assist_applied"):
                 query_rejection_counts[reason] = query_rejection_counts.get(reason, 0) + 1
-            elif not row.get("agent_queried"):
+            elif not row.get("agent_response_received"):
                 non_query_reason_counts[reason] = non_query_reason_counts.get(reason, 0) + 1
         if row.get("agent_validation_status"):
             status = str(row["agent_validation_status"])
@@ -1519,6 +1628,14 @@ def _summarize_assist_log(
         float(row["agent_call_latency_ms"])
         for row in attempted
         if row.get("agent_call_latency_ms") is not None
+    ]
+    response_ages = [
+        float(row["agent_response_age_s"])
+        for row in attempted
+        if row.get("agent_response_age_s") is not None
+    ]
+    stale_responses = [
+        row for row in attempted if row.get("agent_response_fresh") is False
     ]
     accepted_query_frames = [row for row in attempted if row.get("assist_applied")]
     maneuver_start = next(
@@ -1540,12 +1657,16 @@ def _summarize_assist_log(
         None,
     )
     latency_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
+    control_loop_latencies = [
+        float(value) for value in stats.get("tick_latency_samples_ms", [])
+    ]
     return {
         "schema_version": "stage10_agent_assist_evaluation_v2",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "sim_frames": sim_frames,
         "random_seed": int(args.seed),
-        "agent_query_frames": len(attempted),
+        "agent_query_frames": len(submitted),
+        "agent_response_frames": len(attempted),
         "assist_applied_frames": len(accepted),
         "agent_decision_applied_frames": len(agent_decision_applied),
         "assist_hold_applied_frames": len(assist_hold_applied),
@@ -1556,13 +1677,47 @@ def _summarize_assist_log(
         "agent_query_rejection_rate": round(len(rejected) / max(len(attempted), 1), 4),
         "assist_intervention_rate": round(len(accepted) / max(sim_frames, 1), 4),
         "agent_decision_intervention_rate": round(len(agent_decision_applied) / max(sim_frames, 1), 4),
-        "agent_query_rate": round(len(attempted) / max(sim_frames, 1), 4),
+        "agent_query_rate": round(len(submitted) / max(sim_frames, 1), 4),
+        "agent_response_rate": round(len(attempted) / max(sim_frames, 1), 4),
+        "stale_response_count": len(stale_responses),
+        "stale_response_discard_rate": round(
+            len(stale_responses) / max(len(attempted), 1), 4
+        ),
         "agent_intent_distribution": intent_counts,
         "assist_reject_reason_counts": rejection_counts,
         "query_rejection_reason_counts": query_rejection_counts,
         "non_query_reason_counts": non_query_reason_counts,
         "agent_validation_status_counts": validation_status_counts,
         "agent_fallback_reason_counts": fallback_reason_counts,
+        "async_worker": dict(worker_stats or {}),
+        "control_loop_latency": {
+            "sample_count": len(control_loop_latencies),
+            "mean_ms": (
+                round(sum(control_loop_latencies) / len(control_loop_latencies), 3)
+                if control_loop_latencies else None
+            ),
+            "p50_ms": (
+                round(float(_percentile(control_loop_latencies, 50.0)), 3)
+                if control_loop_latencies else None
+            ),
+            "p95_ms": (
+                round(float(_percentile(control_loop_latencies, 95.0)), 3)
+                if control_loop_latencies else None
+            ),
+            "max_ms": (
+                round(max(control_loop_latencies), 3)
+                if control_loop_latencies else None
+            ),
+            "simulation_step_budget_ms": round(latency_budget_ms, 3),
+            "over_step_budget_rate": (
+                round(
+                    sum(value > latency_budget_ms for value in control_loop_latencies)
+                    / len(control_loop_latencies),
+                    4,
+                )
+                if control_loop_latencies else None
+            ),
+        },
         "latency": {
             "sample_count": len(call_latencies),
             "mean_api_call_ms": (
@@ -1579,6 +1734,14 @@ def _summarize_assist_log(
             "over_step_budget_rate": (
                 round(sum(value > latency_budget_ms for value in call_latencies) / len(call_latencies), 4)
                 if call_latencies else None
+            ),
+            "mean_response_age_s": (
+                round(sum(response_ages) / len(response_ages), 6)
+                if response_ages else None
+            ),
+            "p95_response_age_s": (
+                round(float(_percentile(response_ages, 95.0)), 6)
+                if response_ages else None
             ),
         },
         "lane_change_maneuver": {
@@ -1700,6 +1863,12 @@ def _build_stage9_arbiter(
 def run(args: argparse.Namespace) -> int:
     if int(args.seed) < 0:
         raise ValueError("--seed must be non-negative")
+    if float(args.agent_api_timeout_s) <= 0.0:
+        raise ValueError("--agent-api-timeout-s must be positive")
+    if int(args.agent_api_max_retries) < 0:
+        raise ValueError("--agent-api-max-retries must be non-negative")
+    if float(args.agent_response_max_age_s) <= 0.0:
+        raise ValueError("--agent-response-max-age-s must be positive")
     random.seed(int(args.seed))
     np.random.seed(int(args.seed))
     _ensure_carla_pythonapi_paths(args.carla_root)
@@ -1874,6 +2043,8 @@ def run(args: argparse.Namespace) -> int:
 
     # ── 3b. Compare-mode: separate agent adapter for side-by-side logging ────
     compare_agent = None
+    compare_agent_worker: Optional[LatestOnlyAgentWorker] = None
+    compare_agent_worker_stats: Dict[str, Any] = {}
     compare_baseline = None
     compare_log: List[Dict[str, Any]] = []
     compare_skipped_frames = 0
@@ -1881,7 +2052,15 @@ def run(args: argparse.Namespace) -> int:
     if args.agent_mode == "compare":
         try:
             from carla_bevfusion_stage1.stage9_adapters import RealAgentAdapter, RealBaselineAdapter
-            compare_agent = RealAgentAdapter(mode="api")
+            compare_agent = RealAgentAdapter(
+                mode="api",
+                api_timeout_s=float(args.agent_api_timeout_s),
+                api_max_retries=int(args.agent_api_max_retries),
+            )
+            compare_agent_worker = LatestOnlyAgentWorker(
+                compare_agent.observe_intent_request,
+                name="stage10-compare-agent",
+            )
             compare_baseline = RealBaselineAdapter()
             LOGGER.info("Compare mode: side-by-side Agent vs Baseline logging ENABLED.")
         except ImportError as exc:
@@ -1889,6 +2068,8 @@ def run(args: argparse.Namespace) -> int:
             compare_agent = None
 
     assist_agent = None
+    assist_agent_worker: Optional[LatestOnlyAgentWorker] = None
+    assist_agent_worker_stats: Dict[str, Any] = {}
     assist_baseline = None
     assist_mpc = None
     assist_log: List[Dict[str, Any]] = []
@@ -1907,10 +2088,20 @@ def run(args: argparse.Namespace) -> int:
                 RealBaselineAdapter,
                 RealMPCAdapter,
             )
-            assist_agent = RealAgentAdapter(mode="api" if args.agent_mode in ("api", "compare") else "stub")
+            assist_agent = RealAgentAdapter(
+                mode="api" if args.agent_mode in ("api", "compare") else "stub",
+                api_timeout_s=float(args.agent_api_timeout_s),
+                api_max_retries=int(args.agent_api_max_retries),
+            )
+            assist_agent_worker = LatestOnlyAgentWorker(
+                assist_agent.observe_intent_request,
+                name="stage10-assist-agent",
+            )
             assist_baseline = RealBaselineAdapter()
             assist_mpc = RealMPCAdapter(dt_s=float(args.delta_t))
-            LOGGER.info("Agent assist mode ENABLED: bounded tactical intent -> MPC.")
+            LOGGER.info(
+                "Agent assist mode ENABLED: async bounded tactical intent -> safety revalidation -> MPC."
+            )
         except ImportError as exc:
             LOGGER.warning("Agent assist unavailable (%s). Falling back to baseline control.", exc)
             assist_agent = None
@@ -1943,6 +2134,7 @@ def run(args: argparse.Namespace) -> int:
         "errors": 0,
         "offroad_frames": 0,
         "longitudinal_jerk_samples_mps3": [],
+        "tick_latency_samples_ms": [],
     }
     prev_v = 0.0
     prev_a: Optional[float] = None
@@ -2104,6 +2296,7 @@ def run(args: argparse.Namespace) -> int:
                 args.agent_control_mode == "assist"
                 and world_state is not None
                 and assist_agent is not None
+                and assist_agent_worker is not None
                 and assist_baseline is not None
                 and assist_mpc is not None
             ):
@@ -2140,15 +2333,42 @@ def run(args: argparse.Namespace) -> int:
                         now_s=time.monotonic(),
                         last_query_s=last_assist_agent_query_wall_s,
                     )
+                assist_result = assist_agent_worker.poll()
+                assist_submit_outcome = None
+                if assist_should_query:
+                    assist_submit_outcome = assist_agent_worker.submit(
+                        frame_id=int(live_frame.frame_id),
+                        frame_idx=frame_idx,
+                        sim_timestamp_s=float(live_frame.timestamp_s),
+                        payload=assist_agent.build_intent_request(world_state),
+                        context=_agent_request_context(
+                            baseline_intent=assist_baseline_intent,
+                            min_ttc_s=assist_ttc,
+                            world_state=world_state,
+                            route_info=route_info,
+                            num_detections=len(det_list.detections),
+                        ),
+                    )
+                    last_assist_agent_query_wall_s = time.monotonic()
                 assist_record: Dict[str, Any] = {
                     "frame_id": live_frame.frame_id,
                     "frame_idx": frame_idx,
                     "timestamp_s": live_frame.timestamp_s,
-                    "agent_queried": assist_should_query,
+                    "agent_query_requested": assist_should_query,
+                    "agent_queried": assist_submit_outcome is not None,
+                    "agent_request_id": (
+                        assist_submit_outcome.request_id
+                        if assist_submit_outcome is not None else None
+                    ),
+                    "agent_pending_request_replaced_id": (
+                        assist_submit_outcome.replaced_pending_request_id
+                        if assist_submit_outcome is not None else None
+                    ),
+                    "agent_response_received": assist_result is not None,
                     "agent_trigger_reason": assist_trigger_reason,
                     "baseline_intent": assist_baseline_intent,
                     "assist_applied": False,
-                    "assist_reject_reason": None if assist_should_query else assist_trigger_reason,
+                    "assist_reject_reason": None,
                     "agent_max_requests_per_minute": float(args.agent_max_requests_per_minute),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "min_ttc_s": assist_ttc,
@@ -2160,6 +2380,17 @@ def run(args: argparse.Namespace) -> int:
                     "lane_change_permission": bool(getattr(world_state, "lane_change_permission", False)),
                     "lane_change_rule": str(getattr(world_state, "lane_change_rule", "unknown")),
                 }
+                if assist_result is not None:
+                    assist_record.update(
+                        {
+                            "agent_response_request_id": assist_result.request.request_id,
+                            "agent_request_frame_id": assist_result.request.frame_id,
+                            "agent_request_frame_idx": assist_result.request.frame_idx,
+                            "agent_response_frame_id": int(live_frame.frame_id),
+                            "agent_response_frame_idx": frame_idx,
+                            "agent_async_latency_ms": round(float(assist_result.latency_ms), 3),
+                        }
+                    )
                 if assist_lane_change_completed:
                     active_assist_request = None
                     active_assist_intent = None
@@ -2215,30 +2446,42 @@ def run(args: argparse.Namespace) -> int:
                     active_assist_hold_remaining = 0
                     active_assist_applied_frames = 0
                     active_assist_metadata = {}
-                elif assist_should_query:
-                    last_assist_agent_query_wall_s = time.monotonic()
+                elif assist_result is not None:
                     if (
                         str(getattr(world_state, "agent_preferred_lane", "current")) in {"left", "right"}
                         and bool(getattr(world_state, "lane_change_permission", False))
                     ):
                         agent_lane_change_decision_seen = True
-                    intent_record = assist_agent.observe_intent(world_state)
+                    intent_record = assist_result.intent_record
+                    response_fresh, freshness_reason, response_age_s = _agent_response_freshness(
+                        args=args,
+                        result=assist_result,
+                        current_timestamp_s=float(live_frame.timestamp_s),
+                        current_world_state=world_state,
+                        current_min_ttc_s=assist_ttc,
+                    )
                     raw_agent_intent = (
                         str(getattr(intent_record, "tactical_intent", assist_baseline_intent))
                         if intent_record is not None
                         else assist_baseline_intent
                     )
                     agent_intent = _merge_active_and_new_agent_intent(active_assist_intent, raw_agent_intent)
-                    assist_allowed, assist_reason = _agent_assist_allowed(
-                        args=args,
-                        intent_record=intent_record,
-                        baseline_intent=assist_baseline_intent,
-                        world_state=world_state,
-                        lane_change_completed=assist_lane_change_completed,
-                    )
+                    if response_fresh:
+                        assist_allowed, assist_reason = _agent_assist_allowed(
+                            args=args,
+                            intent_record=intent_record,
+                            baseline_intent=assist_baseline_intent,
+                            world_state=world_state,
+                            lane_change_completed=assist_lane_change_completed,
+                        )
+                    else:
+                        assist_allowed, assist_reason = False, freshness_reason
                     provenance = getattr(intent_record, "provenance", {}) or {}
                     assist_record.update(
                         {
+                            "agent_response_age_s": round(response_age_s, 6),
+                            "agent_response_fresh": response_fresh,
+                            "agent_response_freshness_reason": freshness_reason,
                             "agent_intent": agent_intent,
                             "agent_confidence": (
                                 float(getattr(intent_record, "confidence", 0.0))
@@ -2256,13 +2499,21 @@ def run(args: argparse.Namespace) -> int:
                                 str(getattr(intent_record, "model_id", "unknown"))
                                 if intent_record is not None else "unknown"
                             ),
+                            "agent_backend_model_id": provenance.get("backend_model_id"),
                             "agent_reason_tags": (
                                 list(getattr(intent_record, "reason_tags", []) or [])
                                 if intent_record is not None else []
                             ),
                             "agent_raw_intent": provenance.get("raw_intent_received"),
                             "agent_fallback_reason": provenance.get("fallback_reason"),
-                            "agent_call_latency_ms": provenance.get("call_latency_ms"),
+                            "agent_call_latency_ms": (
+                                provenance.get("call_latency_ms")
+                                if provenance.get("call_latency_ms") is not None
+                                else round(float(assist_result.latency_ms), 3)
+                            ),
+                            "agent_prompt_token_count": provenance.get("prompt_token_count"),
+                            "agent_completion_token_count": provenance.get("completion_token_count"),
+                            "agent_total_token_count": provenance.get("total_token_count"),
                             "assist_reject_reason": None if assist_allowed else assist_reason,
                         }
                     )
@@ -2393,16 +2644,114 @@ def run(args: argparse.Namespace) -> int:
                 _apply_actuator_command(ego, cmd)
 
             # ── F. Compare mode: side-by-side Agent vs Baseline ───────────
-            if compare_agent is not None and compare_baseline is not None and world_state is not None:
+            if (
+                compare_agent is not None
+                and compare_agent_worker is not None
+                and compare_baseline is not None
+                and world_state is not None
+            ):
                 try:
-                    t_cmp = time.monotonic()
                     bl_req = compare_baseline.plan(world_state)
                     baseline_intent = str(getattr(bl_req, "tactical_intent", "keep_lane"))
-
                     ttc_val = float(
                         ws_builder._prev_detections and
                         _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
                     )
+
+                    compare_result = compare_agent_worker.poll()
+                    if compare_result is not None:
+                        request_context = compare_result.request.context
+                        request_baseline_intent = str(
+                            request_context.get("baseline_intent", "keep_lane")
+                        )
+                        intent_record = compare_result.intent_record
+                        if intent_record is not None:
+                            agent_intent = str(
+                                getattr(intent_record, "tactical_intent", request_baseline_intent)
+                            )
+                            agent_confidence = float(getattr(intent_record, "confidence", 0.0))
+                            reason_tags = list(getattr(intent_record, "reason_tags", []) or [])
+                            agent_reasoning = ",".join(str(tag) for tag in reason_tags)
+                            disagreement_useful = bool(
+                                getattr(intent_record, "disagreement_useful", False)
+                            )
+                            agent_validation_status = str(
+                                getattr(intent_record, "validation_status", "unknown")
+                            )
+                            agent_fallback_to_baseline = bool(
+                                getattr(intent_record, "fallback_to_baseline", False)
+                            )
+                            agent_model_id = str(getattr(intent_record, "model_id", "unknown"))
+                            provenance = getattr(intent_record, "provenance", {}) or {}
+                            agent_raw_intent = provenance.get("raw_intent_received")
+                        else:
+                            agent_intent = request_baseline_intent
+                            agent_confidence = 0.0
+                            agent_reasoning = "agent_call_failed"
+                            disagreement_useful = False
+                            agent_validation_status = "unavailable"
+                            agent_fallback_to_baseline = True
+                            agent_model_id = "unknown"
+                            provenance = {}
+                            agent_raw_intent = None
+
+                        response_age_s = max(
+                            0.0,
+                            float(live_frame.timestamp_s)
+                            - float(compare_result.request.sim_timestamp_s),
+                        )
+                        agrees = request_baseline_intent == agent_intent
+                        record = {
+                            "frame_id": compare_result.request.frame_id,
+                            "frame_idx": compare_result.request.frame_idx,
+                            "timestamp_s": compare_result.request.sim_timestamp_s,
+                            "response_frame_id": int(live_frame.frame_id),
+                            "response_frame_idx": frame_idx,
+                            "response_age_s": round(response_age_s, 6),
+                            "stale_response": response_age_s > float(args.agent_response_max_age_s),
+                            "agent_request_id": compare_result.request.request_id,
+                            "agent_queried": True,
+                            "agent_trigger_reason": str(
+                                request_context.get("trigger_reason", "unknown")
+                            ),
+                            "ego_v_mps": float(request_context.get("ego_v_mps", 0.0)),
+                            "min_ttc_s": float(request_context.get("min_ttc_s", 99.0)),
+                            "route_completion_rate": request_context.get("route_completion_rate"),
+                            "route_progress_m": request_context.get("route_progress_m"),
+                            "num_detections": int(request_context.get("num_detections", 0)),
+                            "baseline_intent": request_baseline_intent,
+                            "agent_intent": agent_intent,
+                            "agent_confidence": agent_confidence,
+                            "agent_reasoning": agent_reasoning,
+                            "agent_validation_status": agent_validation_status,
+                            "agent_fallback_to_baseline": agent_fallback_to_baseline,
+                            "agent_model_id": agent_model_id,
+                            "agent_backend_model_id": provenance.get("backend_model_id"),
+                            "agent_raw_intent": agent_raw_intent,
+                            "agent_prompt_token_count": provenance.get("prompt_token_count"),
+                            "agent_completion_token_count": provenance.get("completion_token_count"),
+                            "agent_total_token_count": provenance.get("total_token_count"),
+                            "agrees": agrees,
+                            "disagreement_useful": disagreement_useful and not agrees,
+                            "compare_latency_ms": round(float(compare_result.latency_ms), 1),
+                            "worker_error_type": compare_result.error_type,
+                        }
+                        compare_log.append(record)
+
+                        if not agrees:
+                            LOGGER.info(
+                                "[COMPARE] request_frame=%d response_frame=%d baseline=%s "
+                                "agent=%s conf=%.2f ttc=%.1f age=%.2fs reason=%s",
+                                compare_result.request.frame_id,
+                                live_frame.frame_id,
+                                request_baseline_intent,
+                                agent_intent,
+                                agent_confidence,
+                                float(request_context.get("min_ttc_s", 99.0)),
+                                response_age_s,
+                                agent_reasoning,
+                            )
+
                     should_query_agent, trigger_reason = _should_query_agent(
                         args=args,
                         frame_idx=frame_idx,
@@ -2420,67 +2769,22 @@ def run(args: argparse.Namespace) -> int:
                     if not should_query_agent:
                         compare_skipped_frames += 1
                     else:
-                        last_compare_agent_query_wall_s = time.monotonic()
-                        intent_record = (
-                            compare_agent.observe_intent(world_state)
-                            if hasattr(compare_agent, "observe_intent")
-                            else None
+                        context = _agent_request_context(
+                            baseline_intent=baseline_intent,
+                            min_ttc_s=ttc_val,
+                            world_state=world_state,
+                            route_info=route_info,
+                            num_detections=len(det_list.detections),
                         )
-                        if intent_record is not None:
-                            agent_intent = str(getattr(intent_record, "tactical_intent", baseline_intent))
-                            agent_confidence = float(getattr(intent_record, "confidence", 0.0))
-                            reason_tags = list(getattr(intent_record, "reason_tags", []) or [])
-                            agent_reasoning = ",".join(str(tag) for tag in reason_tags)
-                            disagreement_useful = bool(getattr(intent_record, "disagreement_useful", False))
-                            agent_validation_status = str(getattr(intent_record, "validation_status", "unknown"))
-                            agent_fallback_to_baseline = bool(getattr(intent_record, "fallback_to_baseline", False))
-                            agent_model_id = str(getattr(intent_record, "model_id", "unknown"))
-                            provenance = getattr(intent_record, "provenance", {}) or {}
-                            agent_raw_intent = provenance.get("raw_intent_received")
-                        else:
-                            agent_intent = baseline_intent
-                            agent_confidence = 0.0
-                            agent_reasoning = "agent_call_failed"
-                            disagreement_useful = False
-                            agent_validation_status = "unavailable"
-                            agent_fallback_to_baseline = True
-                            agent_model_id = "unknown"
-                            agent_raw_intent = None
-
-                        agrees = (baseline_intent == agent_intent)
-                        cmp_ms = (time.monotonic() - t_cmp) * 1000
-
-                        record = {
-                            "frame_id": live_frame.frame_id,
-                            "frame_idx": frame_idx,
-                            "timestamp_s": live_frame.timestamp_s,
-                            "agent_queried": True,
-                            "agent_trigger_reason": trigger_reason,
-                            "ego_v_mps": ego_tel.ego_v_mps,
-                            "min_ttc_s": ttc_val,
-                            "route_completion_rate": route_info.get("route_completion_rate"),
-                            "route_progress_m": route_info.get("route_progress_m"),
-                            "num_detections": len(det_list.detections),
-                            "baseline_intent": baseline_intent,
-                            "agent_intent": agent_intent,
-                            "agent_confidence": agent_confidence,
-                            "agent_reasoning": agent_reasoning,
-                            "agent_validation_status": agent_validation_status,
-                            "agent_fallback_to_baseline": agent_fallback_to_baseline,
-                            "agent_model_id": agent_model_id,
-                            "agent_raw_intent": agent_raw_intent,
-                            "agrees": agrees,
-                            "disagreement_useful": disagreement_useful and not agrees,
-                            "compare_latency_ms": round(cmp_ms, 1),
-                        }
-                        compare_log.append(record)
-
-                        if not agrees:
-                            LOGGER.info(
-                                "[COMPARE] frame=%d  baseline=%s  agent=%s  conf=%.2f  ttc=%.1f  reason=%s",
-                                live_frame.frame_id, baseline_intent, agent_intent,
-                                agent_confidence, ttc_val, agent_reasoning,
-                            )
+                        context["trigger_reason"] = trigger_reason
+                        compare_agent_worker.submit(
+                            frame_id=int(live_frame.frame_id),
+                            frame_idx=frame_idx,
+                            sim_timestamp_s=float(live_frame.timestamp_s),
+                            payload=compare_agent.build_intent_request(world_state),
+                            context=context,
+                        )
+                        last_compare_agent_query_wall_s = time.monotonic()
                 except Exception as exc:
                     LOGGER.debug("Compare-mode error frame=%d: %s", frame_idx, exc)
 
@@ -2518,6 +2822,7 @@ def run(args: argparse.Namespace) -> int:
 
             stats["frames"] += 1
             elapsed_ms = (time.monotonic() - t_tick) * 1000
+            stats["tick_latency_samples_ms"].append(float(elapsed_ms))
 
             if frame_idx % 20 == 0:
                 avg_bev = stats["bev_ms_sum"] / max(1, stats["frames"])
@@ -2538,6 +2843,12 @@ def run(args: argparse.Namespace) -> int:
         stats["errors"] += 1
         return 1
     finally:
+        if compare_agent_worker is not None:
+            compare_agent_worker.close()
+            compare_agent_worker_stats = compare_agent_worker.stats()
+        if assist_agent_worker is not None:
+            assist_agent_worker.close()
+            assist_agent_worker_stats = assist_agent_worker.stats()
         sensor_source.stop()
         if video_recorder is not None:
             try:
@@ -2588,6 +2899,12 @@ def run(args: argparse.Namespace) -> int:
                 r for r in low_ttc_frames if str(r.get("baseline_intent")) in cautious_intents
             ]
             fallback_frames = [r for r in compare_log if bool(r.get("agent_fallback_to_baseline"))]
+            stale_compare_responses = [r for r in compare_log if bool(r.get("stale_response"))]
+            compare_response_ages = [
+                float(r["response_age_s"])
+                for r in compare_log
+                if r.get("response_age_s") is not None
+            ]
             validation_counts: Dict[str, int] = {}
             for r in compare_log:
                 status = str(r.get("agent_validation_status", "unknown"))
@@ -2606,7 +2923,13 @@ def run(args: argparse.Namespace) -> int:
                 "agent_compare_stride": int(args.agent_compare_stride),
                 "agent_risk_ttc_threshold": float(args.agent_risk_ttc_threshold),
                 "agent_queried_frames": total,
+                "agent_submitted_requests": int(compare_agent_worker_stats.get("submitted", 0)),
                 "agent_skipped_frames": int(compare_skipped_frames),
+                "stale_response_count": len(stale_compare_responses),
+                "stale_response_rate": round(
+                    len(stale_compare_responses) / max(total, 1), 4
+                ),
+                "async_worker": compare_agent_worker_stats,
                 "query_ratio": round(total / max(int(stats.get("frames", 0)), 1), 4)
                 if int(stats.get("frames", 0)) > 0 else None,
                 "agreement_frames": agreements,
@@ -2651,6 +2974,17 @@ def run(args: argparse.Namespace) -> int:
                         / max(len(agent_latencies), 1),
                         4,
                     ),
+                    "mean_response_age_s": (
+                        round(sum(compare_response_ages) / len(compare_response_ages), 6)
+                        if compare_response_ages else None
+                    ),
+                    "p95_response_age_s": (
+                        round(float(_percentile(compare_response_ages, 95.0)), 6)
+                        if compare_response_ages else None
+                    ),
+                    "control_loop": (
+                        (driving_metrics.get("runtime") or {}).get("control_loop_latency")
+                    ),
                 },
                 "intent_distribution": {
                     "baseline": {},
@@ -2692,7 +3026,12 @@ def run(args: argparse.Namespace) -> int:
                             len(low_ttc_frames), len(low_ttc_disagree))
 
         if assist_log:
-            assist_eval = _summarize_assist_log(assist_log, stats, args)
+            assist_eval = _summarize_assist_log(
+                assist_log,
+                stats,
+                args,
+                worker_stats=assist_agent_worker_stats,
+            )
             assist_path = log_dir / "stage10_agent_assist_evaluation.json"
             assist_path.parent.mkdir(parents=True, exist_ok=True)
             with open(assist_path, "w") as f:

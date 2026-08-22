@@ -290,8 +290,12 @@ class AgentShadowAdapter:
 
         provenance = {
             "model_id": self.config.model_id,
+            "backend_model_id": raw.get("_backend_model_id"),
             "provider": self.config.mode,
             "call_latency_ms": round(call_latency_ms, 2),
+            "prompt_token_count": raw.get("_prompt_token_count"),
+            "completion_token_count": raw.get("_completion_token_count"),
+            "total_token_count": raw.get("_total_token_count"),
             "fallback_reason": (
                 fallback_reason_override
                 or ("timeout" if timeout_flag else ("validation_failed" if fallback_to_baseline else None))
@@ -626,9 +630,9 @@ class AgentShadowAdapter:
                 "User-Agent": default_user_agent,
             }
 
-        timeout_s = self.config.api_timeout_s
-        if is_openai_compat and timeout_s < 30.0:
-            timeout_s = 30.0
+        timeout_s = float(self.config.api_timeout_s)
+        if timeout_s <= 0.0:
+            raise ValueError("api_timeout_s must be positive")
 
         logger.info(
             "[AgentShadow] API payload order preferred_lane=%s baseline=%s conflicts=%s variants=%s",
@@ -640,7 +644,7 @@ class AgentShadowAdapter:
 
         import time as _time
         payload_idx = 0
-        max_attempts = max(3, len(payload_candidates))
+        max_attempts = max(1, int(self.config.api_max_retries) + 1)
         for attempt in range(max_attempts):
             try:
                 payload_data, payload_label = payload_candidates[payload_idx]
@@ -689,6 +693,12 @@ class AgentShadowAdapter:
                 # Strip forbidden control fields from LLM output
                 for f in FORBIDDEN_CONTROL_FIELDS:
                     parsed.pop(f, None)
+                if is_openai_compat:
+                    usage = resp_body.get("usage") or {}
+                    parsed["_backend_model_id"] = resp_body.get("model")
+                    parsed["_prompt_token_count"] = usage.get("prompt_tokens")
+                    parsed["_completion_token_count"] = usage.get("completion_tokens")
+                    parsed["_total_token_count"] = usage.get("total_tokens")
                 return parsed
             except urllib.error.HTTPError as http_err:
                 err_body = http_err.read().decode("utf-8", errors="replace")
@@ -703,6 +713,7 @@ class AgentShadowAdapter:
                 if (
                     http_err.code == 400
                     and payload_idx + 1 < len(payload_candidates)
+                    and attempt < max_attempts - 1
                 ):
                     payload_idx += 1
                     logger.warning(
@@ -711,14 +722,17 @@ class AgentShadowAdapter:
                         payload_candidates[payload_idx][1],
                     )
                     continue
-                if http_err.code == 429 and attempt < 2:
+                if http_err.code == 429 and attempt < max_attempts - 1:
                     logger.warning("[AgentShadow] 429 Too Many Requests -> sleeping 5s before retry %d", attempt + 1)
                     _time.sleep(5.0)
                     continue
                 logger.error("[AgentShadow] HTTPError %d: %s \nBody: %s", http_err.code, http_err.reason, err_body)
                 raise AgentAPIHTTPError(f"API HTTP Error {http_err.code}") from http_err
             except (urllib.error.URLError, socket.timeout, OSError) as net_err:
-                if payload_idx + 1 < len(payload_candidates):
+                if (
+                    payload_idx + 1 < len(payload_candidates)
+                    and attempt < max_attempts - 1
+                ):
                     payload_idx += 1
                     logger.warning(
                         "[AgentShadow] Timeout/Network Error %s -> retrying payload variant=%s",
@@ -734,7 +748,10 @@ class AgentShadowAdapter:
                 logger.error("[AgentShadow] Network/Timeout error: %s", net_err)
                 raise TimeoutError(f"API network error: {net_err}") from net_err
             except AgentAPIParseError as parse_err:
-                if payload_idx + 1 < len(payload_candidates):
+                if (
+                    payload_idx + 1 < len(payload_candidates)
+                    and attempt < max_attempts - 1
+                ):
                     payload_idx += 1
                     logger.warning(
                         "[AgentShadow] API response parse failed (%s) -> retrying payload variant=%s",
@@ -745,7 +762,10 @@ class AgentShadowAdapter:
                 logger.warning("[AgentShadow] API response parse failed: %s", parse_err)
                 raise
             except (_json.JSONDecodeError, KeyError, IndexError) as parse_err:
-                if payload_idx + 1 < len(payload_candidates):
+                if (
+                    payload_idx + 1 < len(payload_candidates)
+                    and attempt < max_attempts - 1
+                ):
                     payload_idx += 1
                     logger.warning(
                         "[AgentShadow] API response parse failed (%s) -> retrying payload variant=%s",

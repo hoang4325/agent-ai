@@ -75,7 +75,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-assist-min-confidence", type=float, default=0.50)
     parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                         help="Wall-clock rate limit for real Agent API calls")
-    parser.add_argument("--radar-ablation", default="zero_bev", choices=["none", "zero_bev"])
+    parser.add_argument("--agent-api-timeout-s", type=float, default=3.0,
+                        help="Agent API timeout used by the non-blocking worker")
+    parser.add_argument("--agent-api-max-retries", type=int, default=0,
+                        help="Provider retries used by the non-blocking worker")
+    parser.add_argument("--agent-response-max-age-s", type=float, default=3.0,
+                        help="Discard tactical responses older than this simulated age")
+    parser.add_argument("--radar-ablation", default="none", choices=["none", "zero_bev"])
     parser.add_argument("--record-mp4", action="store_true",
                         help="Record each Stage10 stress run to MP4")
     parser.add_argument("--recording-camera-mode", choices=("chase", "hood", "topdown", "topdown_wide"), default="chase")
@@ -173,6 +179,11 @@ def _build_summary_payload(
         "max_frames": int(args.max_frames),
         "agent_mode": args.agent_mode,
         "agent_control_mode": args.agent_control_mode,
+        "agent_api_timeout_s": float(args.agent_api_timeout_s),
+        "agent_api_max_retries": int(args.agent_api_max_retries),
+        "agent_response_max_age_s": float(args.agent_response_max_age_s),
+        "agent_max_requests_per_minute": float(args.agent_max_requests_per_minute),
+        "radar_ablation": str(args.radar_ablation),
         "ego_autopilot": bool(args.ego_autopilot),
         "runs": runs,
     }
@@ -222,6 +233,13 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
     route = driving.get("route") or {}
     comfort = driving.get("comfort") or {}
     assist_latency = assist.get("latency") or {}
+    compare_latency = evaluation.get("latency") or {}
+    control_loop_latency = (
+        assist.get("control_loop_latency")
+        or compare_latency.get("control_loop")
+        or ((driving.get("runtime") or {}).get("control_loop_latency"))
+        or {}
+    )
     lane_change_maneuver = assist.get("lane_change_maneuver") or {}
 
     return {
@@ -251,9 +269,29 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "assist_intervention_rate": assist.get("assist_intervention_rate"),
             "agent_query_rejection_rate": assist.get("agent_query_rejection_rate"),
             "query_rejection_reason_counts": assist.get("query_rejection_reason_counts"),
-            "p50_api_call_ms": assist_latency.get("p50_api_call_ms"),
-            "p95_api_call_ms": assist_latency.get("p95_api_call_ms"),
-            "over_step_budget_rate": assist_latency.get("over_step_budget_rate"),
+            "p50_api_call_ms": (
+                assist_latency.get("p50_api_call_ms")
+                if assist_latency.get("p50_api_call_ms") is not None
+                else compare_latency.get("p50_compare_ms")
+            ),
+            "p95_api_call_ms": (
+                assist_latency.get("p95_api_call_ms")
+                if assist_latency.get("p95_api_call_ms") is not None
+                else compare_latency.get("p95_compare_ms")
+            ),
+            "over_step_budget_rate": (
+                assist_latency.get("over_step_budget_rate")
+                if assist_latency.get("over_step_budget_rate") is not None
+                else compare_latency.get("over_step_budget_rate")
+            ),
+            "stale_response_discard_rate": (
+                assist.get("stale_response_discard_rate")
+                if assist.get("stale_response_discard_rate") is not None
+                else evaluation.get("stale_response_rate")
+            ),
+            "control_loop_p50_ms": control_loop_latency.get("p50_ms"),
+            "control_loop_p95_ms": control_loop_latency.get("p95_ms"),
+            "control_loop_over_budget_rate": control_loop_latency.get("over_step_budget_rate"),
             "lane_change_completion_time_s": lane_change_maneuver.get("completion_time_s"),
             "assist_agent_query_frames": assist_query_frames,
             "assist_agent_query_rate": assist.get("agent_query_rate"),
@@ -303,7 +341,11 @@ def _spawn_with_probe_retry(
     case_options = _resolve_case_options(args, spec)
     max_candidates = max(1, min(int(args.spawn_max_candidates), len(candidates)))
     last_error: str | None = None
-    for rank in range(max_candidates):
+    start_rank = int(seed) % max_candidates
+    candidate_order = [
+        (start_rank + offset) % max_candidates for offset in range(max_candidates)
+    ]
+    for attempt_index, rank in enumerate(candidate_order, start=1):
         candidate = dict(candidates[rank])
         if manifest_path.exists():
             manifest_path.unlink()
@@ -344,13 +386,15 @@ def _spawn_with_probe_retry(
             spawn_cmd.append("--npc-handbrake")
 
         print(
-            f"[stress-campaign] trying spawn candidate {rank + 1}/{max_candidates} "
+            f"[stress-campaign] trying spawn attempt {attempt_index}/{max_candidates} "
+            f"candidate_rank={rank + 1} seed_start_rank={start_rank + 1} "
             f"for {run_id} road={candidate['road_id']} lane={candidate['lane_id']} s={float(candidate['s']):.2f}"
         )
         result = _run_command(spawn_cmd, label=f"spawn {run_id} candidate={rank + 1}", check=False)
         if result.returncode == 0 and manifest_path.exists():
             return {
                 "candidate_rank": rank,
+                "seed_start_candidate_rank": start_rank,
                 "candidate": candidate,
                 "probe_path": str(probe_path),
             }
@@ -516,6 +560,12 @@ def _case_specs(case_names: List[str]) -> List[Dict[str, Any]]:
 
 def main() -> int:
     args = _parse_args()
+    if float(args.agent_api_timeout_s) <= 0.0:
+        raise ValueError("--agent-api-timeout-s must be positive")
+    if int(args.agent_api_max_retries) < 0:
+        raise ValueError("--agent-api-max-retries must be non-negative")
+    if float(args.agent_response_max_age_s) <= 0.0:
+        raise ValueError("--agent-response-max-age-s must be positive")
     python_exe = sys.executable
     output_root = Path(args.output_root)
     report_root = Path(args.report_root)
@@ -571,6 +621,9 @@ def main() -> int:
                 "--agent-risk-ttc-threshold", str(args.agent_risk_ttc_threshold),
                 "--agent-assist-min-confidence", str(args.agent_assist_min_confidence),
                 "--agent-max-requests-per-minute", str(args.agent_max_requests_per_minute),
+                "--agent-api-timeout-s", str(args.agent_api_timeout_s),
+                "--agent-api-max-retries", str(args.agent_api_max_retries),
+                "--agent-response-max-age-s", str(args.agent_response_max_age_s),
                 "--radar-ablation", str(args.radar_ablation),
             ]
             if bool(args.record_mp4):
