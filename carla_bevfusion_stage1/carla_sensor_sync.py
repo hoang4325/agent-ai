@@ -53,6 +53,8 @@ class LiveCalibration:
     world_from_cameras_bev: Dict[str, np.ndarray]   # cam_name → (4,4)
     ego_from_cameras_bev: Dict[str, np.ndarray]     # cam_name → (4,4)
     camera_intrinsics: Dict[str, np.ndarray]        # cam_name → (3,3)
+    world_from_radars_bev: Dict[str, np.ndarray] = field(default_factory=dict)
+    ego_from_radars_bev: Dict[str, np.ndarray] = field(default_factory=dict)
 
 
 @dataclass
@@ -143,12 +145,27 @@ def _build_calibration(
         ego_from_cameras_bev[cam_name] = cam_bundle.ego_from_sensor_bevfusion
         camera_intrinsics[cam_name] = intrinsics_3x3.copy()
 
+    world_from_radars_bev: Dict[str, np.ndarray] = {}
+    ego_from_radars_bev: Dict[str, np.ndarray] = {}
+    for radar_name in RADAR_SENSOR_ORDER:
+        radar_actor = sensor_actors.get(radar_name)
+        if radar_actor is None:
+            continue
+        radar_carla_matrix = carla_transform_to_matrix(radar_actor.get_transform())
+        radar_bundle = pose_bundle(
+            radar_carla_matrix, world_from_ego_carla, is_camera=False
+        )
+        world_from_radars_bev[radar_name] = radar_bundle.world_from_sensor_bevfusion
+        ego_from_radars_bev[radar_name] = radar_bundle.ego_from_sensor_bevfusion
+
     return LiveCalibration(
         world_from_lidar_bev=lidar_bundle.world_from_sensor_bevfusion,
         ego_from_lidar_bev=lidar_bundle.ego_from_sensor_bevfusion,
         world_from_cameras_bev=world_from_cameras_bev,
         ego_from_cameras_bev=ego_from_cameras_bev,
         camera_intrinsics=camera_intrinsics,
+        world_from_radars_bev=world_from_radars_bev,
+        ego_from_radars_bev=ego_from_radars_bev,
     )
 
 

@@ -169,18 +169,23 @@ def _build_live_radar(
 
         # Bring xyz to current-lidar frame via world
         from .coordinate_utils import transform_points
-        world_from_sensor = calibration.world_from_cameras_bev.get(sensor_name)
+        world_from_sensor = calibration.world_from_radars_bev.get(sensor_name)
         if world_from_sensor is None:
-            # Radar not in camera dict – skip
+            LOGGER.warning("Missing live calibration for radar sensor %s; skipping its points", sensor_name)
             rows.append(np.zeros((0, len(MINIMAL_RADAR_COLUMNS)), dtype=np.float32))
             continue
-        xyz_lidar = transform_points(xyz_sensor, lidar_from_world @ world_from_sensor)
+        lidar_from_sensor = lidar_from_world @ world_from_sensor
+        xyz_lidar = transform_points(xyz_sensor, lidar_from_sensor)
+        rotation = lidar_from_sensor[:3, :3]
+        los_lidar = los_sensor @ rotation.T
+        los_norm = np.linalg.norm(los_lidar, axis=1, keepdims=True)
+        los_lidar = los_lidar / np.maximum(los_norm, 1e-6)
 
         # BEV range filter
         from .adapter import _range_mask_bev
         mask = _range_mask_bev(xyz_lidar, point_cloud_range)
         xyz_lidar = xyz_lidar[mask]
-        vel_xy = (radial_vel[mask].reshape(-1, 1) * los_sensor[mask][:, :2]).astype(np.float32)
+        vel_xy = (radial_vel[mask].reshape(-1, 1) * los_lidar[mask][:, :2]).astype(np.float32)
         time_col = np.zeros((xyz_lidar.shape[0], 1), dtype=np.float32)
         encoded = np.concatenate([xyz_lidar, vel_xy, time_col], axis=1).astype(np.float32)
         rows.append(encoded)
@@ -320,6 +325,7 @@ class BEVFusionLiveAdapter:
         self._score_threshold = score_threshold
         self._lidar_max_points = lidar_max_points
         self._radar_max_points = radar_max_points
+        self._logged_first_sensor_counts = False
 
         # Pull preprocessing params from cfg (same as BEVFusionSampleAdapter)
         from .adapter import BEVFusionSampleAdapter
@@ -366,13 +372,22 @@ class BEVFusionLiveAdapter:
             self._lidar_max_points,
         )
 
-        # 3. Radar → 6-D tensor (optional, zeros if no radar)
+        # 3. Radar → 6-D tensor. Empty radar frames remain empty; the runtime
+        # substitutes a zero BEV feature without invoking the voxelizer.
         radar_np = _build_live_radar(
             frame.radar_raw,
             frame.calibration,
             self._point_cloud_range,
             self._radar_max_points,
         )
+        if not self._logged_first_sensor_counts:
+            LOGGER.info(
+                "First live BEVFusion input frame=%d lidar_points=%d radar_points=%d",
+                frame.frame_id,
+                lidar_np.shape[0],
+                radar_np.shape[0],
+            )
+            self._logged_first_sensor_counts = True
 
         # Safety Check: CUDA `hard_voxelize` will literally crash with `invalid configuration argument` 
         # if the input tensor has 0 points (it causes grid dimension calculations to yield 0).
@@ -381,10 +396,6 @@ class BEVFusionLiveAdapter:
             dummy_lidar = np.zeros((1, 5), dtype=np.float32)
             lidar_np = np.concatenate([lidar_np, dummy_lidar], axis=0)
             
-        if radar_np.shape[0] == 0:
-            dummy_radar = np.zeros((1, 6), dtype=np.float32)
-            radar_np = np.concatenate([radar_np, dummy_radar], axis=0)
-
         # 4. Calibration tensors
         calib = _build_calibration_tensors(frame.calibration, aug_matrices)
 

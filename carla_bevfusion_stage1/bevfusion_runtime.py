@@ -141,6 +141,19 @@ def _install_radar_runtime_hooks(model, radar_ablation: str) -> None:
 def _install_forward_stage_logging(model) -> None:
     original_forward_single = model.forward_single
 
+    def zero_radar_feature(radar, features):
+        # The configured radar backbone emits 64 channels on the same BEV grid
+        # as the other encoders. Prefer a feature already produced in this pass
+        # to obtain the batch/grid shape; radar is commonly evaluated first, so
+        # retain the config-specific 180x180 fallback used by this checkpoint.
+        batch, height, width = 1, 180, 180
+        for existing in features:
+            if isinstance(existing, torch.Tensor) and existing.ndim == 4:
+                batch, _, height, width = existing.shape
+                break
+        device = radar[0].device if isinstance(radar, list) and radar else next(model.parameters()).device
+        return torch.zeros((batch, 64, height, width), dtype=torch.float32, device=device)
+
     def forward_single_with_stage_logging(
         self,
         img,
@@ -189,16 +202,19 @@ def _install_forward_stage_logging(model) -> None:
                 feature = self.extract_features(points, sensor)
             elif sensor == "radar":
                 if getattr(self, "_carla_radar_ablation", "none") == "zero_bev":
-                    # Bypass mmDet3D voxelizer entirely to preventCUDA empty grid crashes.
-                    # Generate a clean zeroed feature map for SEFuser.
-                    b, h, w = 1, 180, 180 # Fallback spatial shape
-                    for _f in features:
-                        if isinstance(_f, torch.Tensor) and _f.ndim == 4:
-                            b, _, h, w = _f.shape
-                            break
-                    device = radar[0].device if isinstance(radar, list) and radar else "cuda"
-                    # In our config: camera=80, lidar=256, radar=64 channels.
-                    feature = torch.zeros((b, 64, h, w), dtype=torch.float32, device=device)
+                    feature = zero_radar_feature(radar, features)
+                elif not isinstance(radar, list) or not radar or radar[0].numel() == 0:
+                    # CARLA radar can legitimately return no detections in a
+                    # synchronized frame. The voxel encoder cannot consume an
+                    # empty tensor, and a fabricated origin point is not valid
+                    # sensor evidence, so use the neutral zero-BEV feature.
+                    runtime = getattr(self, "_carla_radar_runtime", None)
+                    if isinstance(runtime, dict):
+                        runtime["empty_radar_frame_fallback_count"] = int(
+                            runtime.get("empty_radar_frame_fallback_count", 0)
+                        ) + 1
+                    LOGGER.warning("Empty radar frame; using neutral zero-BEV radar feature")
+                    feature = zero_radar_feature(radar, features)
                 else:
                     feature = self.extract_features(radar, sensor)
             else:

@@ -240,6 +240,14 @@ class FolderWatcherSync:
                 world_from_cameras_bev={c: ensure_numpy_matrix(s_meta[c]["matrix_world_from_sensor_bevfusion"]) for c in MODEL_CAMERA_ORDER},
                 ego_from_cameras_bev={c: ensure_numpy_matrix(s_meta[c]["matrix_ego_from_sensor_bevfusion"]) for c in MODEL_CAMERA_ORDER},
                 camera_intrinsics={c: np.array(s_meta[c]["camera_intrinsics"], dtype=np.float32) for c in MODEL_CAMERA_ORDER},
+                world_from_radars_bev={
+                    r: ensure_numpy_matrix(s_meta[r]["matrix_world_from_sensor_bevfusion"])
+                    for r in RADAR_SENSOR_ORDER if r in s_meta
+                },
+                ego_from_radars_bev={
+                    r: ensure_numpy_matrix(s_meta[r]["matrix_ego_from_sensor_bevfusion"])
+                    for r in RADAR_SENSOR_ORDER if r in s_meta
+                },
             )
 
             ego_vel = np.array(meta["ego"]["velocity_carla"], dtype=np.float32)
