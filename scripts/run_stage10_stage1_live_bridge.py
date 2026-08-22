@@ -1130,6 +1130,8 @@ def _build_driving_metrics(
         if abs_jerk_samples else None
     )
     tick_latencies = [float(value) for value in stats.get("tick_latency_samples_ms", [])]
+    lidar_points = [int(value) for value in stats.get("lidar_point_samples", [])]
+    radar_points = [int(value) for value in stats.get("radar_point_samples", [])]
     step_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
 
     return {
@@ -1187,6 +1189,21 @@ def _build_driving_metrics(
                 float(stats.get("total_det", 0)) / max(1, int(stats.get("frames", 0))),
                 3,
             ) if int(stats.get("frames", 0)) else None,
+            "sensor_input": {
+                "mean_lidar_points": (
+                    round(sum(lidar_points) / len(lidar_points), 3)
+                    if lidar_points else None
+                ),
+                "mean_radar_points": (
+                    round(sum(radar_points) / len(radar_points), 3)
+                    if radar_points else None
+                ),
+                "nonempty_radar_frame_rate": (
+                    round(sum(value > 0 for value in radar_points) / len(radar_points), 6)
+                    if radar_points else None
+                ),
+                "zero_radar_frame_count": sum(value == 0 for value in radar_points),
+            },
             "control_loop_latency": {
                 "sample_count": len(tick_latencies),
                 "mean_ms": (
@@ -2143,6 +2160,8 @@ def run(args: argparse.Namespace) -> int:
         "offroad_frames": 0,
         "longitudinal_jerk_samples_mps3": [],
         "tick_latency_samples_ms": [],
+        "lidar_point_samples": [],
+        "radar_point_samples": [],
     }
     prev_v = 0.0
     prev_a: Optional[float] = None
@@ -2168,6 +2187,8 @@ def run(args: argparse.Namespace) -> int:
             det_list = bev_adapter.adapt_and_infer(live_frame)
             stats["bev_ms_sum"] += det_list.inference_time_ms
             stats["total_det"] += len(det_list.detections)
+            stats["lidar_point_samples"].append(int(det_list.lidar_point_count))
+            stats["radar_point_samples"].append(int(det_list.radar_point_count))
 
             # ── C. Ego telemetry ───────────────────────────────────────────
             if not args.samples_root and ego is not None and carla_map is not None:
@@ -2287,6 +2308,8 @@ def run(args: argparse.Namespace) -> int:
                         float(stats["longitudinal_jerk_samples_mps3"][-1])
                         if stats["longitudinal_jerk_samples_mps3"] else None
                     ),
+                    "lidar_point_count": int(det_list.lidar_point_count),
+                    "radar_point_count": int(det_list.radar_point_count),
                     "offroad": offroad,
                     "ego_lane_id": str(ego_tel.ego_lane_id),
                     **route_info,

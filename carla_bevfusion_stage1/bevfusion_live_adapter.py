@@ -75,6 +75,8 @@ class DetectionList:
     detections: List[Detection3D] = field(default_factory=list)
     inference_time_ms: float = 0.0
     num_raw_boxes: int = 0
+    lidar_point_count: int = 0
+    radar_point_count: int = 0
 
 
 # ── Pre-processing helpers (live path, no file I/O) ───────────────────────────
@@ -430,7 +432,7 @@ class BEVFusionLiveAdapter:
             model_output[0].get("boxes_3d", "?") if model_output else "?",
         )
 
-        return _parse_detections(
+        detections = _parse_detections(
             model_output=model_output,
             frame_id=frame.frame_id,
             timestamp_s=frame.timestamp_s,
@@ -438,3 +440,6 @@ class BEVFusionLiveAdapter:
             score_threshold=self._score_threshold,
             inference_time_ms=inference_ms,
         )
+        detections.lidar_point_count = int(lidar_np.shape[0])
+        detections.radar_point_count = int(radar_np.shape[0])
+        return detections
