@@ -531,7 +531,8 @@ class AgentShadowAdapter:
                             "role": "system",
                             "content": (
                                 "Return exactly one valid JSON object and nothing else. "
-                                "Do not include markdown, prose, XML tags, or reasoning text."
+                                "Do not include markdown, prose, XML tags, chain-of-thought, "
+                                "or reasoning text. Keep any internal reasoning hidden. "
                                 f"{qwen_no_think_suffix}"
                             ),
                         },
@@ -542,8 +543,17 @@ class AgentShadowAdapter:
                     "stream": False,
                     "response_format": {"type": "json_object"},
                 }
-                if is_qwen_model:
-                    payload_obj["reasoning_format"] = os.environ.get("AGENT_REASONING_FORMAT", "hidden")
+                # Several OpenAI-compatible reasoning models otherwise place their
+                # chain-of-thought in ``message.content`` and ignore the JSON
+                # instruction.  The proxy used for the benchmark understands this
+                # optional field for both Qwen and Nemotron.  It can be overridden
+                # (or disabled) for providers that reject it.
+                reasoning_format = os.environ.get("AGENT_REASONING_FORMAT", "hidden").strip()
+                if reasoning_format and reasoning_format.lower() not in {"none", "off", "disabled"}:
+                    payload_obj["reasoning_format"] = reasoning_format
+                disable_thinking = os.environ.get("AGENT_DISABLE_THINKING", "1").strip().lower()
+                if disable_thinking not in {"0", "false", "no", "off"}:
+                    payload_obj["enable_thinking"] = False
                 text_payload_obj = dict(payload_obj)
                 text_payload_obj.pop("response_format", None)
                 return [
@@ -675,12 +685,12 @@ class AgentShadowAdapter:
                     )
                 if (
                     http_err.code == 400
-                    and "json_validate_failed" in err_body
                     and payload_idx + 1 < len(payload_candidates)
                 ):
                     payload_idx += 1
                     logger.warning(
-                        "[AgentShadow] JSON mode rejected by API; retrying payload variant=%s.",
+                        "[AgentShadow] API rejected payload (%s); retrying payload variant=%s.",
+                        err_body[:200],
                         payload_candidates[payload_idx][1],
                     )
                     continue
@@ -706,7 +716,26 @@ class AgentShadowAdapter:
                     continue
                 logger.error("[AgentShadow] Network/Timeout error: %s", net_err)
                 raise TimeoutError(f"API network error: {net_err}") from net_err
+            except AgentAPIParseError as parse_err:
+                if payload_idx + 1 < len(payload_candidates):
+                    payload_idx += 1
+                    logger.warning(
+                        "[AgentShadow] API response parse failed (%s) -> retrying payload variant=%s",
+                        parse_err,
+                        payload_candidates[payload_idx][1],
+                    )
+                    continue
+                logger.warning("[AgentShadow] API response parse failed: %s", parse_err)
+                raise
             except (_json.JSONDecodeError, KeyError, IndexError) as parse_err:
+                if payload_idx + 1 < len(payload_candidates):
+                    payload_idx += 1
+                    logger.warning(
+                        "[AgentShadow] API response parse failed (%s) -> retrying payload variant=%s",
+                        parse_err,
+                        payload_candidates[payload_idx][1],
+                    )
+                    continue
                 logger.warning("[AgentShadow] API response parse failed: %s", parse_err)
                 raise AgentAPIParseError(f"API parse error: {parse_err}") from parse_err
 
