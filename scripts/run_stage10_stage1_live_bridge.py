@@ -1739,7 +1739,7 @@ def _summarize_assist_log(
         ),
         None,
     )
-    maneuver_end = next(
+    post_cruise_end = next(
         (
             float(row["timestamp_s"])
             for row in assist_log
@@ -1749,6 +1749,22 @@ def _summarize_assist_log(
         ),
         None,
     )
+    # Lane-transition completion is a physical event and must not depend on
+    # the optional post-transition cruise policy. In particular, low TTC can
+    # legitimately suppress post-cruise centering even after the ego vehicle
+    # has reached the target lane. The live loop records the first stable
+    # target-lane frame explicitly for this metric.
+    lane_transition_end = next(
+        (
+            float(row["lane_change_completion_timestamp_s"])
+            for row in assist_log
+            if maneuver_start is not None
+            and row.get("lane_change_completion_timestamp_s") is not None
+            and float(row["lane_change_completion_timestamp_s"]) >= maneuver_start
+        ),
+        None,
+    )
+    maneuver_end = lane_transition_end if lane_transition_end is not None else post_cruise_end
     latency_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
     control_loop_latencies = [
         float(value) for value in stats.get("tick_latency_samples_ms", [])
@@ -1847,6 +1863,12 @@ def _summarize_assist_log(
                 if maneuver_start is not None and maneuver_end is not None else None
             ),
             "completed": maneuver_end is not None,
+            "completion_source": (
+                "lane_transition"
+                if lane_transition_end is not None
+                else ("post_lane_change_cruise" if post_cruise_end is not None else None)
+            ),
+            "post_lane_change_cruise_timestamp_s": post_cruise_end,
         },
         "frame_log": assist_log,
     }
@@ -2179,6 +2201,7 @@ def run(args: argparse.Namespace) -> int:
     active_assist_applied_frames = 0
     active_assist_metadata: Dict[str, Any] = {}
     assist_lane_change_completed = False
+    assist_lane_change_completed_timestamp_s: Optional[float] = None
     agent_lane_change_decision_seen = False
     if args.agent_control_mode == "assist":
         try:
@@ -2314,7 +2337,9 @@ def run(args: argparse.Namespace) -> int:
                     active_metadata=active_assist_metadata,
                 )
                 if transition_stable:
-                    assist_lane_change_completed = True
+                    if not assist_lane_change_completed:
+                        assist_lane_change_completed = True
+                        assist_lane_change_completed_timestamp_s = float(live_frame.timestamp_s)
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
@@ -2597,7 +2622,9 @@ def run(args: argparse.Namespace) -> int:
                     world_state=world_state,
                     active_metadata=active_assist_metadata,
                 ):
-                    assist_lane_change_completed = True
+                    if not assist_lane_change_completed:
+                        assist_lane_change_completed = True
+                        assist_lane_change_completed_timestamp_s = float(live_frame.timestamp_s)
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
@@ -2807,12 +2834,23 @@ def run(args: argparse.Namespace) -> int:
                         world_state=world_state,
                         active_metadata=active_assist_metadata,
                     ):
-                        assist_lane_change_completed = True
+                        if not assist_lane_change_completed:
+                            assist_lane_change_completed = True
+                            assist_lane_change_completed_timestamp_s = float(live_frame.timestamp_s)
                     active_assist_request = None
                     active_assist_intent = None
                     active_assist_hold_remaining = 0
                     active_assist_applied_frames = 0
                     active_assist_metadata = {}
+                # Persist the physical completion event on every row after it
+                # is detected, including the frame where lifecycle cleanup
+                # happens later in this loop.
+                assist_record.update(
+                    {
+                        "lane_change_completed": bool(assist_lane_change_completed),
+                        "lane_change_completion_timestamp_s": assist_lane_change_completed_timestamp_s,
+                    }
+                )
                 assist_log.append(assist_record)
 
             if cmd is not None and not args.samples_root and ego is not None:

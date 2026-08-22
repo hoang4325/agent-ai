@@ -116,6 +116,42 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         self.assertEqual(summary["agent_query_rejection_rate"], 1.0)
         self.assertEqual(summary["stale_response_discard_rate"], 1.0)
 
+    def test_summary_uses_physical_lane_transition_without_post_cruise(self) -> None:
+        rows = [
+            {
+                "frame_id": 1,
+                "timestamp_s": 0.0,
+                "agent_queried": True,
+                "agent_response_received": True,
+                "agent_intent": "prepare_lane_change_right",
+                "assist_applied": True,
+                "agent_call_latency_ms": 1200.0,
+                "post_lane_change_cruise": False,
+            },
+            {
+                "frame_id": 2,
+                "timestamp_s": 1.2,
+                "agent_queried": False,
+                "agent_response_received": False,
+                "assist_applied": True,
+                "assist_continued": True,
+                "lane_change_completed": True,
+                "lane_change_completion_timestamp_s": 1.2,
+                "post_lane_change_cruise": False,
+            },
+        ]
+        args = argparse.Namespace(delta_t=0.1, seed=0)
+        summary = _summarize_assist_log(
+            rows,
+            {"frames": 2, "tick_latency_samples_ms": [20.0, 30.0]},
+            args,
+        )
+        maneuver = summary["lane_change_maneuver"]
+        self.assertEqual(maneuver["completed_timestamp_s"], 1.2)
+        self.assertEqual(maneuver["completion_time_s"], 1.2)
+        self.assertEqual(maneuver["completion_source"], "lane_transition")
+        self.assertIsNone(maneuver["post_lane_change_cruise_timestamp_s"])
+
     def test_episode_request_cap_allows_one_high_level_decision(self) -> None:
         allowed, reason = _apply_agent_episode_limit(
             requested=True,
