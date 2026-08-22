@@ -3,12 +3,65 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import math
 import re
+import statistics
 from pathlib import Path
 from typing import Any, Dict, List
 
 
-RUN_SUFFIX_RE = re.compile(r"_run\d+$")
+RUN_SUFFIX_RE = re.compile(r"(?:_seed\d+)?_run\d+$")
+
+STATISTIC_FIELDS = (
+    "route_progress_m",
+    "route_completion_rate",
+    "distance_traveled_m",
+    "collision_count",
+    "lane_invasion_count",
+    "offroad_rate",
+    "mean_abs_longitudinal_jerk_mps3",
+    "max_abs_longitudinal_jerk_mps3",
+    "maneuver_duration_s",
+    "agreement_rate",
+    "agent_fallback_rate",
+    "assist_query_rejection_rate",
+    "assist_p95_api_call_ms",
+    "assist_over_step_budget_rate",
+    "lane_change_completion_time_s",
+)
+
+T_CRITICAL_95 = {
+    1: 12.706,
+    2: 4.303,
+    3: 3.182,
+    4: 2.776,
+    5: 2.571,
+    6: 2.447,
+    7: 2.365,
+    8: 2.306,
+    9: 2.262,
+    10: 2.228,
+    11: 2.201,
+    12: 2.179,
+    13: 2.160,
+    14: 2.145,
+    15: 2.131,
+    16: 2.120,
+    17: 2.110,
+    18: 2.101,
+    19: 2.093,
+    20: 2.086,
+    21: 2.080,
+    22: 2.074,
+    23: 2.069,
+    24: 2.064,
+    25: 2.060,
+    26: 2.056,
+    27: 2.052,
+    28: 2.048,
+    29: 2.045,
+    30: 2.042,
+}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -72,6 +125,9 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
         )
         assist = json.loads(assist_path.read_text(encoding="utf-8")) if assist_path.exists() else {}
         low_ttc_analysis = evaluation.get("low_ttc_analysis") or {}
+        comfort = driving.get("comfort") or {}
+        assist_latency = assist.get("latency") or {}
+        lane_change_maneuver = assist.get("lane_change_maneuver") or {}
         queried_frames = int(evaluation.get("agent_queried_frames") or 0)
         sim_frames = int(evaluation.get("sim_frames") or driving.get("frames") or 0)
         query_ratio = queried_frames / sim_frames if sim_frames else 0.0
@@ -83,10 +139,21 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
             {
                 "run_name": run_dir.name,
                 "case": _case_name(run_dir.name),
+                "random_seed": driving.get("random_seed", evaluation.get("random_seed", assist.get("random_seed"))),
                 "frames": sim_frames or int(driving.get("frames") or 0),
                 "route_progress_m": _optional_float(route.get("route_progress_m")),
+                "route_completion_rate": _optional_float(driving.get("route_completion_rate")),
                 "distance_traveled_m": _optional_float(route.get("distance_traveled_m")),
                 "collision_count": collision_count,
+                "lane_invasion_count": int(driving.get("lane_invasion_count") or 0),
+                "offroad_rate": _optional_float(driving.get("offroad_rate")),
+                "mean_abs_longitudinal_jerk_mps3": _optional_float(
+                    comfort.get("mean_abs_longitudinal_jerk_mps3")
+                ),
+                "max_abs_longitudinal_jerk_mps3": _optional_float(
+                    comfort.get("max_abs_longitudinal_jerk_mps3")
+                ),
+                "maneuver_duration_s": _optional_float(driving.get("maneuver_duration_s")),
                 "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
                 "safety_outcome": safety_outcome,
                 "agreement_rate": _optional_float(evaluation.get("agreement_rate")),
@@ -134,7 +201,15 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                     if assist.get("assist_intervention_rate") is not None
                     else None
                 ),
+                "assist_query_rejection_rate": _optional_float(assist.get("agent_query_rejection_rate")),
+                "assist_p50_api_call_ms": _optional_float(assist_latency.get("p50_api_call_ms")),
+                "assist_p95_api_call_ms": _optional_float(assist_latency.get("p95_api_call_ms")),
+                "assist_over_step_budget_rate": _optional_float(assist_latency.get("over_step_budget_rate")),
+                "lane_change_completion_time_s": _optional_float(
+                    lane_change_maneuver.get("completion_time_s")
+                ),
                 "assist_reject_reason_counts": assist.get("assist_reject_reason_counts"),
+                "query_rejection_reason_counts": assist.get("query_rejection_reason_counts"),
                 "assist_validation_status_counts": assist.get("agent_validation_status_counts"),
                 "assist_fallback_reason_counts": assist.get("agent_fallback_reason_counts"),
                 "assist_agent_intent_distribution": assist.get("agent_intent_distribution"),
@@ -147,6 +222,98 @@ def _mean(values: List[float]) -> float | None:
     if not values:
         return None
     return round(sum(values) / len(values), 6)
+
+
+def _sample_statistics(values: List[float]) -> Dict[str, Any]:
+    cleaned = [float(value) for value in values]
+    count = len(cleaned)
+    if count == 0:
+        return {"n": 0, "mean": None, "sample_sd": None, "standard_error": None, "ci95": None}
+    mean_value = statistics.fmean(cleaned)
+    if count == 1:
+        return {
+            "n": 1,
+            "mean": round(mean_value, 6),
+            "sample_sd": None,
+            "standard_error": None,
+            "ci95": None,
+        }
+    sample_sd = statistics.stdev(cleaned)
+    standard_error = sample_sd / math.sqrt(count)
+    degrees_freedom = count - 1
+    critical = T_CRITICAL_95.get(degrees_freedom, 1.96)
+    margin = critical * standard_error
+    return {
+        "n": count,
+        "mean": round(mean_value, 6),
+        "sample_sd": round(sample_sd, 6),
+        "standard_error": round(standard_error, 6),
+        "ci95": [round(mean_value - margin, 6), round(mean_value + margin, 6)],
+    }
+
+
+def _grouped_statistics(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(str(row["case"]), []).append(row)
+    result: Dict[str, Any] = {}
+    for case, case_rows in sorted(grouped.items()):
+        result[case] = {
+            "num_runs": len(case_rows),
+            "seeds": sorted(
+                int(row["random_seed"])
+                for row in case_rows
+                if row.get("random_seed") is not None
+            ),
+            "metrics": {
+                field: _sample_statistics(
+                    [float(row[field]) for row in case_rows if row.get(field) is not None]
+                )
+                for field in STATISTIC_FIELDS
+            },
+        }
+    return result
+
+
+def _paired_ab_statistics(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    paired: Dict[str, Dict[str, Dict[int, Dict[str, Any]]]] = {}
+    for row in rows:
+        case = str(row["case"])
+        if case.endswith("_baseline"):
+            base_case, variant = case[: -len("_baseline")], "baseline"
+        elif case.endswith("_assist"):
+            base_case, variant = case[: -len("_assist")], "assist"
+        else:
+            continue
+        seed = row.get("random_seed")
+        if seed is None:
+            continue
+        paired.setdefault(base_case, {}).setdefault(variant, {})[int(seed)] = row
+
+    result: Dict[str, Any] = {}
+    for base_case, variants in sorted(paired.items()):
+        baseline_by_seed = variants.get("baseline", {})
+        assist_by_seed = variants.get("assist", {})
+        common_seeds = sorted(set(baseline_by_seed) & set(assist_by_seed))
+        if not common_seeds:
+            continue
+        result[base_case] = {
+            "num_pairs": len(common_seeds),
+            "paired_seeds": common_seeds,
+            "difference_definition": "assist_minus_baseline",
+            "metrics": {
+                field: _sample_statistics(
+                    [
+                        float(assist_by_seed[seed][field]) - float(baseline_by_seed[seed][field])
+                        for seed in common_seeds
+                        if assist_by_seed[seed].get(field) is not None
+                        and baseline_by_seed[seed].get(field) is not None
+                    ]
+                )
+                for field in STATISTIC_FIELDS
+            },
+        }
+    return result
 
 
 def main() -> int:
@@ -199,16 +366,23 @@ def main() -> int:
         ),
     }
     summary = {
-        "schema_version": "stage10_stress_tables_summary_v1",
+        "schema_version": "stage10_stress_tables_summary_v2",
         "report_root": str(report_root),
         "run_glob": str(args.run_glob),
         "table2_rows": [
             {
                 "case": row["case"],
+                "random_seed": row["random_seed"],
                 "frames": row["frames"],
                 "route_progress_m": row["route_progress_m"],
+                "route_completion_rate": row["route_completion_rate"],
                 "distance_traveled_m": row["distance_traveled_m"],
                 "collision_count": row["collision_count"],
+                "lane_invasion_count": row["lane_invasion_count"],
+                "offroad_rate": row["offroad_rate"],
+                "mean_abs_longitudinal_jerk_mps3": row["mean_abs_longitudinal_jerk_mps3"],
+                "max_abs_longitudinal_jerk_mps3": row["max_abs_longitudinal_jerk_mps3"],
+                "maneuver_duration_s": row["maneuver_duration_s"],
                 "low_ttc_frames": row["low_ttc_frames"],
                 "safety_outcome": row["safety_outcome"],
             }
@@ -217,6 +391,7 @@ def main() -> int:
         "table3_rows": [
             {
                 "case": row["case"],
+                "random_seed": row["random_seed"],
                 "agreement_rate": row["agreement_rate"],
                 "disagreement_rate": row["disagreement_rate"],
                 "useful_disagreement_count": row["useful_disagreement_count"],
@@ -230,7 +405,13 @@ def main() -> int:
                 "assist_agent_query_frames": row["assist_agent_query_frames"],
                 "assist_agent_query_rate": row["assist_agent_query_rate"],
                 "assist_intervention_rate": row["assist_intervention_rate"],
+                "assist_query_rejection_rate": row["assist_query_rejection_rate"],
+                "assist_p50_api_call_ms": row["assist_p50_api_call_ms"],
+                "assist_p95_api_call_ms": row["assist_p95_api_call_ms"],
+                "assist_over_step_budget_rate": row["assist_over_step_budget_rate"],
+                "lane_change_completion_time_s": row["lane_change_completion_time_s"],
                 "assist_reject_reason_counts": row["assist_reject_reason_counts"],
+                "query_rejection_reason_counts": row["query_rejection_reason_counts"],
                 "assist_validation_status_counts": row["assist_validation_status_counts"],
                 "assist_fallback_reason_counts": row["assist_fallback_reason_counts"],
                 "assist_agent_intent_distribution": row["assist_agent_intent_distribution"],
@@ -238,27 +419,39 @@ def main() -> int:
             for row in rows
         ],
         "overall": overall,
+        "grouped_statistics": _grouped_statistics(rows),
+        "paired_ab_statistics": _paired_ab_statistics(rows),
     }
 
     if args.summary_json:
         Path(args.summary_json).write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print("=== TABLE 2 ===")
-    print("case,frames,route_progress_m,distance_traveled_m,collision_count,low_ttc_frames,safety_outcome")
+    print(
+        "case,seed,frames,route_progress_m,route_completion_rate,distance_traveled_m,"
+        "collision_count,lane_invasion_count,offroad_rate,mean_abs_jerk_mps3,"
+        "max_abs_jerk_mps3,maneuver_duration_s,low_ttc_frames,safety_outcome"
+    )
     for row in summary["table2_rows"]:
         print(
-            f"{row['case']},{row['frames']},{_fmt_float(row['route_progress_m'])},"
-            f"{_fmt_float(row['distance_traveled_m'])},{row['collision_count']},"
+            f"{row['case']},{row['random_seed']},{row['frames']},{_fmt_float(row['route_progress_m'])},"
+            f"{_fmt_float(row['route_completion_rate'])},{_fmt_float(row['distance_traveled_m'])},"
+            f"{row['collision_count']},{row['lane_invasion_count']},{_fmt_float(row['offroad_rate'])},"
+            f"{_fmt_float(row['mean_abs_longitudinal_jerk_mps3'])},"
+            f"{_fmt_float(row['max_abs_longitudinal_jerk_mps3'])},"
+            f"{_fmt_float(row['maneuver_duration_s'])},"
             f"{row['low_ttc_frames']},{row['safety_outcome']}"
         )
 
     print("\n=== TABLE 3 ===")
     print(
-        "case,agreement_rate,disagreement_rate,useful_disagreement_count,"
+        "case,seed,agreement_rate,disagreement_rate,useful_disagreement_count,"
         "agent_queried_frames,sim_frames,query_ratio,agent_fallback_rate,"
         "low_ttc_agent_cautious_rate,low_ttc_baseline_cautious_rate,"
         "assist_agent_query_frames,assist_agent_query_rate,"
-        "assist_applied_frames,assist_intervention_rate,assist_reject_reason_counts,"
+        "assist_applied_frames,assist_intervention_rate,assist_query_rejection_rate,"
+        "assist_p50_api_call_ms,assist_p95_api_call_ms,assist_over_step_budget_rate,"
+        "lane_change_completion_time_s,query_rejection_reason_counts,"
         "assist_validation_status_counts,assist_fallback_reason_counts"
     )
     for row in summary["table3_rows"]:
@@ -270,19 +463,28 @@ def main() -> int:
         assist_query_rate = _fmt_float(row["assist_agent_query_rate"])
         assist_applied = _fmt_int(row["assist_applied_frames"])
         assist_rate = _fmt_float(row["assist_intervention_rate"])
-        reject_reasons = json.dumps(row["assist_reject_reason_counts"] or {}, sort_keys=True)
+        reject_reasons = json.dumps(row["query_rejection_reason_counts"] or {}, sort_keys=True)
         validation_counts = json.dumps(row["assist_validation_status_counts"] or {}, sort_keys=True)
         fallback_reasons = json.dumps(row["assist_fallback_reason_counts"] or {}, sort_keys=True)
         print(
-            f"{row['case']},{_fmt_float(row['agreement_rate'])},{_fmt_float(row['disagreement_rate'])},"
+            f"{row['case']},{row['random_seed']},{_fmt_float(row['agreement_rate'])},"
+            f"{_fmt_float(row['disagreement_rate'])},"
             f"{useful_count},{row['agent_queried_frames']},"
             f"{row['sim_frames']},{row['query_ratio']:.4f},{fallback_rate},"
             f"{agent_cautious},{baseline_cautious},{assist_queries},{assist_query_rate},"
-            f"{assist_applied},{assist_rate},{reject_reasons},{validation_counts},{fallback_reasons}"
+            f"{assist_applied},{assist_rate},{_fmt_float(row['assist_query_rejection_rate'])},"
+            f"{_fmt_float(row['assist_p50_api_call_ms'])},{_fmt_float(row['assist_p95_api_call_ms'])},"
+            f"{_fmt_float(row['assist_over_step_budget_rate'])},"
+            f"{_fmt_float(row['lane_change_completion_time_s'])},{reject_reasons},"
+            f"{validation_counts},{fallback_reasons}"
         )
 
     print("\n=== OVERALL ===")
     print(json.dumps(overall, indent=2))
+    print("\n=== GROUPED STATISTICS (mean, sample SD, SE, 95% t-CI) ===")
+    print(json.dumps(summary["grouped_statistics"], indent=2))
+    print("\n=== PAIRED A/B STATISTICS (assist minus baseline) ===")
+    print(json.dumps(summary["paired_ab_statistics"], indent=2))
     return 0
 
 

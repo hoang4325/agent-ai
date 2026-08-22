@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import math
+import random
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
@@ -50,6 +51,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tm-port", type=int, default=8000)
     parser.add_argument("--timeout-s", type=float, default=10.0)
     parser.add_argument("--town", default="Carla/Maps/Town10HD_Opt")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Non-negative CARLA/Traffic Manager seed recorded in the scenario manifest.",
+    )
 
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -581,8 +588,19 @@ def command_probe(args: argparse.Namespace) -> int:
 
 
 def command_spawn(args: argparse.Namespace) -> int:
+    if int(args.seed) < 0:
+        raise ValueError("--seed must be non-negative")
+    random.seed(int(args.seed))
     client, world = connect_world(host=args.host, port=args.port, timeout_s=args.timeout_s, town=args.town)
     traffic_manager = client.get_trafficmanager(int(args.tm_port))
+    try:
+        traffic_manager.set_random_device_seed(int(args.seed))
+    except (AttributeError, RuntimeError):
+        LOGGER.warning("Traffic Manager seed configuration unavailable")
+    try:
+        world.set_pedestrians_seed(int(args.seed))
+    except (AttributeError, RuntimeError):
+        LOGGER.debug("Pedestrian seed configuration unavailable")
     traffic_manager.set_synchronous_mode(bool(args.moving_adjacent_npcs))
     if bool(args.cleanup_scenario_actors):
         _cleanup_scenario_role_actors(world)
@@ -770,6 +788,7 @@ def command_spawn(args: argparse.Namespace) -> int:
         "host": str(args.host),
         "port": int(args.port),
         "tm_port": int(args.tm_port),
+        "random_seed": int(args.seed),
         "ego_actor_id": int(ego.id),
         "blocker_actor_id": int(blocker.id if blocker is not None else 0),
         "blocker_kind": str(args.blocker_kind),

@@ -38,6 +38,7 @@ import json
 import logging
 import math
 import os
+import random
 import signal
 import sys
 import threading
@@ -79,6 +80,8 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--device",       default="cuda",  help="torch device")
     p.add_argument("--max-frames",   type=int, default=500)
     p.add_argument("--delta-t",      type=float, default=0.1,  help="Simulation step (s)")
+    p.add_argument("--seed",         type=int, default=0,
+                   help="Non-negative Python/NumPy/CARLA/Traffic Manager seed recorded with the run")
     p.add_argument("--rig-profile",  default="default",
                    choices=["default", "low_memory_shadow"],
                    help="Sensor rig quality preset")
@@ -788,6 +791,21 @@ def _write_json(path: Path, payload: Dict[str, Any]) -> None:
         json.dump(payload, handle, indent=2, default=str)
 
 
+def _percentile(values: List[float], percentile: float) -> Optional[float]:
+    if not values:
+        return None
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    rank = max(0.0, min(100.0, float(percentile))) / 100.0 * (len(ordered) - 1)
+    lower = int(math.floor(rank))
+    upper = int(math.ceil(rank))
+    if lower == upper:
+        return ordered[lower]
+    alpha = rank - lower
+    return ordered[lower] * (1.0 - alpha) + ordered[upper] * alpha
+
+
 def _location_to_xyz(location) -> np.ndarray:
     return np.array([float(location.x), float(location.y), float(location.z)], dtype=np.float64)
 
@@ -867,6 +885,61 @@ class CollisionMonitor:
             "normal_impulse": {"x": ix, "y": iy, "z": iz},
             "intensity": round(intensity, 6),
             "counted": intensity >= self._threshold,
+        }
+        with self._lock:
+            self._events.append(record)
+
+
+class LaneInvasionMonitor:
+    """Attach CARLA's lane-invasion sensor and retain a per-run audit log."""
+
+    def __init__(self, world, ego_actor) -> None:
+        self._world = world
+        self._ego = ego_actor
+        self._sensor = None
+        self._events: List[Dict[str, Any]] = []
+        self._lock = threading.Lock()
+
+    def start(self) -> None:
+        try:
+            import carla  # type: ignore
+
+            bp = self._world.get_blueprint_library().find("sensor.other.lane_invasion")
+            self._sensor = self._world.spawn_actor(bp, carla.Transform(), attach_to=self._ego)
+            self._sensor.listen(self._on_invasion)
+            LOGGER.info("LaneInvasionMonitor attached to ego actor_id=%s", getattr(self._ego, "id", "unknown"))
+        except Exception as exc:
+            LOGGER.warning("LaneInvasionMonitor unavailable: %s", exc)
+            self._sensor = None
+
+    def stop(self) -> None:
+        if self._sensor is None:
+            return
+        try:
+            self._sensor.stop()
+            self._sensor.destroy()
+        except Exception as exc:
+            LOGGER.debug("LaneInvasionMonitor stop failed: %s", exc)
+        self._sensor = None
+
+    def events(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return list(self._events)
+
+    def _on_invasion(self, event) -> None:
+        markings = []
+        for marking in list(getattr(event, "crossed_lane_markings", []) or []):
+            markings.append(
+                {
+                    "type": str(getattr(marking, "type", "unknown")),
+                    "color": str(getattr(marking, "color", "unknown")),
+                    "lane_change": str(getattr(marking, "lane_change", "unknown")),
+                }
+            )
+        record = {
+            "frame_id": int(getattr(event, "frame", -1)),
+            "timestamp_s": float(getattr(event, "timestamp", 0.0)),
+            "crossed_lane_markings": markings,
         }
         with self._lock:
             self._events.append(record)
@@ -1003,6 +1076,7 @@ def _build_driving_metrics(
     stats: Dict[str, Any],
     route_tracker: Optional[RouteProgressTracker],
     collision_monitor: Optional[CollisionMonitor],
+    lane_invasion_monitor: Optional[LaneInvasionMonitor],
 ) -> Dict[str, Any]:
     route_summary = (
         route_tracker.final_summary()
@@ -1017,6 +1091,7 @@ def _build_driving_metrics(
         }
     )
     collision_events = collision_monitor.counted_events() if collision_monitor is not None else []
+    lane_invasion_events = lane_invasion_monitor.events() if lane_invasion_monitor is not None else []
     distance_km = float(route_summary.get("distance_traveled_m") or 0.0) / 1000.0
     collision_rate_per_km = (
         round(len(collision_events) / distance_km, 6)
@@ -1028,12 +1103,22 @@ def _build_driving_metrics(
     collision_ok = len(collision_events) == 0
     runtime_ok = int(stats.get("errors", 0)) == 0 and int(stats.get("frames", 0)) > 0
     success = bool(route_ok and collision_ok and runtime_ok)
+    jerk_samples = [float(value) for value in stats.get("longitudinal_jerk_samples_mps3", [])]
+    abs_jerk_samples = [abs(value) for value in jerk_samples]
+    duration_s = float(stats.get("frames", 0)) * float(args.delta_t)
+    offroad_frames = int(stats.get("offroad_frames", 0))
+    max_abs_jerk = max(abs_jerk_samples) if abs_jerk_samples else None
+    mean_abs_jerk = (
+        sum(abs_jerk_samples) / len(abs_jerk_samples)
+        if abs_jerk_samples else None
+    )
 
     return {
-        "schema_version": "stage10_driving_metrics_v1",
+        "schema_version": "stage10_driving_metrics_v2",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "stage": "10_live_bridge",
         "map": args.map,
+        "random_seed": int(args.seed),
         "agent_mode": args.agent_mode,
         "agent_control_mode": args.agent_control_mode,
         "frames": int(stats.get("frames", 0)),
@@ -1041,6 +1126,27 @@ def _build_driving_metrics(
         "route_completion_pct": route_summary.get("route_completion_pct"),
         "collision_count": len(collision_events),
         "collision_rate_per_km": collision_rate_per_km,
+        "lane_invasion_count": len(lane_invasion_events),
+        "lane_invasion_rate_per_km": (
+            round(len(lane_invasion_events) / distance_km, 6)
+            if distance_km > 1e-6 else None
+        ),
+        "offroad_frames": offroad_frames,
+        "offroad_rate": round(offroad_frames / max(int(stats.get("frames", 0)), 1), 6),
+        "maneuver_duration_s": round(duration_s, 6),
+        "comfort": {
+            "longitudinal_jerk_sample_count": len(jerk_samples),
+            "mean_abs_longitudinal_jerk_mps3": (
+                round(mean_abs_jerk, 6) if mean_abs_jerk is not None else None
+            ),
+            "max_abs_longitudinal_jerk_mps3": (
+                round(max_abs_jerk, 6) if max_abs_jerk is not None else None
+            ),
+            "jerk_exceedance_rate_over_3_mps3": (
+                round(sum(value > 3.0 for value in abs_jerk_samples) / len(abs_jerk_samples), 6)
+                if abs_jerk_samples else None
+            ),
+        },
         "scenario_success": success,
         "scenario_success_rate": 1.0 if success else 0.0,
         "success_criteria": {
@@ -1066,6 +1172,7 @@ def _build_driving_metrics(
         "artifacts": {
             "ego_trace": str(Path(args.log_dir) / "ego_trace.jsonl"),
             "collision_events": str(Path(args.log_dir) / "collision_events.jsonl"),
+            "lane_invasion_events": str(Path(args.log_dir) / "lane_invasion_events.jsonl"),
         },
     }
 
@@ -1367,7 +1474,11 @@ def _can_continue_active_assist(
     return True
 
 
-def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any]) -> Dict[str, Any]:
+def _summarize_assist_log(
+    assist_log: List[Dict[str, Any]],
+    stats: Dict[str, Any],
+    args: argparse.Namespace,
+) -> Dict[str, Any]:
     attempted = [r for r in assist_log if r.get("agent_queried")]
     accepted = [r for r in assist_log if r.get("assist_applied")]
     rejected = [r for r in assist_log if r.get("agent_queried") and not r.get("assist_applied")]
@@ -1380,6 +1491,8 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
     post_lane_change_applied = [r for r in accepted if r.get("post_lane_change_cruise")]
     controller_only_applied = [r for r in accepted if not r.get("agent_queried")]
     rejection_counts: Dict[str, int] = {}
+    query_rejection_counts: Dict[str, int] = {}
+    non_query_reason_counts: Dict[str, int] = {}
     intent_counts: Dict[str, int] = {}
     fallback_reason_counts: Dict[str, int] = {}
     validation_status_counts: Dict[str, int] = {}
@@ -1390,6 +1503,10 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
         if row.get("assist_reject_reason"):
             reason = str(row["assist_reject_reason"])
             rejection_counts[reason] = rejection_counts.get(reason, 0) + 1
+            if row.get("agent_queried") and not row.get("assist_applied"):
+                query_rejection_counts[reason] = query_rejection_counts.get(reason, 0) + 1
+            elif not row.get("agent_queried"):
+                non_query_reason_counts[reason] = non_query_reason_counts.get(reason, 0) + 1
         if row.get("agent_validation_status"):
             status = str(row["agent_validation_status"])
             validation_status_counts[status] = validation_status_counts.get(status, 0) + 1
@@ -1398,10 +1515,36 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
             fallback_reason_counts[reason] = fallback_reason_counts.get(reason, 0) + 1
 
     sim_frames = int(stats.get("frames", 0))
+    call_latencies = [
+        float(row["agent_call_latency_ms"])
+        for row in attempted
+        if row.get("agent_call_latency_ms") is not None
+    ]
+    accepted_query_frames = [row for row in attempted if row.get("assist_applied")]
+    maneuver_start = next(
+        (
+            float(row["timestamp_s"])
+            for row in accepted_query_frames
+            if str(row.get("agent_intent", "")) in _ASSIST_LANE_CHANGE_INTENTS
+        ),
+        None,
+    )
+    maneuver_end = next(
+        (
+            float(row["timestamp_s"])
+            for row in assist_log
+            if maneuver_start is not None
+            and float(row.get("timestamp_s", -1.0)) >= maneuver_start
+            and bool(row.get("post_lane_change_cruise"))
+        ),
+        None,
+    )
+    latency_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
     return {
-        "schema_version": "stage10_agent_assist_evaluation_v1",
+        "schema_version": "stage10_agent_assist_evaluation_v2",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "sim_frames": sim_frames,
+        "random_seed": int(args.seed),
         "agent_query_frames": len(attempted),
         "assist_applied_frames": len(accepted),
         "agent_decision_applied_frames": len(agent_decision_applied),
@@ -1409,13 +1552,44 @@ def _summarize_assist_log(assist_log: List[Dict[str, Any]], stats: Dict[str, Any
         "post_lane_change_cruise_frames": len(post_lane_change_applied),
         "controller_only_applied_frames": len(controller_only_applied),
         "assist_rejected_frames": len(rejected),
+        "agent_query_acceptance_rate": round(len(accepted_query_frames) / max(len(attempted), 1), 4),
+        "agent_query_rejection_rate": round(len(rejected) / max(len(attempted), 1), 4),
         "assist_intervention_rate": round(len(accepted) / max(sim_frames, 1), 4),
         "agent_decision_intervention_rate": round(len(agent_decision_applied) / max(sim_frames, 1), 4),
         "agent_query_rate": round(len(attempted) / max(sim_frames, 1), 4),
         "agent_intent_distribution": intent_counts,
         "assist_reject_reason_counts": rejection_counts,
+        "query_rejection_reason_counts": query_rejection_counts,
+        "non_query_reason_counts": non_query_reason_counts,
         "agent_validation_status_counts": validation_status_counts,
         "agent_fallback_reason_counts": fallback_reason_counts,
+        "latency": {
+            "sample_count": len(call_latencies),
+            "mean_api_call_ms": (
+                round(sum(call_latencies) / len(call_latencies), 3) if call_latencies else None
+            ),
+            "p50_api_call_ms": (
+                round(float(_percentile(call_latencies, 50.0)), 3) if call_latencies else None
+            ),
+            "p95_api_call_ms": (
+                round(float(_percentile(call_latencies, 95.0)), 3) if call_latencies else None
+            ),
+            "max_api_call_ms": round(max(call_latencies), 3) if call_latencies else None,
+            "simulation_step_budget_ms": round(latency_budget_ms, 3),
+            "over_step_budget_rate": (
+                round(sum(value > latency_budget_ms for value in call_latencies) / len(call_latencies), 4)
+                if call_latencies else None
+            ),
+        },
+        "lane_change_maneuver": {
+            "started_timestamp_s": maneuver_start,
+            "completed_timestamp_s": maneuver_end,
+            "completion_time_s": (
+                round(maneuver_end - maneuver_start, 6)
+                if maneuver_start is not None and maneuver_end is not None else None
+            ),
+            "completed": maneuver_end is not None,
+        },
         "frame_log": assist_log,
     }
 
@@ -1524,6 +1698,10 @@ def _build_stage9_arbiter(
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def run(args: argparse.Namespace) -> int:
+    if int(args.seed) < 0:
+        raise ValueError("--seed must be non-negative")
+    random.seed(int(args.seed))
+    np.random.seed(int(args.seed))
     _ensure_carla_pythonapi_paths(args.carla_root)
 
     from carla_bevfusion_stage1.bevfusion_runtime import build_bevfusion_model
@@ -1536,10 +1714,13 @@ def run(args: argparse.Namespace) -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     ego_trace_path = log_dir / "ego_trace.jsonl"
     collision_events_path = log_dir / "collision_events.jsonl"
+    lane_invasion_events_path = log_dir / "lane_invasion_events.jsonl"
     if ego_trace_path.exists():
         ego_trace_path.unlink()
     if collision_events_path.exists():
         collision_events_path.unlink()
+    if lane_invasion_events_path.exists():
+        lane_invasion_events_path.unlink()
 
     # ── 1. Build BEVFusion model FIRST (before sensors start) ────────────────
     # IMPORTANT: mmdet3d import takes ~50s. Loading model before attaching CARLA
@@ -1565,6 +1746,7 @@ def run(args: argparse.Namespace) -> int:
     # Sensors are spawned NOW, after the model is warm, so no frames are missed.
     route_tracker: Optional[RouteProgressTracker] = None
     collision_monitor: Optional[CollisionMonitor] = None
+    lane_invasion_monitor: Optional[LaneInvasionMonitor] = None
     video_recorder = None
     world = None
     traffic_manager = None
@@ -1587,9 +1769,17 @@ def run(args: argparse.Namespace) -> int:
         agent_target_lane_id = _agent_target_lane_id_from_manifest(scenario_manifest)
         client, world = _connect_carla(args.carla_host, args.carla_port)
         world = _load_map_if_needed(client, world, args.map)
+        try:
+            world.set_pedestrians_seed(int(args.seed))
+        except (AttributeError, RuntimeError):
+            LOGGER.debug("Pedestrian seed configuration unavailable")
         if _moving_adjacent_npcs_enabled(scenario_manifest):
             tm_port = int((scenario_manifest or {}).get("tm_port", args.tm_port))
             traffic_manager = client.get_trafficmanager(tm_port)
+            try:
+                traffic_manager.set_random_device_seed(int(args.seed))
+            except (AttributeError, RuntimeError):
+                LOGGER.warning("Traffic Manager seed configuration unavailable")
             LOGGER.info("Stage10 moving adjacent NPCs: Traffic Manager sync enabled on port %d", tm_port)
         carla_map = world.get_map()
         ego, ego_spawned_by_stage10, ego_source = _spawn_or_get_ego(world, args, scenario_manifest)
@@ -1626,6 +1816,8 @@ def run(args: argparse.Namespace) -> int:
             impulse_threshold=float(args.collision_impulse_threshold),
         )
         collision_monitor.start()
+        lane_invasion_monitor = LaneInvasionMonitor(world, ego)
+        lane_invasion_monitor.start()
 
         preset = build_rig_preset(
             args.rig_profile,
@@ -1744,8 +1936,16 @@ def run(args: argparse.Namespace) -> int:
     LOGGER.info("Stage 10 Bridge started. source=%s", "WatchMode" if args.samples_root else "LiveMode")
     LOGGER.info("=" * 60)
 
-    stats = {"frames": 0, "total_det": 0, "bev_ms_sum": 0.0, "errors": 0}
+    stats = {
+        "frames": 0,
+        "total_det": 0,
+        "bev_ms_sum": 0.0,
+        "errors": 0,
+        "offroad_frames": 0,
+        "longitudinal_jerk_samples_mps3": [],
+    }
     prev_v = 0.0
+    prev_a: Optional[float] = None
 
     try:
         for frame_idx in range(args.max_frames):
@@ -1790,6 +1990,26 @@ def run(args: argparse.Namespace) -> int:
                     ego_location_xyz=np.zeros(3),
                 )
             prev_v = ego_tel.ego_v_mps
+            if prev_a is not None:
+                stats["longitudinal_jerk_samples_mps3"].append(
+                    (float(ego_tel.ego_a_mps2) - prev_a) / max(float(args.delta_t), 1e-6)
+                )
+            prev_a = float(ego_tel.ego_a_mps2)
+            offroad = False
+            if not args.samples_root and ego is not None and carla_map is not None:
+                try:
+                    import carla  # type: ignore
+
+                    driving_waypoint = carla_map.get_waypoint(
+                        ego.get_location(),
+                        project_to_road=False,
+                        lane_type=carla.LaneType.Driving,
+                    )
+                    offroad = driving_waypoint is None
+                except (AttributeError, RuntimeError):
+                    offroad = False
+            if offroad:
+                stats["offroad_frames"] += 1
 
             # ── D. WorldState ──────────────────────────────────────────────
             world_state = ws_builder.build(det_list, ego_tel)
@@ -1863,6 +2083,11 @@ def run(args: argparse.Namespace) -> int:
                     "z": float(ego_tel.ego_location_xyz[2]),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "ego_a_mps2": float(ego_tel.ego_a_mps2),
+                    "longitudinal_jerk_mps3": (
+                        float(stats["longitudinal_jerk_samples_mps3"][-1])
+                        if stats["longitudinal_jerk_samples_mps3"] else None
+                    ),
+                    "offroad": offroad,
                     "ego_lane_id": str(ego_tel.ego_lane_id),
                     **route_info,
                 },
@@ -2325,11 +2550,17 @@ def run(args: argparse.Namespace) -> int:
             for event in collision_monitor.events():
                 _append_jsonl(collision_events_path, event)
             collision_events_path.touch(exist_ok=True)
+        if lane_invasion_monitor is not None:
+            lane_invasion_monitor.stop()
+            for event in lane_invasion_monitor.events():
+                _append_jsonl(lane_invasion_events_path, event)
+            lane_invasion_events_path.touch(exist_ok=True)
         driving_metrics = _build_driving_metrics(
             args=args,
             stats=stats,
             route_tracker=route_tracker,
             collision_monitor=collision_monitor,
+            lane_invasion_monitor=lane_invasion_monitor,
         )
         _write_json(log_dir / "stage10_driving_metrics.json", driving_metrics)
         if not args.samples_root and ego is not None and ego_spawned_by_stage10:
@@ -2363,11 +2594,12 @@ def run(args: argparse.Namespace) -> int:
                 validation_counts[status] = validation_counts.get(status, 0) + 1
 
             evaluation = {
-                "schema_version": "stage10_agent_live_evaluation_v1",
+                "schema_version": "stage10_agent_live_evaluation_v2",
                 "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
                 "stage": "10_live_bridge",
                 "mode": args.agent_mode,
                 "map": args.map,
+                "random_seed": int(args.seed),
                 "total_frames": total,
                 "sim_frames": int(stats.get("frames", 0)),
                 "agent_trigger_mode": args.agent_trigger_mode,
@@ -2405,8 +2637,20 @@ def run(args: argparse.Namespace) -> int:
                 },
                 "latency": {
                     "mean_compare_ms": round(sum(agent_latencies) / max(len(agent_latencies), 1), 1),
+                    "p50_compare_ms": (
+                        round(float(_percentile(agent_latencies, 50.0)), 1) if agent_latencies else None
+                    ),
+                    "p95_compare_ms": (
+                        round(float(_percentile(agent_latencies, 95.0)), 1) if agent_latencies else None
+                    ),
                     "max_compare_ms": round(max(agent_latencies), 1) if agent_latencies else 0,
                     "min_compare_ms": round(min(agent_latencies), 1) if agent_latencies else 0,
+                    "simulation_step_budget_ms": round(float(args.delta_t) * 1000.0, 1),
+                    "over_step_budget_rate": round(
+                        sum(value > float(args.delta_t) * 1000.0 for value in agent_latencies)
+                        / max(len(agent_latencies), 1),
+                        4,
+                    ),
                 },
                 "intent_distribution": {
                     "baseline": {},
@@ -2448,7 +2692,7 @@ def run(args: argparse.Namespace) -> int:
                             len(low_ttc_frames), len(low_ttc_disagree))
 
         if assist_log:
-            assist_eval = _summarize_assist_log(assist_log, stats)
+            assist_eval = _summarize_assist_log(assist_log, stats, args)
             assist_path = log_dir / "stage10_agent_assist_evaluation.json"
             assist_path.parent.mkdir(parents=True, exist_ok=True)
             with open(assist_path, "w") as f:

@@ -38,6 +38,15 @@ def _parse_args() -> argparse.Namespace:
                             "ab_blocked_clear_rear, ab_blocked_gap"
                         ))
     parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument(
+        "--seeds",
+        default="",
+        help=(
+            "Comma-separated non-negative seeds. When supplied, the number of runs per case "
+            "equals the number of seeds and --repeats is ignored. Use the same seed list for "
+            "paired baseline and assist campaigns."
+        ),
+    )
     parser.add_argument("--run-tag", default="",
                         help="Optional tag inserted into run folder names, useful for A/B runs")
     parser.add_argument("--max-frames", type=int, default=300)
@@ -112,6 +121,24 @@ def _case_option(args: argparse.Namespace, spec: Dict[str, Any], key: str, defau
     return spec.get(key, default)
 
 
+def _resolve_seeds(args: argparse.Namespace) -> List[int]:
+    raw = str(args.seeds or "").strip()
+    if raw:
+        seeds: List[int] = []
+        for token in raw.split(","):
+            value = int(token.strip())
+            if value < 0:
+                raise ValueError("--seeds values must be non-negative")
+            if value in seeds:
+                raise ValueError(f"Duplicate seed {value} in --seeds")
+            seeds.append(value)
+        if not seeds:
+            raise ValueError("--seeds did not contain any values")
+        return seeds
+    repeats = max(1, int(args.repeats))
+    return list(range(repeats))
+
+
 def _case_float(args: argparse.Namespace, spec: Dict[str, Any], key: str, default: float) -> float:
     return float(_case_option(args, spec, key, default))
 
@@ -134,13 +161,15 @@ def _build_summary_payload(
     args: argparse.Namespace,
     case_specs: List[Dict[str, Any]],
     runs: List[Dict[str, Any]],
+    seeds: List[int],
 ) -> Dict[str, Any]:
     return {
-        "schema_version": "stage10_agent_stress_campaign_v1",
+        "schema_version": "stage10_agent_stress_campaign_v2",
         "generated_at_utc": _utc_now_iso(),
         "map": args.map,
         "cases": [spec["case_label"] for spec in case_specs],
-        "repeats": int(args.repeats),
+        "repeats": len(seeds),
+        "seeds": list(seeds),
         "max_frames": int(args.max_frames),
         "agent_mode": args.agent_mode,
         "agent_control_mode": args.agent_control_mode,
@@ -155,8 +184,9 @@ def _persist_progress(
     args: argparse.Namespace,
     case_specs: List[Dict[str, Any]],
     runs: List[Dict[str, Any]],
+    seeds: List[int],
 ) -> Path:
-    payload = _build_summary_payload(args=args, case_specs=case_specs, runs=runs)
+    payload = _build_summary_payload(args=args, case_specs=case_specs, runs=runs, seeds=seeds)
     latest_path = report_root / "campaign_latest.json"
     latest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return latest_path
@@ -190,6 +220,9 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
     query_ratio = round(queried_frames / max(sim_frames, 1), 4) if sim_frames else None
     safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
     route = driving.get("route") or {}
+    comfort = driving.get("comfort") or {}
+    assist_latency = assist.get("latency") or {}
+    lane_change_maneuver = assist.get("lane_change_maneuver") or {}
 
     return {
         "table2": {
@@ -197,6 +230,10 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "route_progress_m": route.get("route_progress_m"),
             "distance_traveled_m": route.get("distance_traveled_m"),
             "collision_count": collision_count,
+            "lane_invasion_count": int(driving.get("lane_invasion_count") or 0),
+            "offroad_rate": driving.get("offroad_rate"),
+            "mean_abs_longitudinal_jerk_mps3": comfort.get("mean_abs_longitudinal_jerk_mps3"),
+            "max_abs_longitudinal_jerk_mps3": comfort.get("max_abs_longitudinal_jerk_mps3"),
             "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
             "safety_outcome": safety_outcome,
         },
@@ -212,6 +249,12 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "low_ttc_baseline_cautious_rate": low_ttc_analysis.get("baseline_cautious_rate"),
             "assist_applied_frames": assist.get("assist_applied_frames"),
             "assist_intervention_rate": assist.get("assist_intervention_rate"),
+            "agent_query_rejection_rate": assist.get("agent_query_rejection_rate"),
+            "query_rejection_reason_counts": assist.get("query_rejection_reason_counts"),
+            "p50_api_call_ms": assist_latency.get("p50_api_call_ms"),
+            "p95_api_call_ms": assist_latency.get("p95_api_call_ms"),
+            "over_step_budget_rate": assist_latency.get("over_step_budget_rate"),
+            "lane_change_completion_time_s": lane_change_maneuver.get("completion_time_s"),
             "assist_agent_query_frames": assist_query_frames,
             "assist_agent_query_rate": assist.get("agent_query_rate"),
             "agent_decision_applied_frames": assist.get("agent_decision_applied_frames"),
@@ -230,6 +273,7 @@ def _spawn_with_probe_retry(
     spec: Dict[str, Any],
     run_id: str,
     manifest_path: Path,
+    seed: int,
 ) -> Dict[str, Any]:
     probe_path = manifest_path.with_suffix(".probe.json")
     if manifest_path.exists():
@@ -244,6 +288,7 @@ def _spawn_with_probe_retry(
         "--port", str(args.carla_port),
         "--tm-port", str(args.tm_port),
         "--town", f"Carla/Maps/{args.map}",
+        "--seed", str(seed),
         "probe",
         "--top-k", str(int(args.spawn_probe_top_k)),
         "--adjacent-side", str(spec["adjacent_side"]),
@@ -269,6 +314,7 @@ def _spawn_with_probe_retry(
             "--port", str(args.carla_port),
             "--tm-port", str(args.tm_port),
             "--town", f"Carla/Maps/{args.map}",
+            "--seed", str(seed),
             "spawn",
             "--adjacent-side", str(spec["adjacent_side"]),
             "--road-id", str(int(candidate["road_id"])),
@@ -478,15 +524,16 @@ def main() -> int:
 
     runs: List[Dict[str, Any]] = []
     case_specs = _case_specs(str(args.cases).split(","))
-    total_runs = len(case_specs) * max(1, int(args.repeats))
+    seeds = _resolve_seeds(args)
+    total_runs = len(case_specs) * len(seeds)
 
     run_counter = 0
-    for repeat_idx in range(1, int(args.repeats) + 1):
+    for repeat_idx, seed in enumerate(seeds, start=1):
         for spec in case_specs:
             run_counter += 1
             case_label = spec["case_label"]
             tag_part = f"_{str(args.run_tag).strip()}" if str(args.run_tag).strip() else ""
-            run_id = f"{case_label}{tag_part}_run{repeat_idx}"
+            run_id = f"{case_label}{tag_part}_seed{seed}_run{repeat_idx}"
             manifest_path = output_root / f"{run_id}_manifest.json"
             stage10_output_root = output_root / run_id
             stage10_log_dir = report_root / run_id
@@ -499,6 +546,7 @@ def main() -> int:
                 "--carla-host", str(args.carla_host),
                 "--carla-port", str(args.carla_port),
                 "--tm-port", str(args.tm_port),
+                "--seed", str(seed),
                 "--bev-repo", str(args.bev_repo),
                 "--bev-config", str(args.bev_config),
                 "--bev-ckpt", str(args.bev_ckpt),
@@ -551,6 +599,7 @@ def main() -> int:
                 "case_label": case_label,
                 "adjacent_side": spec["adjacent_side"],
                 "repeat_index": repeat_idx,
+                "random_seed": seed,
                 "manifest_path": str(manifest_path),
                 "stage10_log_dir": str(stage10_log_dir),
                 "stage10_output_root": str(stage10_output_root),
@@ -572,11 +621,12 @@ def main() -> int:
                 args=args,
                 case_specs=case_specs,
                 runs=runs,
+                seeds=seeds,
             )
 
             print(
                 f"[stress-campaign] progress {run_counter}/{total_runs} "
-                f"repeat={repeat_idx}/{int(args.repeats)} case={case_label}"
+                f"repeat={repeat_idx}/{len(seeds)} seed={seed} case={case_label}"
             )
             print(f"[stress-campaign] latest summary -> {latest_path}")
 
@@ -587,6 +637,7 @@ def main() -> int:
                     spec=spec,
                     run_id=run_id,
                     manifest_path=manifest_path,
+                    seed=seed,
                 )
                 run_record["spawn_probe"] = spawn_meta
                 _run_command(stage10_cmd, label=f"stage10 {run_id}")
@@ -612,6 +663,7 @@ def main() -> int:
                     args=args,
                     case_specs=case_specs,
                     runs=runs,
+                    seeds=seeds,
                 )
 
             if run_record["status"] != "completed":
@@ -620,7 +672,7 @@ def main() -> int:
             continue
         break
 
-    summary = _build_summary_payload(args=args, case_specs=case_specs, runs=runs)
+    summary = _build_summary_payload(args=args, case_specs=case_specs, runs=runs, seeds=seeds)
     summary_path = report_root / f"campaign_summary_{int(time.time())}.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(f"[stress-campaign] summary -> {summary_path}")
