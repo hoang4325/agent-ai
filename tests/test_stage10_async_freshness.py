@@ -17,9 +17,12 @@ from scripts.run_stage10_stage1_live_bridge import (
     _assist_lane_transition_completed,
     _assist_lifecycle_action,
     _can_continue_active_assist,
+    _finite_difference_longitudinal_kinematics,
+    _lane_crossing_phase_summary,
     _lane_change_ttc_safety,
     _lane_center_longitudinal_control,
     _lane_center_steering_control,
+    _post_lane_change_settle_state,
     _summarize_assist_log,
     _target_lane_corridor_risk,
     _update_lane_transition_stability,
@@ -314,6 +317,48 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         self.assertEqual(maneuver["completion_time_s"], 1.2)
         self.assertEqual(maneuver["completion_source"], "lane_transition")
         self.assertIsNone(maneuver["post_lane_change_cruise_timestamp_s"])
+
+    def test_post_lane_change_settle_hands_control_back_after_deadline(self) -> None:
+        active, elapsed = _post_lane_change_settle_state(
+            completion_timestamp_s=10.0,
+            current_timestamp_s=11.9,
+            settle_duration_s=2.0,
+        )
+        self.assertTrue(active)
+        self.assertAlmostEqual(elapsed, 1.9)
+
+        active, elapsed = _post_lane_change_settle_state(
+            completion_timestamp_s=10.0,
+            current_timestamp_s=12.0,
+            settle_duration_s=2.0,
+        )
+        self.assertFalse(active)
+        self.assertEqual(elapsed, 2.0)
+
+    def test_lane_crossings_are_partitioned_around_physical_completion(self) -> None:
+        summary = _lane_crossing_phase_summary(
+            [
+                {"timestamp_s": 1.0, "classification": "legal"},
+                {"timestamp_s": 2.0, "classification": "legal"},
+                {"timestamp_s": 3.0, "classification": "illegal"},
+            ],
+            maneuver_start_timestamp_s=1.5,
+            maneuver_completion_timestamp_s=2.5,
+        )
+        self.assertEqual(summary["before_maneuver"]["legal"], 1)
+        self.assertEqual(summary["during_maneuver"]["legal"], 1)
+        self.assertEqual(summary["after_maneuver"]["illegal"], 1)
+
+    def test_finite_difference_kinematics_produces_nonzero_jerk(self) -> None:
+        acceleration, jerk = _finite_difference_longitudinal_kinematics(
+            speed_mps=1.0,
+            timestamp_s=0.1,
+            previous_speed_mps=0.0,
+            previous_timestamp_s=0.0,
+            previous_acceleration_mps2=0.0,
+        )
+        self.assertAlmostEqual(acceleration, 10.0)
+        self.assertAlmostEqual(jerk, 100.0)
 
     def test_summary_records_terminal_maneuver_failure(self) -> None:
         rows = [

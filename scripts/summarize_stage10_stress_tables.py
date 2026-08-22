@@ -22,6 +22,8 @@ STATISTIC_FIELDS = (
     "lane_invasion_count",
     "legal_lane_crossing_count",
     "illegal_lane_invasion_count",
+    "maneuver_illegal_lane_invasion_count",
+    "post_maneuver_illegal_lane_invasion_count",
     "unknown_lane_crossing_count",
     "offroad_rate",
     "mean_abs_longitudinal_jerk_mps3",
@@ -192,6 +194,12 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                 "illegal_lane_invasion_count": int(
                     driving.get("illegal_lane_invasion_count") or 0
                 ),
+                "maneuver_illegal_lane_invasion_count": int(
+                    driving.get("maneuver_illegal_lane_invasion_count") or 0
+                ),
+                "post_maneuver_illegal_lane_invasion_count": int(
+                    driving.get("post_maneuver_illegal_lane_invasion_count") or 0
+                ),
                 "unknown_lane_crossing_count": int(
                     driving.get("unknown_lane_crossing_count") or 0
                 ),
@@ -307,6 +315,12 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                 "assist_api_attempt_count_max": assist.get("agent_api_attempt_count_max"),
                 "assist_api_payload_variant_counts": assist.get(
                     "agent_api_payload_variant_counts"
+                ),
+                "post_lane_change_cruise_frames": assist.get(
+                    "post_lane_change_cruise_frames"
+                ),
+                "post_lane_change_handoff_frames": assist.get(
+                    "post_lane_change_handoff_frames"
                 ),
                 "assist_agent_intent_distribution": assist.get("agent_intent_distribution"),
             }
@@ -547,6 +561,12 @@ def main() -> int:
                 "lane_invasion_count": row["lane_invasion_count"],
                 "legal_lane_crossing_count": row["legal_lane_crossing_count"],
                 "illegal_lane_invasion_count": row["illegal_lane_invasion_count"],
+                "maneuver_illegal_lane_invasion_count": row[
+                    "maneuver_illegal_lane_invasion_count"
+                ],
+                "post_maneuver_illegal_lane_invasion_count": row[
+                    "post_maneuver_illegal_lane_invasion_count"
+                ],
                 "unknown_lane_crossing_count": row["unknown_lane_crossing_count"],
                 "offroad_rate": row["offroad_rate"],
                 "mean_abs_longitudinal_jerk_mps3": row["mean_abs_longitudinal_jerk_mps3"],
@@ -602,6 +622,12 @@ def main() -> int:
                 "assist_api_attempt_count_max": row["assist_api_attempt_count_max"],
                 "assist_api_payload_variant_counts": row[
                     "assist_api_payload_variant_counts"
+                ],
+                "post_lane_change_cruise_frames": row[
+                    "post_lane_change_cruise_frames"
+                ],
+                "post_lane_change_handoff_frames": row[
+                    "post_lane_change_handoff_frames"
                 ],
                 "assist_agent_intent_distribution": row["assist_agent_intent_distribution"],
             }

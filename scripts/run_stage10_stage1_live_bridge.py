@@ -152,6 +152,8 @@ def _parse_args() -> argparse.Namespace:
                    help="Maximum target-lane lateral error used for stable completion")
     p.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20,
                    help="Maximum absolute heading error used for stable completion")
+    p.add_argument("--agent-post-lane-change-settle-s", type=float, default=2.0,
+                   help="Bounded target-lane centering time before control returns to the baseline")
     p.add_argument("--agent-cross-lane-max-steer", type=float, default=0.72,
                    help="Maximum normalized steering while the ego is still outside the target lane")
     p.add_argument("--agent-cross-lane-min-steer", type=float, default=0.42,
@@ -739,6 +741,27 @@ def _target_lane_corridor_risk(
     }
 
 
+def _finite_difference_longitudinal_kinematics(
+    *,
+    speed_mps: float,
+    timestamp_s: float,
+    previous_speed_mps: Optional[float],
+    previous_timestamp_s: Optional[float],
+    previous_acceleration_mps2: Optional[float],
+) -> tuple[float, Optional[float]]:
+    """Estimate scalar longitudinal acceleration and jerk from ego speed."""
+    if previous_speed_mps is None or previous_timestamp_s is None:
+        return 0.0, None
+    dt_s = max(float(timestamp_s) - float(previous_timestamp_s), 1e-6)
+    acceleration_mps2 = (float(speed_mps) - float(previous_speed_mps)) / dt_s
+    jerk_mps3 = (
+        None
+        if previous_acceleration_mps2 is None
+        else (acceleration_mps2 - float(previous_acceleration_mps2)) / dt_s
+    )
+    return acceleration_mps2, jerk_mps3
+
+
 def _lane_change_ttc_safety(
     *,
     world_state: Any,
@@ -1187,6 +1210,36 @@ def _classify_lane_crossing(event: Dict[str, Any]) -> str:
     return "unknown"
 
 
+def _lane_crossing_phase_summary(
+    events: List[Dict[str, Any]],
+    *,
+    maneuver_start_timestamp_s: Optional[float],
+    maneuver_completion_timestamp_s: Optional[float],
+) -> Dict[str, Dict[str, int]]:
+    """Split raw CARLA lane-crossing callbacks by maneuver lifecycle phase."""
+    summary = {
+        phase: {"event_count": 0, "legal": 0, "illegal": 0, "unknown": 0}
+        for phase in ("before_maneuver", "during_maneuver", "after_maneuver")
+    }
+    for event in events:
+        timestamp_s = float(event.get("timestamp_s", 0.0))
+        if maneuver_start_timestamp_s is None or timestamp_s < maneuver_start_timestamp_s:
+            phase = "before_maneuver"
+        elif (
+            maneuver_completion_timestamp_s is not None
+            and timestamp_s > maneuver_completion_timestamp_s
+        ):
+            phase = "after_maneuver"
+        else:
+            phase = "during_maneuver"
+        classification = str(event.get("classification") or "unknown")
+        if classification not in {"legal", "illegal", "unknown"}:
+            classification = "unknown"
+        summary[phase]["event_count"] += 1
+        summary[phase][classification] += 1
+    return summary
+
+
 class CollisionMonitor:
     """Attach a CARLA collision sensor and collect per-run collision events."""
 
@@ -1448,6 +1501,8 @@ def _build_driving_metrics(
     route_tracker: Optional[RouteProgressTracker],
     collision_monitor: Optional[CollisionMonitor],
     lane_invasion_monitor: Optional[LaneInvasionMonitor],
+    maneuver_start_timestamp_s: Optional[float] = None,
+    maneuver_completion_timestamp_s: Optional[float] = None,
 ) -> Dict[str, Any]:
     route_summary = (
         route_tracker.final_summary()
@@ -1478,6 +1533,11 @@ def _build_driving_metrics(
     unknown_lane_crossings = [
         event for event in lane_crossing_events if event.get("classification") == "unknown"
     ]
+    lane_crossing_by_phase = _lane_crossing_phase_summary(
+        lane_crossing_events,
+        maneuver_start_timestamp_s=maneuver_start_timestamp_s,
+        maneuver_completion_timestamp_s=maneuver_completion_timestamp_s,
+    )
     distance_km = float(route_summary.get("distance_traveled_m") or 0.0) / 1000.0
     collision_rate_per_km = (
         round(len(collision_episodes) / distance_km, 6)
@@ -1530,6 +1590,13 @@ def _build_driving_metrics(
         "legal_lane_crossing_count": len(legal_lane_crossings),
         "illegal_lane_invasion_count": len(illegal_lane_invasions),
         "unknown_lane_crossing_count": len(unknown_lane_crossings),
+        "lane_crossing_by_maneuver_phase": lane_crossing_by_phase,
+        "maneuver_illegal_lane_invasion_count": lane_crossing_by_phase[
+            "during_maneuver"
+        ]["illegal"],
+        "post_maneuver_illegal_lane_invasion_count": lane_crossing_by_phase[
+            "after_maneuver"
+        ]["illegal"],
         "lane_invasion_rate_per_km": (
             round(len(illegal_lane_invasions) / distance_km, 6)
             if distance_km > 1e-6 else None
@@ -1575,7 +1642,14 @@ def _build_driving_metrics(
                 "legal": "all markings are broken and lane-change permission is present",
                 "illegal": "any marking is solid or explicitly disallows lane change",
                 "unknown": "insufficient or unrecognized marking metadata",
+                "phase_partition": (
+                    "before the first applied lane-change command, during the accepted maneuver "
+                    "through stable target-lane completion, or after physical completion"
+                ),
             },
+            "longitudinal_jerk": (
+                "finite difference of scalar ego speed acceleration using CARLA timestamps"
+            ),
             "duration": {
                 "episode_duration_s": "all simulated frames multiplied by delta_t",
                 "lane_change_completion_time_s": (
@@ -2111,6 +2185,34 @@ def _update_lane_transition_stability(
     return stable_frames, stable_frames >= required
 
 
+def _post_lane_change_settle_state(
+    *,
+    completion_timestamp_s: Optional[float],
+    current_timestamp_s: float,
+    settle_duration_s: float,
+) -> tuple[bool, Optional[float]]:
+    """Return whether bounded post-maneuver centering still owns control."""
+    if completion_timestamp_s is None:
+        return False, None
+    elapsed_s = max(0.0, float(current_timestamp_s) - float(completion_timestamp_s))
+    duration_s = max(0.0, float(settle_duration_s))
+    return elapsed_s < duration_s, elapsed_s
+
+
+def _assist_maneuver_start_timestamp(
+    assist_log: List[Dict[str, Any]],
+) -> Optional[float]:
+    return next(
+        (
+            float(row["timestamp_s"])
+            for row in assist_log
+            if row.get("assist_applied")
+            and str(row.get("agent_intent", "")) in _ASSIST_LANE_CHANGE_INTENTS
+        ),
+        None,
+    )
+
+
 def _assist_completion_metadata(
     active_metadata: Dict[str, Any],
     tracked_metadata: Dict[str, Any],
@@ -2226,6 +2328,9 @@ def _summarize_assist_log(
     ]
     assist_hold_applied = [r for r in accepted if r.get("assist_continued")]
     post_lane_change_applied = [r for r in accepted if r.get("post_lane_change_cruise")]
+    post_lane_change_handoff = [
+        r for r in assist_log if r.get("post_lane_change_handoff_to_baseline")
+    ]
     controller_only_applied = [r for r in accepted if not r.get("agent_queried")]
     rejection_counts: Dict[str, int] = {}
     query_rejection_counts: Dict[str, int] = {}
@@ -2282,14 +2387,7 @@ def _summarize_assist_log(
         row for row in attempted if row.get("agent_response_fresh") is False
     ]
     accepted_query_frames = [row for row in attempted if row.get("assist_applied")]
-    maneuver_start = next(
-        (
-            float(row["timestamp_s"])
-            for row in accepted_query_frames
-            if str(row.get("agent_intent", "")) in _ASSIST_LANE_CHANGE_INTENTS
-        ),
-        None,
-    )
+    maneuver_start = _assist_maneuver_start_timestamp(assist_log)
     post_cruise_end = next(
         (
             float(row["timestamp_s"])
@@ -2377,6 +2475,9 @@ def _summarize_assist_log(
             "lane_heading_tolerance_rad": float(
                 getattr(args, "agent_lane_heading_tolerance_rad", 0.20)
             ),
+            "post_lane_change_settle_s": float(
+                getattr(args, "agent_post_lane_change_settle_s", 2.0)
+            ),
             "cross_lane_max_steer": float(
                 getattr(args, "agent_cross_lane_max_steer", 0.72)
             ),
@@ -2423,6 +2524,11 @@ def _summarize_assist_log(
         "agent_decision_applied_frames": len(agent_decision_applied),
         "assist_hold_applied_frames": len(assist_hold_applied),
         "post_lane_change_cruise_frames": len(post_lane_change_applied),
+        "post_lane_change_handoff_frames": len(post_lane_change_handoff),
+        "post_lane_change_handoff_timestamp_s": (
+            float(post_lane_change_handoff[0]["timestamp_s"])
+            if post_lane_change_handoff else None
+        ),
         "controller_only_applied_frames": len(controller_only_applied),
         "assist_rejected_frames": len(rejected),
         "agent_query_acceptance_rate": round(len(accepted_query_frames) / max(len(attempted), 1), 4),
@@ -2652,6 +2758,8 @@ def run(args: argparse.Namespace) -> int:
         raise ValueError("--agent-lane-center-tolerance-m must be non-negative")
     if float(args.agent_lane_heading_tolerance_rad) < 0.0:
         raise ValueError("--agent-lane-heading-tolerance-rad must be non-negative")
+    if float(args.agent_post_lane_change_settle_s) < 0.0:
+        raise ValueError("--agent-post-lane-change-settle-s must be non-negative")
     if not 0.0 < float(args.agent_cross_lane_max_steer) <= 1.0:
         raise ValueError("--agent-cross-lane-max-steer must be in (0, 1]")
     if not 0.0 <= float(args.agent_cross_lane_min_steer) <= float(args.agent_cross_lane_max_steer):
@@ -2946,8 +3054,9 @@ def run(args: argparse.Namespace) -> int:
         "lidar_point_samples": [],
         "radar_point_samples": [],
     }
-    prev_v = 0.0
-    prev_a: Optional[float] = None
+    previous_speed_mps: Optional[float] = None
+    previous_acceleration_mps2: Optional[float] = None
+    previous_ego_timestamp_s: Optional[float] = None
 
     try:
         for frame_idx in range(args.max_frames):
@@ -2979,7 +3088,7 @@ def run(args: argparse.Namespace) -> int:
                     ego, carla_map,
                     frame_id=live_frame.frame_id,
                     timestamp_s=live_frame.timestamp_s,
-                    prev_v_mps=prev_v,
+                    prev_v_mps=float(previous_speed_mps or 0.0),
                 )
             else:
                 # Reconstruct from meta in watch mode
@@ -2993,12 +3102,19 @@ def run(args: argparse.Namespace) -> int:
                     heading_error_rad=0.0,
                     ego_location_xyz=np.zeros(3),
                 )
-            prev_v = ego_tel.ego_v_mps
-            if prev_a is not None:
-                stats["longitudinal_jerk_samples_mps3"].append(
-                    (float(ego_tel.ego_a_mps2) - prev_a) / max(float(args.delta_t), 1e-6)
-                )
-            prev_a = float(ego_tel.ego_a_mps2)
+            acceleration_mps2, jerk_mps3 = _finite_difference_longitudinal_kinematics(
+                speed_mps=float(ego_tel.ego_v_mps),
+                timestamp_s=float(live_frame.timestamp_s),
+                previous_speed_mps=previous_speed_mps,
+                previous_timestamp_s=previous_ego_timestamp_s,
+                previous_acceleration_mps2=previous_acceleration_mps2,
+            )
+            ego_tel.ego_a_mps2 = acceleration_mps2
+            if jerk_mps3 is not None:
+                stats["longitudinal_jerk_samples_mps3"].append(jerk_mps3)
+            previous_speed_mps = float(ego_tel.ego_v_mps)
+            previous_acceleration_mps2 = acceleration_mps2
+            previous_ego_timestamp_s = float(live_frame.timestamp_s)
             offroad = False
             if not args.samples_root and ego is not None and carla_map is not None:
                 try:
@@ -3283,6 +3399,14 @@ def run(args: argparse.Namespace) -> int:
                     )
                     last_assist_agent_query_wall_s = time.monotonic()
                     assist_agent_queries_submitted += 1
+                (
+                    post_lane_change_settle_active,
+                    post_lane_change_elapsed_s,
+                ) = _post_lane_change_settle_state(
+                    completion_timestamp_s=assist_lane_change_completed_timestamp_s,
+                    current_timestamp_s=float(live_frame.timestamp_s),
+                    settle_duration_s=float(args.agent_post_lane_change_settle_s),
+                )
                 assist_record: Dict[str, Any] = {
                     "frame_id": live_frame.frame_id,
                     "frame_idx": frame_idx,
@@ -3341,6 +3465,12 @@ def run(args: argparse.Namespace) -> int:
                     "lane_change_stability_candidate": bool(transition_candidate),
                     "lane_change_stable_frames": int(assist_lane_transition_stable_frames),
                     "lane_change_required_stable_frames": _assist_lane_stable_required_frames(args),
+                    "post_lane_change_settle_active": bool(post_lane_change_settle_active),
+                    "post_lane_change_elapsed_s": (
+                        round(float(post_lane_change_elapsed_s), 6)
+                        if post_lane_change_elapsed_s is not None else None
+                    ),
+                    "post_lane_change_handoff_to_baseline": False,
                     "maneuver_failure_reason": maneuver_failure_event,
                     "maneuver_failure_timestamp_s": (
                         float(live_frame.timestamp_s) if maneuver_failure_event else None
@@ -3365,7 +3495,10 @@ def run(args: argparse.Namespace) -> int:
                     active_assist_hold_remaining = 0
                     active_assist_applied_frames = 0
                     active_assist_metadata = {}
-                    if assist_ttc >= max(3.0, float(args.agent_risk_ttc_threshold)):
+                    if (
+                        post_lane_change_settle_active
+                        and assist_ttc >= max(3.0, float(args.agent_risk_ttc_threshold))
+                    ):
                         cruise_req = _post_lane_change_cruise_request(
                             baseline_req=assist_baseline_req,
                             world_state=world_state,
@@ -3413,7 +3546,21 @@ def run(args: argparse.Namespace) -> int:
                             }
                         )
                     else:
-                        assist_record["assist_reject_reason"] = "post_lane_change_low_ttc"
+                        handoff_reason = (
+                            "post_lane_change_low_ttc"
+                            if post_lane_change_settle_active
+                            else "post_lane_change_settle_complete"
+                        )
+                        control_source = "baseline_post_lane_change_handoff"
+                        assist_record.update(
+                            {
+                                "post_lane_change_handoff_to_baseline": True,
+                                "post_lane_change_handoff_reason": handoff_reason,
+                                "agent_validation_status": "post_lane_change_handoff",
+                            }
+                        )
+                        if post_lane_change_settle_active:
+                            assist_record["assist_reject_reason"] = handoff_reason
                 preserve_active_after_agent_fallback = bool(
                     assist_result is not None
                     and active_assist_request is not None
@@ -4012,6 +4159,8 @@ def run(args: argparse.Namespace) -> int:
             route_tracker=route_tracker,
             collision_monitor=collision_monitor,
             lane_invasion_monitor=lane_invasion_monitor,
+            maneuver_start_timestamp_s=_assist_maneuver_start_timestamp(assist_log),
+            maneuver_completion_timestamp_s=assist_lane_change_completed_timestamp_s,
         )
         _write_json(log_dir / "stage10_driving_metrics.json", driving_metrics)
         if not args.samples_root and ego is not None and ego_spawned_by_stage10:
