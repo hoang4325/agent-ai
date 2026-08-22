@@ -535,7 +535,7 @@ class AgentShadowAdapter:
             f"Do NOT include target_speed_mps, steering, throttle, brake, or trajectory fields."
         )
         compact_prompt = (
-            f"Return one JSON object only. "
+            f"Return one JSON object only; never return prose, an ellipsis ('...'), or an empty response. "
             f"baseline={baseline_intent}; preferred_lane={preferred_lane}; route_option={route_option}; "
             f"route_conflicts={route_conflicts}; risk={risk_level}; front_free_m={front_free_m}; "
             f"left_ok={bool(lc_perm.get('left', True))}; right_ok={bool(lc_perm.get('right', True))}; "
@@ -586,6 +586,8 @@ class AgentShadowAdapter:
                                 "Return exactly one valid JSON object and nothing else. "
                                 "Do not include markdown, prose, XML tags, chain-of-thought, "
                                 "or reasoning text. Keep any internal reasoning hidden. "
+                                "Never return an ellipsis ('...'), an empty value, or a refusal; "
+                                "when uncertain, return the safest allowed tactical_intent as JSON. "
                                 f"{qwen_no_think_suffix}"
                             ),
                         },
@@ -628,19 +630,21 @@ class AgentShadowAdapter:
             compact_variants = _openai_payload_variants(compact_prompt, max_tokens=96, label_prefix="compact")
             latency_critical_lane_change = blocked_clear_event
             if latency_critical_lane_change:
-                # For blocked-clear lane-change cases, prefer the shortest prompt first.
-                # This keeps real API assist intact while reducing the chance that the
-                # first attempt burns the whole timeout budget before compact fallback.
+                # For blocked-clear lane-change cases, prefer the compact *structured*
+                # variant first.  The text-only variant used to be first here; several
+                # reasoning proxies answered that prompt with ``...`` or prose even
+                # though the contract required JSON.  Keeping response_format on the
+                # first request improves schema adherence without weakening validation.
                 def _variant(variants: list[tuple[bytes, str]], suffix: str) -> tuple[bytes, str]:
                     return next(variant for variant in variants if variant[1].endswith(suffix))
 
                 payload_candidates = [
-                    _variant(compact_variants, "_text"),
                     _variant(compact_variants, "_json"),
-                    _variant(compact_variants, "_compat_text"),
+                    _variant(compact_variants, "_text"),
                     _variant(compact_variants, "_compat_json"),
-                    _variant(rich_variants, "_text"),
+                    _variant(compact_variants, "_compat_text"),
                     _variant(rich_variants, "_json"),
+                    _variant(rich_variants, "_text"),
                     _variant(rich_variants, "_compat_text"),
                     _variant(rich_variants, "_compat_json"),
                 ]
