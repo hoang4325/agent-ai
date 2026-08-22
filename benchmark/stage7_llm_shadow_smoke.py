@@ -396,6 +396,7 @@ def run_stage7_llm_shadow_smoke(
     adapter_mode: str = "api_simulated",
     api_key_env_var: str = "AGENT_API_KEY",
     api_endpoint: str | None = None,
+    adapter_model_id: str | None = None,
     max_frames_per_case: int = 60,
     api_simulated_disagree_rate: float = 0.22,
     api_simulated_latency_ms: float = 35.0,
@@ -431,9 +432,18 @@ def run_stage7_llm_shadow_smoke(
     # ── Build adapter ──────────────────────────────────────────────────────────
     from benchmark.agent_shadow_adapter import AgentShadowAdapterConfig, AgentShadowAdapter
 
+    default_model_id = (
+        os.environ.get("AGENT_MODEL_ID", "").strip()
+        if adapter_mode == "api"
+        else "api_simulated_v1"
+    )
     cfg_kwargs: dict[str, Any] = {
         "mode": adapter_mode,
-        "model_id": f"{adapter_mode}_gemini" if adapter_mode == "api" else "api_simulated_v1",
+        "model_id": (
+            adapter_model_id
+            or default_model_id
+            or ("api_gemini" if adapter_mode == "api" else "api_simulated_v1")
+        ),
         "api_timeout_s": 10.0,
         "api_key_env_var": api_key_env_var,
         "api_endpoint": api_endpoint,

@@ -67,6 +67,11 @@ def _parse_args() -> argparse.Namespace:
         help="Override Gemini API endpoint URL (optional)",
     )
     p.add_argument(
+        "--model-id",
+        default=os.environ.get("AGENT_MODEL_ID", ""),
+        help="Model/combo ID for an OpenAI-compatible API (defaults to AGENT_MODEL_ID)",
+    )
+    p.add_argument(
         "--max-frames",
         type=int,
         default=60,
@@ -113,6 +118,7 @@ def main() -> None:
         adapter_mode=args.adapter_mode,
         api_key_env_var=args.api_key_env,
         api_endpoint=args.api_endpoint,
+        adapter_model_id=args.model_id or None,
         max_frames_per_case=args.max_frames,
         api_simulated_disagree_rate=args.disagree_rate,
         api_simulated_latency_ms=args.latency_ms,
