@@ -556,9 +556,19 @@ class AgentShadowAdapter:
                     payload_obj["enable_thinking"] = False
                 text_payload_obj = dict(payload_obj)
                 text_payload_obj.pop("response_format", None)
+                # Keep provider-specific reasoning controls in the first pair,
+                # but retain a standards-only pair for strict proxies that reject
+                # unknown OpenAI-compatible fields.
+                compat_payload_obj = dict(payload_obj)
+                compat_payload_obj.pop("reasoning_format", None)
+                compat_payload_obj.pop("enable_thinking", None)
+                compat_text_payload_obj = dict(compat_payload_obj)
+                compat_text_payload_obj.pop("response_format", None)
                 return [
                     (_json.dumps(payload_obj).encode("utf-8"), f"{label_prefix}_json"),
                     (_json.dumps(text_payload_obj).encode("utf-8"), f"{label_prefix}_text"),
+                    (_json.dumps(compat_payload_obj).encode("utf-8"), f"{label_prefix}_compat_json"),
+                    (_json.dumps(compat_text_payload_obj).encode("utf-8"), f"{label_prefix}_compat_text"),
                 ]
 
             rich_variants = _openai_payload_variants(prompt, max_tokens=150, label_prefix="rich")
@@ -572,11 +582,18 @@ class AgentShadowAdapter:
                 # For blocked-clear lane-change cases, prefer the shortest prompt first.
                 # This keeps real API assist intact while reducing the chance that the
                 # first attempt burns the whole timeout budget before compact fallback.
+                def _variant(variants: list[tuple[bytes, str]], suffix: str) -> tuple[bytes, str]:
+                    return next(variant for variant in variants if variant[1].endswith(suffix))
+
                 payload_candidates = [
-                    next(variant for variant in compact_variants if variant[1].endswith("_text")),
-                    next(variant for variant in compact_variants if variant[1].endswith("_json")),
-                    next(variant for variant in rich_variants if variant[1].endswith("_text")),
-                    next(variant for variant in rich_variants if variant[1].endswith("_json")),
+                    _variant(compact_variants, "_text"),
+                    _variant(compact_variants, "_json"),
+                    _variant(compact_variants, "_compat_text"),
+                    _variant(compact_variants, "_compat_json"),
+                    _variant(rich_variants, "_text"),
+                    _variant(rich_variants, "_json"),
+                    _variant(rich_variants, "_compat_text"),
+                    _variant(rich_variants, "_compat_json"),
                 ]
             else:
                 payload_candidates = rich_variants + compact_variants
