@@ -25,6 +25,15 @@ class Stage10AgentLiveContextTests(unittest.TestCase):
             agent_active_maneuver="",
             lane_change_permission=True,
             route_conflict_flags=["blocked_clear_adjacent_lane"],
+            agent_origin_lane_id="-2",
+            agent_target_lane_id="-1",
+            target_lane_risk_available=True,
+            target_lane_corridor_clear=True,
+            target_lane_forward_ttc_s=12.5,
+            target_lane_rear_clearance_m=15.0,
+            target_lane_corridor_object_count=1,
+            target_lane_lateral_offset_m=3.4,
+            target_lane_risk_source="bevfusion_target_corridor_v1",
             drivable_envelope=SimpleNamespace(forward_clear_m=10.0),
         )
         detections = [
@@ -85,6 +94,13 @@ class Stage10AgentLiveContextTests(unittest.TestCase):
         self.assertEqual(request["ego_state"]["perception"]["lidar_point_count"], 28000)
         self.assertEqual(request["ego_state"]["perception"]["radar_point_count"], 612)
         self.assertEqual(request["stop_context"]["source"], "stage10_bevfusion_world_state")
+        self.assertTrue(request["lane_context"]["target_lane_risk_available"])
+        self.assertTrue(request["lane_context"]["target_lane_corridor_clear"])
+        self.assertEqual(request["lane_context"]["target_lane_forward_ttc_s"], 12.5)
+        self.assertEqual(
+            request["lane_context"]["target_lane_risk_source"],
+            "bevfusion_target_corridor_v1",
+        )
 
 
 if __name__ == "__main__":

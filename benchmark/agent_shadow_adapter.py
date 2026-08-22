@@ -376,6 +376,27 @@ def _build_bevfusion_prompt_context(
             "lane_change_rule": _bounded_text(lane_context.get("lane_change_rule"), limit=48),
             "origin_lane_id": _bounded_text(lane_context.get("origin_lane_id"), limit=24),
             "target_lane_id": _bounded_text(lane_context.get("target_lane_id"), limit=24),
+            "target_lane_safety": {
+                "available": bool(lane_context.get("target_lane_risk_available", False)),
+                "corridor_clear": bool(
+                    lane_context.get("target_lane_corridor_clear", False)
+                ),
+                "forward_ttc_s": _finite_float(
+                    lane_context.get("target_lane_forward_ttc_s")
+                ),
+                "rear_clearance_m": _finite_float(
+                    lane_context.get("target_lane_rear_clearance_m")
+                ),
+                "object_count": _nonnegative_int(
+                    lane_context.get("target_lane_corridor_object_count")
+                ),
+                "lateral_offset_m": _finite_float(
+                    lane_context.get("target_lane_lateral_offset_m")
+                ),
+                "source": _bounded_text(
+                    lane_context.get("target_lane_risk_source"), limit=48
+                ),
+            },
             "drivable_envelope_m": {
                 "left_bound": _finite_float(drivable_envelope.get("left_bound_m")),
                 "right_bound": _finite_float(drivable_envelope.get("right_bound_m")),

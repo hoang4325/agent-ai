@@ -88,6 +88,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-lane-stable-frames", type=int, default=5)
     parser.add_argument("--agent-lane-center-tolerance-m", type=float, default=0.60)
     parser.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20)
+    parser.add_argument("--agent-target-corridor-half-width-m", type=float, default=1.60)
+    parser.add_argument("--agent-target-rear-clearance-m", type=float, default=8.0)
+    parser.add_argument("--agent-emergency-ttc-floor-s", type=float, default=0.75)
     parser.add_argument("--radar-ablation", default="none", choices=["none", "zero_bev"])
     parser.add_argument("--record-mp4", action="store_true",
                         help="Record each Stage10 stress run to MP4")
@@ -688,6 +691,9 @@ def main() -> int:
                 "--agent-lane-stable-frames", str(args.agent_lane_stable_frames),
                 "--agent-lane-center-tolerance-m", str(args.agent_lane_center_tolerance_m),
                 "--agent-lane-heading-tolerance-rad", str(args.agent_lane_heading_tolerance_rad),
+                "--agent-target-corridor-half-width-m", str(args.agent_target_corridor_half_width_m),
+                "--agent-target-rear-clearance-m", str(args.agent_target_rear_clearance_m),
+                "--agent-emergency-ttc-floor-s", str(args.agent_emergency_ttc_floor_s),
                 "--radar-ablation", str(args.radar_ablation),
             ]
             if bool(args.record_mp4):

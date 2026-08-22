@@ -9,14 +9,18 @@ from benchmark.async_agent_worker import AsyncAgentRequest, AsyncAgentResult
 from scripts.run_stage10_stage1_live_bridge import (
     _apply_agent_episode_limit,
     _apply_agent_retry_cooldown,
+    _active_assist_stop_reason,
     _agent_response_freshness,
     _assist_commit_promotion_frames,
     _assist_completion_metadata,
     _assist_hold_frames,
     _assist_lane_transition_completed,
     _assist_lifecycle_action,
+    _can_continue_active_assist,
+    _lane_change_ttc_safety,
     _lane_center_longitudinal_control,
     _summarize_assist_log,
+    _target_lane_corridor_risk,
     _update_lane_transition_stability,
 )
 
@@ -84,7 +88,107 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
             current_min_ttc_s=1.5,
         )
         self.assertFalse(accepted)
-        self.assertEqual(reason, "stale_response_low_ttc")
+        self.assertEqual(reason, "stale_response_low_ttc_target_corridor_unavailable")
+
+    def test_accepts_low_global_ttc_when_target_corridor_is_clear(self) -> None:
+        self.world.target_lane_risk_available = True
+        self.world.target_lane_corridor_clear = True
+        accepted, reason, _ = _agent_response_freshness(
+            args=self.args,
+            result=_result(timestamp_s=10.0),
+            current_timestamp_s=11.0,
+            current_world_state=self.world,
+            current_min_ttc_s=1.5,
+        )
+        self.assertTrue(accepted)
+        self.assertEqual(reason, "fresh")
+
+    def test_target_corridor_ignores_origin_lane_blocker(self) -> None:
+        risk = _target_lane_corridor_risk(
+            detections=[SimpleNamespace(x=4.0, y=0.0, dx=4.0, dy=1.8)],
+            ego_v_mps=2.0,
+            lateral_center_m=-3.5,
+            corridor_half_width_m=1.6,
+            rear_clearance_m=8.0,
+            ttc_threshold_s=2.0,
+        )
+        self.assertTrue(risk["available"])
+        self.assertTrue(risk["clear"])
+        self.assertEqual(risk["object_count"], 0)
+
+    def test_target_corridor_rejects_close_forward_object(self) -> None:
+        risk = _target_lane_corridor_risk(
+            detections=[SimpleNamespace(x=4.0, y=-3.5, dx=4.0, dy=1.8)],
+            ego_v_mps=2.0,
+            lateral_center_m=-3.5,
+            corridor_half_width_m=1.6,
+            rear_clearance_m=8.0,
+            ttc_threshold_s=2.0,
+        )
+        self.assertFalse(risk["clear"])
+        self.assertLess(risk["forward_ttc_s"], 2.0)
+
+    def test_target_corridor_rejects_close_rear_object(self) -> None:
+        risk = _target_lane_corridor_risk(
+            detections=[SimpleNamespace(x=-5.0, y=3.5, dx=4.0, dy=1.8)],
+            ego_v_mps=2.0,
+            lateral_center_m=3.5,
+            corridor_half_width_m=1.6,
+            rear_clearance_m=8.0,
+            ttc_threshold_s=2.0,
+        )
+        self.assertFalse(risk["clear"])
+        self.assertLess(risk["rear_clearance_m"], 8.0)
+
+    def test_active_maneuver_continues_when_only_origin_lane_ttc_is_low(self) -> None:
+        world = SimpleNamespace(
+            lane_change_permission=True,
+            target_lane_risk_available=True,
+            target_lane_corridor_clear=True,
+        )
+        request = SimpleNamespace(tactical_intent="commit_lane_change_right")
+        self.assertTrue(
+            _can_continue_active_assist(
+                args=self.args,
+                active_request=request,
+                active_metadata={},
+                baseline_intent="stop_before_obstacle",
+                world_state=world,
+                min_ttc_s=1.0,
+            )
+        )
+        self.assertIsNone(
+            _active_assist_stop_reason(
+                args=self.args,
+                active_request=request,
+                baseline_intent="stop_before_obstacle",
+                world_state=world,
+                min_ttc_s=1.0,
+                lane_change_completed=False,
+            )
+        )
+
+    def test_target_corridor_evidence_is_fail_safe_when_missing(self) -> None:
+        safe, reason = _lane_change_ttc_safety(
+            world_state=SimpleNamespace(),
+            global_min_ttc_s=1.0,
+            threshold_s=2.0,
+        )
+        self.assertFalse(safe)
+        self.assertEqual(reason, "low_ttc_target_corridor_unavailable")
+
+    def test_emergency_ttc_cannot_be_overridden_by_clear_target_lane(self) -> None:
+        safe, reason = _lane_change_ttc_safety(
+            world_state=SimpleNamespace(
+                target_lane_risk_available=True,
+                target_lane_corridor_clear=True,
+            ),
+            global_min_ttc_s=0.5,
+            threshold_s=2.0,
+            emergency_floor_s=0.75,
+        )
+        self.assertFalse(safe)
+        self.assertEqual(reason, "emergency_global_ttc")
 
     def test_async_summary_does_not_count_pending_query_as_rejection(self) -> None:
         rows = [

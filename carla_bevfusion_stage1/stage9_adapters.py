@@ -531,6 +531,31 @@ class RealAgentAdapter:
             "origin_lane_id": str(getattr(world, "agent_origin_lane_id", "") or ""),
             "target_lane_id": str(getattr(world, "agent_target_lane_id", "") or ""),
             "corridor_clear": bool(getattr(world, "corridor_clear", False)),
+            "target_lane_risk_available": bool(
+                getattr(world, "target_lane_risk_available", False)
+            ),
+            "target_lane_corridor_clear": bool(
+                getattr(world, "target_lane_corridor_clear", False)
+            ),
+            "target_lane_forward_ttc_s": self._safe_float(
+                getattr(world, "target_lane_forward_ttc_s", None),
+                99.0,
+            ),
+            "target_lane_rear_clearance_m": self._safe_float(
+                getattr(world, "target_lane_rear_clearance_m", None),
+                0.0,
+            ),
+            "target_lane_corridor_object_count": self._safe_int(
+                getattr(world, "target_lane_corridor_object_count", 0),
+                0,
+            ),
+            "target_lane_lateral_offset_m": self._safe_float(
+                getattr(world, "target_lane_lateral_offset_m", None),
+                0.0,
+            ),
+            "target_lane_risk_source": str(
+                getattr(world, "target_lane_risk_source", "unavailable")
+            ),
             "drivable_envelope": {
                 "left_bound_m": self._safe_float(getattr(envelope, "left_bound_m", None), 0.0),
                 "right_bound_m": self._safe_float(getattr(envelope, "right_bound_m", None), 0.0),

@@ -152,6 +152,12 @@ def _parse_args() -> argparse.Namespace:
                    help="Maximum target-lane lateral error used for stable completion")
     p.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20,
                    help="Maximum absolute heading error used for stable completion")
+    p.add_argument("--agent-target-corridor-half-width-m", type=float, default=1.60,
+                   help="Half-width of the BEVFusion target-lane safety corridor")
+    p.add_argument("--agent-target-rear-clearance-m", type=float, default=8.0,
+                   help="Required rear clearance in the target lane during an Agent lane change")
+    p.add_argument("--agent-emergency-ttc-floor-s", type=float, default=0.75,
+                   help="Hard global TTC floor that target-lane clearance cannot override")
     p.add_argument("--record-mp4", action="store_true",
                    help="Record the Stage10 live CARLA run to an MP4 attached to the ego vehicle")
     p.add_argument("--recording-path", default=None,
@@ -624,6 +630,135 @@ def _find_target_lane_waypoint(carla_map: Any, ego: Any, target_lane_id: str) ->
                 next_frontier.append(adjacent)
         frontier = next_frontier
     return None
+
+
+def _target_lane_lateral_offset_bev_m(
+    *,
+    carla_map: Any,
+    ego: Any,
+    target_lane_id: str,
+) -> Optional[float]:
+    """Return target-lane centre offset in BEVFusion ego coordinates.
+
+    CARLA uses local +y to the right while the canonical BEVFusion frame uses
+    +y to the left, hence the final sign inversion.
+    """
+    target_wp = _find_target_lane_waypoint(carla_map, ego, target_lane_id)
+    if target_wp is None or ego is None:
+        return None
+    try:
+        ego_tf = ego.get_transform()
+        ego_loc = ego_tf.location
+        target_loc = target_wp.transform.location
+        yaw_rad = math.radians(float(ego_tf.rotation.yaw))
+        dx = float(target_loc.x - ego_loc.x)
+        dy = float(target_loc.y - ego_loc.y)
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return None
+    local_y_carla = -math.sin(yaw_rad) * dx + math.cos(yaw_rad) * dy
+    return -float(local_y_carla)
+
+
+def _target_lane_corridor_risk(
+    *,
+    detections: List[Any],
+    ego_v_mps: float,
+    lateral_center_m: Optional[float],
+    corridor_half_width_m: float,
+    rear_clearance_m: float,
+    ttc_threshold_s: float,
+) -> Dict[str, Any]:
+    """Estimate risk only inside the intended target-lane corridor.
+
+    The global TTC remains available for conservative baseline behavior.  This
+    projection prevents a stationary blocker in the *origin* lane from being
+    misclassified as a target-lane hazard while still rejecting close forward
+    and rear objects detected by BEVFusion in the lane being entered.
+    """
+    if lateral_center_m is None or not math.isfinite(float(lateral_center_m)):
+        return {
+            "available": False,
+            "clear": False,
+            "forward_ttc_s": None,
+            "rear_clearance_m": None,
+            "object_count": 0,
+            "lateral_center_m": None,
+            "source": "bevfusion_target_corridor_v1",
+        }
+
+    center_m = float(lateral_center_m)
+    half_width_m = max(0.5, float(corridor_half_width_m))
+    required_rear_m = max(0.0, float(rear_clearance_m))
+    min_forward_ttc_s = 99.0
+    min_rear_clearance_m = 99.0
+    object_count = 0
+
+    for detection in detections or []:
+        try:
+            x_m = float(getattr(detection, "x"))
+            y_m = float(getattr(detection, "y"))
+            box_width_m = abs(float(getattr(detection, "dy", 0.0)))
+            box_length_m = abs(float(getattr(detection, "dx", 0.0)))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if not all(math.isfinite(value) for value in (x_m, y_m, box_width_m, box_length_m)):
+            continue
+
+        # LiDARInstance3DBoxes stores dimensions, not radii. Bound the padding
+        # so a malformed or unusually large box cannot clear/block every lane.
+        lateral_padding_m = _clamp(0.5 * box_width_m, 0.35, 1.50)
+        if abs(y_m - center_m) > half_width_m + lateral_padding_m:
+            continue
+        object_count += 1
+
+        longitudinal_padding_m = _clamp(0.5 * box_length_m, 0.50, 3.00)
+        if x_m >= 0.0:
+            forward_gap_m = max(0.1, x_m - longitudinal_padding_m - 1.0)
+            ttc_s = forward_gap_m / max(0.5, float(ego_v_mps))
+            min_forward_ttc_s = min(min_forward_ttc_s, ttc_s)
+        else:
+            rear_gap_m = max(0.0, abs(x_m) - longitudinal_padding_m)
+            min_rear_clearance_m = min(min_rear_clearance_m, rear_gap_m)
+
+    clear = bool(
+        min_forward_ttc_s >= max(0.0, float(ttc_threshold_s))
+        and min_rear_clearance_m >= required_rear_m
+    )
+    return {
+        "available": True,
+        "clear": clear,
+        "forward_ttc_s": round(min_forward_ttc_s, 6),
+        "rear_clearance_m": round(min_rear_clearance_m, 6),
+        "object_count": int(object_count),
+        "lateral_center_m": round(center_m, 6),
+        "source": "bevfusion_target_corridor_v1",
+    }
+
+
+def _lane_change_ttc_safety(
+    *,
+    world_state: Any,
+    global_min_ttc_s: float,
+    threshold_s: float,
+    emergency_floor_s: float = 0.75,
+) -> Tuple[bool, str]:
+    """Reconcile global TTC with the target-lane BEVFusion corridor.
+
+    Low global TTC may be caused by the blocker the maneuver is intended to
+    avoid.  It is safe to continue only when a current, map-aligned BEVFusion
+    corridor assessment explicitly marks the target lane clear. Missing target
+    corridor evidence remains fail-safe.
+    """
+    global_ttc_s = float(global_min_ttc_s)
+    if global_ttc_s < max(0.0, float(emergency_floor_s)):
+        return False, "emergency_global_ttc"
+    if global_ttc_s >= max(0.0, float(threshold_s)):
+        return True, "global_ttc_clear"
+    if not bool(getattr(world_state, "target_lane_risk_available", False)):
+        return False, "low_ttc_target_corridor_unavailable"
+    if bool(getattr(world_state, "target_lane_corridor_clear", False)):
+        return True, "global_low_ttc_target_corridor_clear"
+    return False, "low_ttc_target_corridor_unsafe"
 
 
 def _lane_center_longitudinal_control(
@@ -1555,8 +1690,14 @@ def _agent_response_freshness(
             return False, "stale_response_lane_change_direction_mismatch", response_age_s
         if not bool(getattr(current_world_state, "lane_change_permission", False)):
             return False, "stale_response_lane_change_not_permitted", response_age_s
-        if float(current_min_ttc_s) < float(args.agent_risk_ttc_threshold):
-            return False, "stale_response_low_ttc", response_age_s
+        ttc_safe, ttc_reason = _lane_change_ttc_safety(
+            world_state=current_world_state,
+            global_min_ttc_s=current_min_ttc_s,
+            threshold_s=float(args.agent_risk_ttc_threshold),
+            emergency_floor_s=float(getattr(args, "agent_emergency_ttc_floor_s", 0.75)),
+        )
+        if not ttc_safe:
+            return False, f"stale_response_{ttc_reason}", response_age_s
 
     return True, "fresh", response_age_s
 
@@ -1905,7 +2046,13 @@ def _can_continue_active_assist(
         return False
     if baseline_intent not in {"stop_before_obstacle", "follow", "keep_lane"}:
         return False
-    if float(min_ttc_s) < max(1.5, float(args.agent_risk_ttc_threshold) - 0.25):
+    ttc_safe, _ = _lane_change_ttc_safety(
+        world_state=world_state,
+        global_min_ttc_s=min_ttc_s,
+        threshold_s=max(1.5, float(args.agent_risk_ttc_threshold) - 0.25),
+        emergency_floor_s=float(getattr(args, "agent_emergency_ttc_floor_s", 0.75)),
+    )
+    if not ttc_safe:
         return False
     if not bool(getattr(world_state, "lane_change_permission", False)):
         return False
@@ -1933,8 +2080,14 @@ def _active_assist_stop_reason(
         return "active_intent_not_lane_change"
     if baseline_intent not in {"stop_before_obstacle", "follow", "keep_lane"}:
         return "safety_abort_baseline_conflict"
-    if float(min_ttc_s) < max(1.5, float(args.agent_risk_ttc_threshold) - 0.25):
-        return "safety_abort_low_ttc"
+    ttc_safe, ttc_reason = _lane_change_ttc_safety(
+        world_state=world_state,
+        global_min_ttc_s=min_ttc_s,
+        threshold_s=max(1.5, float(args.agent_risk_ttc_threshold) - 0.25),
+        emergency_floor_s=float(getattr(args, "agent_emergency_ttc_floor_s", 0.75)),
+    )
+    if not ttc_safe:
+        return f"safety_abort_{ttc_reason}"
     if not bool(getattr(world_state, "lane_change_permission", False)):
         return "safety_abort_lane_change_not_permitted"
     return None
@@ -2131,6 +2284,15 @@ def _summarize_assist_log(
             ),
             "lane_heading_tolerance_rad": float(
                 getattr(args, "agent_lane_heading_tolerance_rad", 0.20)
+            ),
+            "target_corridor_half_width_m": float(
+                getattr(args, "agent_target_corridor_half_width_m", 1.60)
+            ),
+            "target_rear_clearance_m": float(
+                getattr(args, "agent_target_rear_clearance_m", 8.0)
+            ),
+            "emergency_ttc_floor_s": float(
+                getattr(args, "agent_emergency_ttc_floor_s", 0.75)
             ),
         },
         "agent_query_frames": len(submitted),
@@ -2392,6 +2554,12 @@ def run(args: argparse.Namespace) -> int:
         raise ValueError("--agent-lane-center-tolerance-m must be non-negative")
     if float(args.agent_lane_heading_tolerance_rad) < 0.0:
         raise ValueError("--agent-lane-heading-tolerance-rad must be non-negative")
+    if float(args.agent_target_corridor_half_width_m) <= 0.0:
+        raise ValueError("--agent-target-corridor-half-width-m must be positive")
+    if float(args.agent_target_rear_clearance_m) < 0.0:
+        raise ValueError("--agent-target-rear-clearance-m must be non-negative")
+    if float(args.agent_emergency_ttc_floor_s) < 0.0:
+        raise ValueError("--agent-emergency-ttc-floor-s must be non-negative")
     random.seed(int(args.seed))
     np.random.seed(int(args.seed))
     _ensure_carla_pythonapi_paths(args.carla_root)
@@ -2812,6 +2980,54 @@ def run(args: argparse.Namespace) -> int:
                     if preferred_lane_for_frame in {"left", "right"} and lane_change_allowed
                     else [],
                 )
+                target_lateral_offset_m = _target_lane_lateral_offset_bev_m(
+                    carla_map=carla_map,
+                    ego=ego,
+                    target_lane_id=agent_target_lane_id,
+                )
+                target_lane_risk = _target_lane_corridor_risk(
+                    detections=list(det_list.detections or []),
+                    ego_v_mps=float(ego_tel.ego_v_mps),
+                    lateral_center_m=target_lateral_offset_m,
+                    corridor_half_width_m=float(args.agent_target_corridor_half_width_m),
+                    rear_clearance_m=float(args.agent_target_rear_clearance_m),
+                    ttc_threshold_s=float(args.agent_risk_ttc_threshold),
+                )
+                setattr(
+                    world_state,
+                    "target_lane_risk_available",
+                    bool(target_lane_risk["available"]),
+                )
+                setattr(
+                    world_state,
+                    "target_lane_corridor_clear",
+                    bool(target_lane_risk["clear"]),
+                )
+                setattr(
+                    world_state,
+                    "target_lane_forward_ttc_s",
+                    target_lane_risk["forward_ttc_s"],
+                )
+                setattr(
+                    world_state,
+                    "target_lane_rear_clearance_m",
+                    target_lane_risk["rear_clearance_m"],
+                )
+                setattr(
+                    world_state,
+                    "target_lane_corridor_object_count",
+                    int(target_lane_risk["object_count"]),
+                )
+                setattr(
+                    world_state,
+                    "target_lane_lateral_offset_m",
+                    target_lane_risk["lateral_center_m"],
+                )
+                setattr(
+                    world_state,
+                    "target_lane_risk_source",
+                    str(target_lane_risk["source"]),
+                )
             route_info = (
                 route_tracker.update(ego_tel.ego_location_xyz)
                 if route_tracker is not None
@@ -2887,6 +3103,15 @@ def run(args: argparse.Namespace) -> int:
                 assist_ttc = float(
                     ws_builder._prev_detections and
                     _ttc_from_prev(ws_builder._prev_detections, ego_tel.ego_v_mps) or 99.0
+                )
+                assist_ttc_policy_safe, assist_ttc_policy_reason = _lane_change_ttc_safety(
+                    world_state=world_state,
+                    global_min_ttc_s=assist_ttc,
+                    threshold_s=max(
+                        1.5,
+                        float(args.agent_risk_ttc_threshold) - 0.25,
+                    ),
+                    emergency_floor_s=float(args.agent_emergency_ttc_floor_s),
                 )
                 assist_result = assist_agent_worker.poll()
                 worker_state = assist_agent_worker.stats()
@@ -2979,6 +3204,29 @@ def run(args: argparse.Namespace) -> int:
                     "agent_valid_decisions_episode": int(assist_agent_valid_decisions),
                     "ego_v_mps": float(ego_tel.ego_v_mps),
                     "min_ttc_s": assist_ttc,
+                    "assist_ttc_policy_safe": bool(assist_ttc_policy_safe),
+                    "assist_ttc_policy_reason": str(assist_ttc_policy_reason),
+                    "target_lane_risk_available": bool(
+                        getattr(world_state, "target_lane_risk_available", False)
+                    ),
+                    "target_lane_corridor_clear": bool(
+                        getattr(world_state, "target_lane_corridor_clear", False)
+                    ),
+                    "target_lane_forward_ttc_s": getattr(
+                        world_state, "target_lane_forward_ttc_s", None
+                    ),
+                    "target_lane_rear_clearance_m": getattr(
+                        world_state, "target_lane_rear_clearance_m", None
+                    ),
+                    "target_lane_corridor_object_count": int(
+                        getattr(world_state, "target_lane_corridor_object_count", 0)
+                    ),
+                    "target_lane_lateral_offset_m": getattr(
+                        world_state, "target_lane_lateral_offset_m", None
+                    ),
+                    "target_lane_risk_source": str(
+                        getattr(world_state, "target_lane_risk_source", "unavailable")
+                    ),
                     "route_progress_m": route_info.get("route_progress_m"),
                     "active_assist_maneuver": active_assist_intent,
                     "agent_origin_lane_id": agent_origin_lane_id,
