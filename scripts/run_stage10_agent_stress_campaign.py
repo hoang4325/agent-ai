@@ -75,7 +75,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-assist-min-confidence", type=float, default=0.50)
     parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                         help="Wall-clock rate limit for real Agent API calls")
-    parser.add_argument("--agent-api-timeout-s", type=float, default=3.0,
+    parser.add_argument("--agent-api-timeout-s", type=float, default=5.0,
                         help="Agent API timeout used by the non-blocking worker")
     parser.add_argument("--agent-api-max-retries", type=int, default=0,
                         help="Provider retries used by the non-blocking worker")

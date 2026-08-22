@@ -134,7 +134,7 @@ def _parse_args() -> argparse.Namespace:
                    help="Minimum Agent confidence required before bounded assist can override the baseline request")
     p.add_argument("--agent-max-requests-per-minute", type=float, default=30.0,
                    help="Wall-clock rate limit for real Agent API calls; set <=0 to disable")
-    p.add_argument("--agent-api-timeout-s", type=float, default=3.0,
+    p.add_argument("--agent-api-timeout-s", type=float, default=5.0,
                    help="Per-request Agent API timeout. The control loop never waits for it")
     p.add_argument("--agent-api-max-retries", type=int, default=0,
                    help="Provider retries in the background Agent worker")
@@ -2467,6 +2467,44 @@ def run(args: argparse.Namespace) -> int:
                         )
                     else:
                         assist_record["assist_reject_reason"] = "post_lane_change_low_ttc"
+                preserve_active_after_agent_fallback = bool(
+                    assist_result is not None
+                    and active_assist_request is not None
+                    and (
+                        bool(getattr(assist_result, "error_type", None))
+                        or bool(getattr(assist_result.intent_record, "fallback_to_baseline", False))
+                    )
+                    and _can_continue_active_assist(
+                        args=args,
+                        active_request=active_assist_request,
+                        active_metadata=active_assist_metadata,
+                        baseline_intent=assist_baseline_intent,
+                        world_state=world_state,
+                        min_ttc_s=assist_ttc,
+                    )
+                )
+                if preserve_active_after_agent_fallback:
+                    # A new API request is advisory. Do not tear down a maneuver
+                    # that was previously accepted by the safety gate merely
+                    # because this later request timed out or could not be parsed.
+                    # The existing request is still revalidated every frame and
+                    # expires through active_assist_hold_remaining.
+                    assist_record.update(
+                        {
+                            "agent_response_fresh": False,
+                            "agent_response_freshness_reason": "agent_fallback_preserved_active_maneuver",
+                            "agent_validation_status": "fallback_preserved_active_maneuver",
+                            "agent_fallback_to_baseline": True,
+                            "agent_fallback_reason": (
+                                str(getattr(assist_result, "error_type", ""))
+                                or str(
+                                    (getattr(assist_result.intent_record, "provenance", {}) or {}).get(
+                                        "fallback_reason", "agent_fallback"
+                                    )
+                                )
+                            ),
+                        }
+                    )
                 elif _assist_lane_transition_completed(
                     world_state=world_state,
                     active_metadata=active_assist_metadata,
@@ -2608,13 +2646,16 @@ def run(args: argparse.Namespace) -> int:
                         active_assist_hold_remaining = 0
                         active_assist_applied_frames = 0
                         active_assist_metadata = {}
-                elif _can_continue_active_assist(
-                    args=args,
-                    active_request=active_assist_request,
-                    active_metadata=active_assist_metadata,
-                    baseline_intent=assist_baseline_intent,
-                    world_state=world_state,
-                    min_ttc_s=assist_ttc,
+                if preserve_active_after_agent_fallback or (
+                    assist_result is None
+                    and _can_continue_active_assist(
+                        args=args,
+                        active_request=active_assist_request,
+                        active_metadata=active_assist_metadata,
+                        baseline_intent=assist_baseline_intent,
+                        world_state=world_state,
+                        min_ttc_s=assist_ttc,
+                    )
                 ):
                     active_assist_hold_remaining = max(0, active_assist_hold_remaining - 1)
                     active_assist_applied_frames += 1

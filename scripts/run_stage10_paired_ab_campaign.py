@@ -39,7 +39,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-risk-ttc-threshold", type=float, default=2.0)
     parser.add_argument("--agent-assist-min-confidence", type=float, default=0.70)
     parser.add_argument("--agent-max-requests-per-minute", type=float, default=30.0)
-    parser.add_argument("--agent-api-timeout-s", type=float, default=3.0)
+    parser.add_argument("--agent-api-timeout-s", type=float, default=5.0)
     parser.add_argument("--agent-api-max-retries", type=int, default=0)
     parser.add_argument("--agent-response-max-age-s", type=float, default=3.0)
     parser.add_argument("--radar-ablation", choices=["none", "zero_bev"], default="none")
