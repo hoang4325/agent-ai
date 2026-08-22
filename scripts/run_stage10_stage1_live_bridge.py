@@ -144,7 +144,7 @@ def _parse_args() -> argparse.Namespace:
                    help="Discard an Agent response older than this many simulated seconds")
     p.add_argument("--agent-retry-cooldown-s", type=float, default=2.0,
                    help="Wall-clock cooldown before retrying a failed/stale Agent decision")
-    p.add_argument("--agent-maneuver-timeout-s", type=float, default=15.0,
+    p.add_argument("--agent-maneuver-timeout-s", type=float, default=20.0,
                    help="Maximum duration of an accepted lane-change maneuver; safety is revalidated every frame")
     p.add_argument("--agent-lane-stable-frames", type=int, default=5,
                    help="Consecutive target-lane frames required before lane-change completion")
@@ -783,6 +783,40 @@ def _lane_center_longitudinal_control(
     return throttle, brake
 
 
+def _lane_center_steering_control(
+    *,
+    local_x_m: float,
+    local_y_m: float,
+    heading_error_rad: float,
+    max_steer: float,
+    lane_change_assist: bool,
+) -> tuple[float, str]:
+    """Return bounded steering for either crossing or settling into a lane.
+
+    The lane-change phase has a shorter look-ahead and a small directional
+    floor while the target lane is still more than two metres away.  This
+    prevents pure-pursuit cancellation before the vehicle crosses the lane
+    boundary; it never bypasses the live TTC, map-permission, or emergency
+    safety gates checked by the caller.
+    """
+    max_steer_abs = max(0.0, float(max_steer))
+    local_x = max(float(local_x_m), 1.0)
+    local_y = float(local_y_m)
+    if lane_change_assist:
+        pure_pursuit = math.atan2(3.0 * local_y, max(local_x * local_x, 1.0))
+        steer = 0.80 * float(heading_error_rad) + 1.40 * pure_pursuit
+        phase = "cross_lane" if abs(local_y) >= 2.0 else "settle_target_lane"
+        if phase == "cross_lane":
+            crossing_floor = min(max_steer_abs, 0.18)
+            if abs(steer) < crossing_floor:
+                steer = math.copysign(crossing_floor, local_y)
+    else:
+        pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
+        steer = 0.75 * float(heading_error_rad) + 1.25 * pure_pursuit
+        phase = "lane_center"
+    return _clamp(steer, -max_steer_abs, max_steer_abs), phase
+
+
 def _map_lane_centering_control(
     *,
     carla_map: Any,
@@ -791,6 +825,7 @@ def _map_lane_centering_control(
     target_speed_mps: float,
     source: str,
     max_steer: float = 0.42,
+    lane_change_assist: bool = False,
 ) -> Any:
     from stage9.schemas import ActuatorCommand
 
@@ -803,7 +838,10 @@ def _map_lane_centering_control(
     ego_tf = ego.get_transform()
     ego_loc = ego_tf.location
 
-    lookahead_m = _clamp(4.0 + current_speed * 0.7, 4.0, 8.0)
+    if lane_change_assist:
+        lookahead_m = _clamp(3.0 + current_speed * 0.55, 3.0, 5.5)
+    else:
+        lookahead_m = _clamp(4.0 + current_speed * 0.7, 4.0, 8.0)
     next_candidates = [
         wp for wp in target_wp.next(float(lookahead_m))
         if str(getattr(wp, "lane_id", "")) == str(getattr(target_wp, "lane_id", ""))
@@ -816,11 +854,14 @@ def _map_lane_centering_control(
     dy = float(aim_loc.y - ego_loc.y)
     local_x = math.cos(yaw_rad) * dx + math.sin(yaw_rad) * dy
     local_y = -math.sin(yaw_rad) * dx + math.cos(yaw_rad) * dy
-    local_x = max(local_x, 1.0)
-
     heading_error_rad = math.radians(_wrap_degrees(float(aim_wp.transform.rotation.yaw) - float(ego_tf.rotation.yaw)))
-    pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
-    steer = _clamp(0.75 * heading_error_rad + 1.25 * pure_pursuit, -max_steer, max_steer)
+    steer, steering_phase = _lane_center_steering_control(
+        local_x_m=local_x,
+        local_y_m=local_y,
+        heading_error_rad=heading_error_rad,
+        max_steer=max_steer,
+        lane_change_assist=lane_change_assist,
+    )
 
     lateral_abs = abs(float(local_y))
     # A target in the adjacent lane is normally 3-4 m lateral from ego.
@@ -834,12 +875,18 @@ def _map_lane_centering_control(
         lateral_distance_m=lateral_abs,
     )
 
-    return ActuatorCommand(
+    command = ActuatorCommand(
         steer=steer,
         throttle=throttle,
         brake=brake,
         source=source,
     )
+    # Dynamic telemetry is deliberately attached rather than added to the
+    # stable Stage 9 command schema; it is emitted into the Stage 10 audit log.
+    setattr(command, "target_lane_lateral_error_m", float(local_y))
+    setattr(command, "target_lane_heading_error_rad", float(heading_error_rad))
+    setattr(command, "steering_phase", steering_phase)
+    return command
 
 
 def _draw_scenario_actor_labels(world: Any, scenario_manifest: Optional[Dict[str, Any]], *, life_time_s: float) -> None:
@@ -1871,11 +1918,12 @@ def _assist_hold_frames(args: argparse.Namespace) -> int:
     """Return the bounded maneuver deadline in frames.
 
     The legacy name is retained because reports and tests already use it.  The
-    duration is now configurable and defaults to 15 s, long enough to cover the
-    observed 7.6--11.8 s maneuvers without granting unbounded control authority.
+    duration is now configurable and defaults to 20 s.  The additional bounded
+    settling time is needed after the vehicle first crosses the lane boundary
+    before the five-frame centre/heading completion check can pass.
     """
     delta_t = max(float(getattr(args, "delta_t", 0.1)), 1e-3)
-    timeout_s = max(float(getattr(args, "agent_maneuver_timeout_s", 15.0)), delta_t)
+    timeout_s = max(float(getattr(args, "agent_maneuver_timeout_s", 20.0)), delta_t)
     return max(1, int(math.ceil(timeout_s / delta_t)))
 
 
@@ -2277,7 +2325,7 @@ def _summarize_assist_log(
             "api_timeout_s": float(getattr(args, "agent_api_timeout_s", 0.0)),
             "api_max_retries": int(getattr(args, "agent_api_max_retries", 0)),
             "response_max_age_s": float(getattr(args, "agent_response_max_age_s", 0.0)),
-            "maneuver_timeout_s": float(getattr(args, "agent_maneuver_timeout_s", 15.0)),
+            "maneuver_timeout_s": float(getattr(args, "agent_maneuver_timeout_s", 20.0)),
             "lane_stable_frames": int(getattr(args, "agent_lane_stable_frames", 5)),
             "lane_center_tolerance_m": float(
                 getattr(args, "agent_lane_center_tolerance_m", 0.60)
@@ -3295,6 +3343,13 @@ def run(args: argparse.Namespace) -> int:
                                     "steer": float(getattr(cmd, "steer", 0.0)),
                                     "brake": float(getattr(cmd, "brake", 0.0)),
                                     "source": str(getattr(cmd, "source", "unknown")),
+                                    "target_lane_lateral_error_m": getattr(
+                                        cmd, "target_lane_lateral_error_m", None
+                                    ),
+                                    "target_lane_heading_error_rad": getattr(
+                                        cmd, "target_lane_heading_error_rad", None
+                                    ),
+                                    "steering_phase": getattr(cmd, "steering_phase", None),
                                 },
                             }
                         )
@@ -3474,7 +3529,8 @@ def run(args: argparse.Namespace) -> int:
                             target_lane_id=agent_target_lane_id,
                             target_speed_mps=float(getattr(assist_req, "target_v_desired_mps", 2.0)),
                             source="MAP_LANE_CENTER_ASSIST",
-                            max_steer=0.42,
+                            max_steer=0.46,
+                            lane_change_assist=True,
                         )
                         if cmd is None:
                             cmd = assist_mpc.execute(assist_req)
@@ -3490,6 +3546,13 @@ def run(args: argparse.Namespace) -> int:
                             "steer": float(getattr(cmd, "steer", 0.0)),
                             "brake": float(getattr(cmd, "brake", 0.0)),
                             "source": str(getattr(cmd, "source", "unknown")),
+                            "target_lane_lateral_error_m": getattr(
+                                cmd, "target_lane_lateral_error_m", None
+                            ),
+                            "target_lane_heading_error_rad": getattr(
+                                cmd, "target_lane_heading_error_rad", None
+                            ),
+                            "steering_phase": getattr(cmd, "steering_phase", None),
                         }
                         assist_record["agent_intent"] = active_assist_intent
                         accepted_new_assist = True
@@ -3544,7 +3607,8 @@ def run(args: argparse.Namespace) -> int:
                         target_lane_id=agent_target_lane_id,
                         target_speed_mps=float(getattr(active_assist_request, "target_v_desired_mps", 2.5)),
                         source="MAP_LANE_CENTER_ASSIST_HOLD",
-                        max_steer=0.42,
+                        max_steer=0.46,
+                        lane_change_assist=True,
                     )
                     if cmd is None:
                         cmd = assist_mpc.execute(active_assist_request)
@@ -3569,6 +3633,13 @@ def run(args: argparse.Namespace) -> int:
                                 "steer": float(getattr(cmd, "steer", 0.0)),
                                 "brake": float(getattr(cmd, "brake", 0.0)),
                                 "source": str(getattr(cmd, "source", "unknown")),
+                                "target_lane_lateral_error_m": getattr(
+                                    cmd, "target_lane_lateral_error_m", None
+                                ),
+                                "target_lane_heading_error_rad": getattr(
+                                    cmd, "target_lane_heading_error_rad", None
+                                ),
+                                "steering_phase": getattr(cmd, "steering_phase", None),
                             },
                         }
                     )

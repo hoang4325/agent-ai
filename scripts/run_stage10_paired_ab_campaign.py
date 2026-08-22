@@ -44,7 +44,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-api-max-retries", type=int, default=0)
     parser.add_argument("--agent-response-max-age-s", type=float, default=10.0)
     parser.add_argument("--agent-retry-cooldown-s", type=float, default=2.0)
-    parser.add_argument("--agent-maneuver-timeout-s", type=float, default=15.0)
+    parser.add_argument("--agent-maneuver-timeout-s", type=float, default=20.0)
     parser.add_argument("--agent-lane-stable-frames", type=int, default=5)
     parser.add_argument("--agent-lane-center-tolerance-m", type=float, default=0.60)
     parser.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20)

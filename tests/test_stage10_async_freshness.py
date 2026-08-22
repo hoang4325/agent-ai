@@ -19,6 +19,7 @@ from scripts.run_stage10_stage1_live_bridge import (
     _can_continue_active_assist,
     _lane_change_ttc_safety,
     _lane_center_longitudinal_control,
+    _lane_center_steering_control,
     _summarize_assist_log,
     _target_lane_corridor_risk,
     _update_lane_transition_stability,
@@ -366,7 +367,7 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
 
     def test_lane_change_hold_outlives_commit_promotion(self) -> None:
         args = argparse.Namespace(delta_t=0.1)
-        self.assertEqual(_assist_hold_frames(args), 150)
+        self.assertEqual(_assist_hold_frames(args), 200)
         self.assertEqual(_assist_commit_promotion_frames(args), 10)
         self.assertLess(_assist_commit_promotion_frames(args), _assist_hold_frames(args))
 
@@ -450,6 +451,30 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         )
         self.assertEqual(throttle, 0.0)
         self.assertGreater(brake, 0.0)
+
+    def test_cross_lane_steering_has_directional_floor_until_boundary(self) -> None:
+        steer, phase = _lane_center_steering_control(
+            local_x_m=5.0,
+            local_y_m=-3.5,
+            heading_error_rad=0.0,
+            max_steer=0.46,
+            lane_change_assist=True,
+        )
+        self.assertEqual(phase, "cross_lane")
+        self.assertLessEqual(steer, -0.18)
+        self.assertGreaterEqual(steer, -0.46)
+
+    def test_lane_change_steering_settles_without_crossing_floor(self) -> None:
+        steer, phase = _lane_center_steering_control(
+            local_x_m=5.0,
+            local_y_m=0.2,
+            heading_error_rad=0.0,
+            max_steer=0.46,
+            lane_change_assist=True,
+        )
+        self.assertEqual(phase, "settle_target_lane")
+        self.assertGreater(steer, 0.0)
+        self.assertLess(steer, 0.18)
 
 
 if __name__ == "__main__":
