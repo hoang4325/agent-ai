@@ -478,6 +478,19 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         self.assertEqual(phase, "cross_lane")
         self.assertGreaterEqual(steer, 0.18)
 
+    def test_cross_lane_prioritizes_lateral_progress_over_origin_lane_heading(self) -> None:
+        """A blocker must not make heading correction cancel the lane change."""
+        steer, phase = _lane_center_steering_control(
+            local_x_m=5.0,
+            local_y_m=-1.18,
+            heading_error_rad=0.36,
+            max_steer=0.46,
+            lane_change_assist=True,
+            target_lane_reached=False,
+        )
+        self.assertEqual(phase, "cross_lane")
+        self.assertLessEqual(steer, -0.24)
+
     def test_lane_change_steering_settles_without_crossing_floor(self) -> None:
         steer, phase = _lane_center_steering_control(
             local_x_m=5.0,

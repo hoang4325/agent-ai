@@ -805,10 +805,18 @@ def _lane_center_steering_control(
     local_x = max(float(local_x_m), 1.0)
     local_y = float(local_y_m)
     if lane_change_assist and not target_lane_reached:
-        pure_pursuit = math.atan2(3.0 * local_y, max(local_x * local_x, 1.0))
-        steer = 0.80 * float(heading_error_rad) + 1.40 * pure_pursuit
+        # While the ego is still in the origin lane, lateral displacement is
+        # the primary objective.  A large heading correction here can cancel
+        # the turn toward an adjacent-lane centre (especially near a blocker)
+        # and leave the vehicle driving forward in the blocked lane.  The
+        # target point is already expressed in ego coordinates, so pure
+        # pursuit incorporates the useful part of heading alignment.  Retain
+        # only a small explicit heading term until the HD-map lane transition
+        # has physically occurred.
+        pure_pursuit = math.atan2(4.2 * local_y, max(local_x * local_x, 1.0))
+        steer = 0.25 * float(heading_error_rad) + 1.85 * pure_pursuit
         phase = "cross_lane"
-        crossing_floor = min(max_steer_abs, 0.18)
+        crossing_floor = min(max_steer_abs, 0.24 if abs(local_y) > 1.0 else 0.18)
         if abs(steer) < crossing_floor and abs(local_y) > 1e-3:
             steer = math.copysign(crossing_floor, local_y)
     elif lane_change_assist:
