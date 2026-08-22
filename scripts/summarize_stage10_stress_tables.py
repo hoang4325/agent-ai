@@ -17,20 +17,30 @@ STATISTIC_FIELDS = (
     "route_completion_rate",
     "distance_traveled_m",
     "collision_count",
+    "collision_episode_count",
+    "collision_sensor_event_count",
     "lane_invasion_count",
+    "legal_lane_crossing_count",
+    "illegal_lane_invasion_count",
+    "unknown_lane_crossing_count",
     "offroad_rate",
     "mean_abs_longitudinal_jerk_mps3",
     "max_abs_longitudinal_jerk_mps3",
+    "episode_duration_s",
     "maneuver_duration_s",
     "agreement_rate",
     "agent_fallback_rate",
+    "agent_timeout_rate",
     "assist_query_rejection_rate",
+    "safety_arbitration_rejection_rate",
+    "end_to_end_query_success_rate",
     "assist_p95_api_call_ms",
     "assist_over_step_budget_rate",
     "stale_response_discard_rate",
     "control_loop_p95_ms",
     "control_loop_over_budget_rate",
     "lane_change_completion_time_s",
+    "lane_change_completed",
 )
 
 T_CRITICAL_95 = {
@@ -151,7 +161,12 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
         )
         query_ratio = queried_frames / sim_frames if sim_frames else 0.0
         collision_count = int(driving.get("collision_count") or 0)
-        safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
+        collision_episode_count = int(
+            driving.get("collision_episode_count")
+            if driving.get("collision_episode_count") is not None
+            else collision_count
+        )
+        safety_outcome = "Collision" if collision_episode_count > 0 else "Collision-free"
         route = driving.get("route") or {}
 
         rows.append(
@@ -164,13 +179,33 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                 "route_completion_rate": _optional_float(driving.get("route_completion_rate")),
                 "distance_traveled_m": _optional_float(route.get("distance_traveled_m")),
                 "collision_count": collision_count,
+                "collision_episode_count": collision_episode_count,
+                "collision_sensor_event_count": int(
+                    driving.get("collision_sensor_event_count")
+                    if driving.get("collision_sensor_event_count") is not None
+                    else collision_count
+                ),
                 "lane_invasion_count": int(driving.get("lane_invasion_count") or 0),
+                "legal_lane_crossing_count": int(
+                    driving.get("legal_lane_crossing_count") or 0
+                ),
+                "illegal_lane_invasion_count": int(
+                    driving.get("illegal_lane_invasion_count") or 0
+                ),
+                "unknown_lane_crossing_count": int(
+                    driving.get("unknown_lane_crossing_count") or 0
+                ),
                 "offroad_rate": _optional_float(driving.get("offroad_rate")),
                 "mean_abs_longitudinal_jerk_mps3": _optional_float(
                     comfort.get("mean_abs_longitudinal_jerk_mps3")
                 ),
                 "max_abs_longitudinal_jerk_mps3": _optional_float(
                     comfort.get("max_abs_longitudinal_jerk_mps3")
+                ),
+                "episode_duration_s": _optional_float(
+                    driving.get("episode_duration_s")
+                    if driving.get("episode_duration_s") is not None
+                    else driving.get("maneuver_duration_s")
                 ),
                 "maneuver_duration_s": _optional_float(driving.get("maneuver_duration_s")),
                 "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
@@ -190,6 +225,7 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                     if evaluation.get("agent_fallback_rate") is not None
                     else _optional_float(assist.get("agent_fallback_rate"))
                 ),
+                "agent_timeout_rate": _optional_float(assist.get("agent_timeout_rate")),
                 "low_ttc_agent_cautious_rate": (
                     float(low_ttc_analysis["agent_cautious_rate"])
                     if low_ttc_analysis.get("agent_cautious_rate") is not None
@@ -221,6 +257,15 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                     else None
                 ),
                 "assist_query_rejection_rate": _optional_float(assist.get("agent_query_rejection_rate")),
+                "safety_arbitration_rejection_rate": _optional_float(
+                    assist.get("safety_arbitration_rejection_rate")
+                ),
+                "safety_arbitration_rejection_reason_counts": assist.get(
+                    "safety_arbitration_rejection_reason_counts"
+                ),
+                "end_to_end_query_success_rate": _optional_float(
+                    assist.get("end_to_end_query_success_rate")
+                ),
                 "assist_p50_api_call_ms": _optional_float(
                     assist_latency.get("p50_api_call_ms")
                     if assist_latency.get("p50_api_call_ms") is not None
@@ -248,6 +293,10 @@ def _load_rows(report_root: Path, run_glob: str) -> List[Dict[str, Any]]:
                 ),
                 "lane_change_completion_time_s": _optional_float(
                     lane_change_maneuver.get("completion_time_s")
+                ),
+                "lane_change_completed": (
+                    1.0 if lane_change_maneuver.get("completed") is True
+                    else (0.0 if assist else None)
                 ),
                 "assist_reject_reason_counts": assist.get("assist_reject_reason_counts"),
                 "query_rejection_reason_counts": assist.get("query_rejection_reason_counts"),
@@ -368,7 +417,19 @@ def main() -> int:
 
     overall = {
         "num_runs": len(rows),
-        "collision_free_runs": sum(1 for row in rows if row["collision_count"] == 0),
+        "collision_free_runs": sum(
+            1 for row in rows if row["collision_episode_count"] == 0
+        ),
+        "total_collision_episodes": sum(row["collision_episode_count"] for row in rows),
+        "total_collision_sensor_events": sum(
+            row["collision_sensor_event_count"] for row in rows
+        ),
+        "total_legal_lane_crossings": sum(
+            row["legal_lane_crossing_count"] for row in rows
+        ),
+        "total_illegal_lane_invasions": sum(
+            row["illegal_lane_invasion_count"] for row in rows
+        ),
         "total_low_ttc_frames": sum(row["low_ttc_frames"] for row in rows),
         "total_useful_disagreement_count": sum(
             row["useful_disagreement_count"]
@@ -387,6 +448,16 @@ def main() -> int:
         "mean_query_ratio": _mean([row["query_ratio"] for row in rows]),
         "mean_agent_fallback_rate": _mean(
             [row["agent_fallback_rate"] for row in rows if row["agent_fallback_rate"] is not None]
+        ),
+        "mean_agent_timeout_rate": _mean(
+            [row["agent_timeout_rate"] for row in rows if row["agent_timeout_rate"] is not None]
+        ),
+        "mean_safety_arbitration_rejection_rate": _mean(
+            [
+                row["safety_arbitration_rejection_rate"]
+                for row in rows
+                if row["safety_arbitration_rejection_rate"] is not None
+            ]
         ),
         "mean_low_ttc_agent_cautious_rate": _mean(
             [
@@ -407,7 +478,7 @@ def main() -> int:
         ),
     }
     summary = {
-        "schema_version": "stage10_stress_tables_summary_v2",
+        "schema_version": "stage10_stress_tables_summary_v3",
         "report_root": str(report_root),
         "run_glob": str(args.run_glob),
         "table2_rows": [
@@ -419,10 +490,16 @@ def main() -> int:
                 "route_completion_rate": row["route_completion_rate"],
                 "distance_traveled_m": row["distance_traveled_m"],
                 "collision_count": row["collision_count"],
+                "collision_episode_count": row["collision_episode_count"],
+                "collision_sensor_event_count": row["collision_sensor_event_count"],
                 "lane_invasion_count": row["lane_invasion_count"],
+                "legal_lane_crossing_count": row["legal_lane_crossing_count"],
+                "illegal_lane_invasion_count": row["illegal_lane_invasion_count"],
+                "unknown_lane_crossing_count": row["unknown_lane_crossing_count"],
                 "offroad_rate": row["offroad_rate"],
                 "mean_abs_longitudinal_jerk_mps3": row["mean_abs_longitudinal_jerk_mps3"],
                 "max_abs_longitudinal_jerk_mps3": row["max_abs_longitudinal_jerk_mps3"],
+                "episode_duration_s": row["episode_duration_s"],
                 "maneuver_duration_s": row["maneuver_duration_s"],
                 "low_ttc_frames": row["low_ttc_frames"],
                 "safety_outcome": row["safety_outcome"],
@@ -440,6 +517,7 @@ def main() -> int:
                 "sim_frames": row["sim_frames"],
                 "query_ratio": row["query_ratio"],
                 "agent_fallback_rate": row["agent_fallback_rate"],
+                "agent_timeout_rate": row["agent_timeout_rate"],
                 "low_ttc_agent_cautious_rate": row["low_ttc_agent_cautious_rate"],
                 "low_ttc_baseline_cautious_rate": row["low_ttc_baseline_cautious_rate"],
                 "assist_applied_frames": row["assist_applied_frames"],
@@ -447,6 +525,13 @@ def main() -> int:
                 "assist_agent_query_rate": row["assist_agent_query_rate"],
                 "assist_intervention_rate": row["assist_intervention_rate"],
                 "assist_query_rejection_rate": row["assist_query_rejection_rate"],
+                "safety_arbitration_rejection_rate": row[
+                    "safety_arbitration_rejection_rate"
+                ],
+                "safety_arbitration_rejection_reason_counts": row[
+                    "safety_arbitration_rejection_reason_counts"
+                ],
+                "end_to_end_query_success_rate": row["end_to_end_query_success_rate"],
                 "assist_p50_api_call_ms": row["assist_p50_api_call_ms"],
                 "assist_p95_api_call_ms": row["assist_p95_api_call_ms"],
                 "assist_over_step_budget_rate": row["assist_over_step_budget_rate"],
@@ -455,6 +540,7 @@ def main() -> int:
                 "control_loop_p95_ms": row["control_loop_p95_ms"],
                 "control_loop_over_budget_rate": row["control_loop_over_budget_rate"],
                 "lane_change_completion_time_s": row["lane_change_completion_time_s"],
+                "lane_change_completed": row["lane_change_completed"],
                 "assist_reject_reason_counts": row["assist_reject_reason_counts"],
                 "query_rejection_reason_counts": row["query_rejection_reason_counts"],
                 "assist_validation_status_counts": row["assist_validation_status_counts"],
@@ -474,16 +560,23 @@ def main() -> int:
     print("=== TABLE 2 ===")
     print(
         "case,seed,frames,route_progress_m,route_completion_rate,distance_traveled_m,"
-        "collision_count,lane_invasion_count,offroad_rate,mean_abs_jerk_mps3,"
-        "max_abs_jerk_mps3,maneuver_duration_s,low_ttc_frames,safety_outcome"
+        "collision_count,collision_episode_count,collision_sensor_event_count,"
+        "lane_invasion_count,legal_lane_crossing_count,illegal_lane_invasion_count,"
+        "unknown_lane_crossing_count,offroad_rate,mean_abs_jerk_mps3,"
+        "max_abs_jerk_mps3,episode_duration_s,maneuver_duration_s,"
+        "low_ttc_frames,safety_outcome"
     )
     for row in summary["table2_rows"]:
         print(
             f"{row['case']},{row['random_seed']},{row['frames']},{_fmt_float(row['route_progress_m'])},"
             f"{_fmt_float(row['route_completion_rate'])},{_fmt_float(row['distance_traveled_m'])},"
-            f"{row['collision_count']},{row['lane_invasion_count']},{_fmt_float(row['offroad_rate'])},"
+            f"{row['collision_count']},{row['collision_episode_count']},"
+            f"{row['collision_sensor_event_count']},{row['lane_invasion_count']},"
+            f"{row['legal_lane_crossing_count']},{row['illegal_lane_invasion_count']},"
+            f"{row['unknown_lane_crossing_count']},{_fmt_float(row['offroad_rate'])},"
             f"{_fmt_float(row['mean_abs_longitudinal_jerk_mps3'])},"
             f"{_fmt_float(row['max_abs_longitudinal_jerk_mps3'])},"
+            f"{_fmt_float(row['episode_duration_s'])},"
             f"{_fmt_float(row['maneuver_duration_s'])},"
             f"{row['low_ttc_frames']},{row['safety_outcome']}"
         )
@@ -491,19 +584,22 @@ def main() -> int:
     print("\n=== TABLE 3 ===")
     print(
         "case,seed,agreement_rate,disagreement_rate,useful_disagreement_count,"
-        "agent_queried_frames,sim_frames,query_ratio,agent_fallback_rate,"
+        "agent_queried_frames,sim_frames,query_ratio,agent_fallback_rate,agent_timeout_rate,"
         "low_ttc_agent_cautious_rate,low_ttc_baseline_cautious_rate,"
         "assist_agent_query_frames,assist_agent_query_rate,"
         "assist_applied_frames,assist_intervention_rate,assist_query_rejection_rate,"
+        "safety_arbitration_rejection_rate,end_to_end_query_success_rate,"
         "assist_p50_api_call_ms,assist_p95_api_call_ms,assist_over_step_budget_rate,"
         "stale_response_discard_rate,control_loop_p50_ms,control_loop_p95_ms,"
         "control_loop_over_budget_rate,"
-        "lane_change_completion_time_s,query_rejection_reason_counts,"
+        "lane_change_completion_time_s,lane_change_completed,query_rejection_reason_counts,"
+        "safety_arbitration_rejection_reason_counts,"
         "assist_validation_status_counts,assist_fallback_reason_counts"
     )
     for row in summary["table3_rows"]:
         useful_count = _fmt_int(row["useful_disagreement_count"])
         fallback_rate = _fmt_float(row["agent_fallback_rate"])
+        timeout_rate = _fmt_float(row["agent_timeout_rate"])
         agent_cautious = _fmt_float(row["low_ttc_agent_cautious_rate"])
         baseline_cautious = _fmt_float(row["low_ttc_baseline_cautious_rate"])
         assist_queries = _fmt_int(row["assist_agent_query_frames"])
@@ -511,21 +607,27 @@ def main() -> int:
         assist_applied = _fmt_int(row["assist_applied_frames"])
         assist_rate = _fmt_float(row["assist_intervention_rate"])
         reject_reasons = json.dumps(row["query_rejection_reason_counts"] or {}, sort_keys=True)
+        arbitration_reasons = json.dumps(
+            row["safety_arbitration_rejection_reason_counts"] or {}, sort_keys=True
+        )
         validation_counts = json.dumps(row["assist_validation_status_counts"] or {}, sort_keys=True)
         fallback_reasons = json.dumps(row["assist_fallback_reason_counts"] or {}, sort_keys=True)
         print(
             f"{row['case']},{row['random_seed']},{_fmt_float(row['agreement_rate'])},"
             f"{_fmt_float(row['disagreement_rate'])},"
             f"{useful_count},{row['agent_queried_frames']},"
-            f"{row['sim_frames']},{row['query_ratio']:.4f},{fallback_rate},"
+            f"{row['sim_frames']},{row['query_ratio']:.4f},{fallback_rate},{timeout_rate},"
             f"{agent_cautious},{baseline_cautious},{assist_queries},{assist_query_rate},"
             f"{assist_applied},{assist_rate},{_fmt_float(row['assist_query_rejection_rate'])},"
+            f"{_fmt_float(row['safety_arbitration_rejection_rate'])},"
+            f"{_fmt_float(row['end_to_end_query_success_rate'])},"
             f"{_fmt_float(row['assist_p50_api_call_ms'])},{_fmt_float(row['assist_p95_api_call_ms'])},"
             f"{_fmt_float(row['assist_over_step_budget_rate'])},"
             f"{_fmt_float(row['stale_response_discard_rate'])},"
             f"{_fmt_float(row['control_loop_p50_ms'])},{_fmt_float(row['control_loop_p95_ms'])},"
             f"{_fmt_float(row['control_loop_over_budget_rate'])},"
-            f"{_fmt_float(row['lane_change_completion_time_s'])},{reject_reasons},"
+            f"{_fmt_float(row['lane_change_completion_time_s'])},"
+            f"{_fmt_float(row['lane_change_completed'])},{reject_reasons},{arbitration_reasons},"
             f"{validation_counts},{fallback_reasons}"
         )
 

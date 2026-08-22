@@ -10,7 +10,9 @@ from scripts.run_stage10_stage1_live_bridge import (
     _apply_agent_episode_limit,
     _agent_response_freshness,
     _assist_commit_promotion_frames,
+    _assist_completion_metadata,
     _assist_hold_frames,
+    _assist_lane_transition_completed,
     _assist_lifecycle_action,
     _lane_center_longitudinal_control,
     _summarize_assist_log,
@@ -115,6 +117,56 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
         self.assertEqual(summary["assist_rejected_frames"], 1)
         self.assertEqual(summary["agent_query_rejection_rate"], 1.0)
         self.assertEqual(summary["stale_response_discard_rate"], 1.0)
+        self.assertEqual(summary["safety_arbitration_rejection_rate"], 1.0)
+
+    def test_timeout_fallback_is_not_counted_as_safety_rejection(self) -> None:
+        rows = [
+            {
+                "frame_id": 1,
+                "timestamp_s": 0.1,
+                "agent_queried": True,
+                "agent_response_received": True,
+                "agent_worker_error_type": "timeout",
+                "agent_fallback_to_baseline": True,
+                "agent_fallback_reason": "timeout",
+                "assist_applied": False,
+                "assist_reject_reason": "same_as_baseline",
+            },
+            {
+                "frame_id": 2,
+                "timestamp_s": 0.2,
+                "agent_queried": True,
+                "agent_response_received": True,
+                "assist_applied": False,
+                "assist_reject_reason": "lane_change_not_permitted",
+            },
+        ]
+        args = argparse.Namespace(delta_t=0.1, seed=0)
+        summary = _summarize_assist_log(
+            rows,
+            {"frames": 2, "tick_latency_samples_ms": []},
+            args,
+        )
+        self.assertEqual(summary["agent_api_failure_rate"], 0.5)
+        self.assertEqual(summary["agent_timeout_rate"], 0.5)
+        self.assertEqual(summary["safety_arbitration_evaluated_frames"], 1)
+        self.assertEqual(summary["safety_arbitration_rejected_frames"], 1)
+        self.assertEqual(summary["safety_arbitration_rejection_rate"], 1.0)
+        self.assertEqual(
+            summary["safety_arbitration_rejection_reason_counts"],
+            {"lane_change_not_permitted": 1},
+        )
+
+    def test_completion_tracking_survives_active_hold_cleanup(self) -> None:
+        tracked = {"origin_lane_id": "-1", "target_lane_id": "-2"}
+        metadata = _assist_completion_metadata({}, tracked)
+        world = SimpleNamespace(ego_lane_id="-2", ego_lateral_error_m=2.0)
+        self.assertTrue(
+            _assist_lane_transition_completed(
+                world_state=world,
+                active_metadata=metadata,
+            )
+        )
 
     def test_summary_uses_physical_lane_transition_without_post_cruise(self) -> None:
         rows = [

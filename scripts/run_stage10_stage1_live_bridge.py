@@ -868,6 +868,89 @@ def _ensure_carla_pythonapi_paths(carla_root: str | Path) -> None:
                 sys.path.insert(0, candidate_str)
 
 
+def _collision_actor_key(event: Dict[str, Any]) -> tuple[Any, str]:
+    """Return a stable actor key without trusting display-only actor names."""
+    actor_id = event.get("other_actor_id")
+    actor_type = str(event.get("other_actor_type") or "unknown")
+    return actor_id, actor_type
+
+
+def _group_collision_episodes(
+    events: List[Dict[str, Any]],
+    *,
+    max_frame_gap: int = 5,
+) -> List[Dict[str, Any]]:
+    """Collapse consecutive sensor callbacks from one physical contact."""
+    if max_frame_gap < 0:
+        raise ValueError("max_frame_gap must be non-negative")
+    ordered = sorted(
+        events,
+        key=lambda event: (
+            int(event.get("frame_id", -1)),
+            float(event.get("timestamp_s", 0.0)),
+        ),
+    )
+    episodes: List[Dict[str, Any]] = []
+    for event in ordered:
+        frame_id = int(event.get("frame_id", -1))
+        timestamp_s = float(event.get("timestamp_s", 0.0))
+        intensity = float(event.get("intensity", 0.0))
+        actor_id, actor_type = _collision_actor_key(event)
+        previous = episodes[-1] if episodes else None
+        same_contact = bool(
+            previous is not None
+            and previous["other_actor_id"] == actor_id
+            and previous["other_actor_type"] == actor_type
+            and frame_id - int(previous["end_frame_id"]) <= max_frame_gap
+        )
+        if not same_contact:
+            episodes.append(
+                {
+                    "start_frame_id": frame_id,
+                    "end_frame_id": frame_id,
+                    "start_timestamp_s": timestamp_s,
+                    "end_timestamp_s": timestamp_s,
+                    "other_actor_id": actor_id,
+                    "other_actor_type": actor_type,
+                    "sensor_event_count": 1,
+                    "peak_intensity": round(intensity, 6),
+                    "total_intensity": round(intensity, 6),
+                }
+            )
+            continue
+        previous["end_frame_id"] = frame_id
+        previous["end_timestamp_s"] = timestamp_s
+        previous["sensor_event_count"] = int(previous["sensor_event_count"]) + 1
+        previous["peak_intensity"] = round(
+            max(float(previous["peak_intensity"]), intensity), 6
+        )
+        previous["total_intensity"] = round(
+            float(previous["total_intensity"]) + intensity, 6
+        )
+    return episodes
+
+
+def _classify_lane_crossing(event: Dict[str, Any]) -> str:
+    """Classify CARLA lane markings conservatively at event level."""
+    markings = list(event.get("crossed_lane_markings") or [])
+    if not markings:
+        return "unknown"
+    types = [str(marking.get("type") or "unknown").lower() for marking in markings]
+    permissions = [
+        str(marking.get("lane_change") or "unknown").lower()
+        for marking in markings
+    ]
+    if any("solid" in marking_type for marking_type in types):
+        return "illegal"
+    if any(permission in {"none", "lanechange.none"} for permission in permissions):
+        return "illegal"
+    if all("broken" in marking_type for marking_type in types) and all(
+        permission not in {"unknown", ""} for permission in permissions
+    ):
+        return "legal"
+    return "unknown"
+
+
 class CollisionMonitor:
     """Attach a CARLA collision sensor and collect per-run collision events."""
 
@@ -905,6 +988,9 @@ class CollisionMonitor:
 
     def counted_events(self) -> List[Dict[str, Any]]:
         return [ev for ev in self.events() if float(ev.get("intensity", 0.0)) >= self._threshold]
+
+    def counted_episodes(self) -> List[Dict[str, Any]]:
+        return _group_collision_episodes(self.counted_events())
 
     def _carla_transform(self):
         import carla  # type: ignore
@@ -966,6 +1052,14 @@ class LaneInvasionMonitor:
         with self._lock:
             return list(self._events)
 
+    def classified_events(self) -> List[Dict[str, Any]]:
+        classified: List[Dict[str, Any]] = []
+        for event in self.events():
+            record = dict(event)
+            record["classification"] = _classify_lane_crossing(record)
+            classified.append(record)
+        return classified
+
     def _on_invasion(self, event) -> None:
         markings = []
         for marking in list(getattr(event, "crossed_lane_markings", []) or []):
@@ -981,6 +1075,7 @@ class LaneInvasionMonitor:
             "timestamp_s": float(getattr(event, "timestamp", 0.0)),
             "crossed_lane_markings": markings,
         }
+        record["classification"] = _classify_lane_crossing(record)
         with self._lock:
             self._events.append(record)
 
@@ -1131,18 +1226,34 @@ def _build_driving_metrics(
         }
     )
     collision_events = collision_monitor.counted_events() if collision_monitor is not None else []
-    lane_invasion_events = lane_invasion_monitor.events() if lane_invasion_monitor is not None else []
+    collision_episodes = (
+        collision_monitor.counted_episodes() if collision_monitor is not None else []
+    )
+    lane_crossing_events = (
+        lane_invasion_monitor.classified_events()
+        if lane_invasion_monitor is not None else []
+    )
+    legal_lane_crossings = [
+        event for event in lane_crossing_events if event.get("classification") == "legal"
+    ]
+    illegal_lane_invasions = [
+        event for event in lane_crossing_events if event.get("classification") == "illegal"
+    ]
+    unknown_lane_crossings = [
+        event for event in lane_crossing_events if event.get("classification") == "unknown"
+    ]
     distance_km = float(route_summary.get("distance_traveled_m") or 0.0) / 1000.0
     collision_rate_per_km = (
-        round(len(collision_events) / distance_km, 6)
+        round(len(collision_episodes) / distance_km, 6)
         if distance_km > 1e-6
         else None
     )
     rc = route_summary.get("route_completion_rate")
     route_ok = bool(rc is not None and float(rc) >= float(args.success_rc_threshold))
-    collision_ok = len(collision_events) == 0
+    collision_ok = len(collision_episodes) == 0
+    lane_rule_ok = len(illegal_lane_invasions) == 0
     runtime_ok = int(stats.get("errors", 0)) == 0 and int(stats.get("frames", 0)) > 0
-    success = bool(route_ok and collision_ok and runtime_ok)
+    success = bool(route_ok and collision_ok and lane_rule_ok and runtime_ok)
     jerk_samples = [float(value) for value in stats.get("longitudinal_jerk_samples_mps3", [])]
     abs_jerk_samples = [abs(value) for value in jerk_samples]
     duration_s = float(stats.get("frames", 0)) * float(args.delta_t)
@@ -1158,7 +1269,7 @@ def _build_driving_metrics(
     step_budget_ms = max(float(args.delta_t) * 1000.0, 1e-6)
 
     return {
-        "schema_version": "stage10_driving_metrics_v2",
+        "schema_version": "stage10_driving_metrics_v3",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "stage": "10_live_bridge",
         "map": args.map,
@@ -1168,15 +1279,30 @@ def _build_driving_metrics(
         "frames": int(stats.get("frames", 0)),
         "route_completion_rate": rc,
         "route_completion_pct": route_summary.get("route_completion_pct"),
-        "collision_count": len(collision_events),
+        # collision_count is the paper-facing physical-contact count. Raw
+        # CARLA callbacks remain available separately for auditability.
+        "collision_count": len(collision_episodes),
+        "collision_episode_count": len(collision_episodes),
+        "collision_sensor_event_count": len(collision_events),
+        "collision_episodes": collision_episodes,
         "collision_rate_per_km": collision_rate_per_km,
-        "lane_invasion_count": len(lane_invasion_events),
+        # Preserve the raw CARLA lane-invasion event count while exposing the
+        # legality-aware safety metric separately. A valid lane change across
+        # a broken line is not an illegal invasion.
+        "lane_invasion_count": len(lane_crossing_events),
+        "lane_crossing_event_count": len(lane_crossing_events),
+        "legal_lane_crossing_count": len(legal_lane_crossings),
+        "illegal_lane_invasion_count": len(illegal_lane_invasions),
+        "unknown_lane_crossing_count": len(unknown_lane_crossings),
         "lane_invasion_rate_per_km": (
-            round(len(lane_invasion_events) / distance_km, 6)
+            round(len(illegal_lane_invasions) / distance_km, 6)
             if distance_km > 1e-6 else None
         ),
         "offroad_frames": offroad_frames,
         "offroad_rate": round(offroad_frames / max(int(stats.get("frames", 0)), 1), 6),
+        "episode_duration_s": round(duration_s, 6),
+        # Backward-compatible alias. Use episode_duration_s for the complete
+        # run and lane_change_maneuver.completion_time_s for maneuver time.
         "maneuver_duration_s": round(duration_s, 6),
         "comfort": {
             "longitudinal_jerk_sample_count": len(jerk_samples),
@@ -1198,8 +1324,28 @@ def _build_driving_metrics(
             "route_completion_passed": route_ok,
             "collision_count_max": 0,
             "collision_passed": collision_ok,
+            "illegal_lane_invasion_count": len(illegal_lane_invasions),
+            "illegal_lane_invasion_passed": lane_rule_ok,
             "runtime_errors_max": 0,
             "runtime_passed": runtime_ok,
+        },
+        "metric_definitions": {
+            "collision_episode": {
+                "same_actor_required": True,
+                "maximum_inter_event_frame_gap": 5,
+                "raw_count_field": "collision_sensor_event_count",
+            },
+            "lane_crossing": {
+                "legal": "all markings are broken and lane-change permission is present",
+                "illegal": "any marking is solid or explicitly disallows lane change",
+                "unknown": "insufficient or unrecognized marking metadata",
+            },
+            "duration": {
+                "episode_duration_s": "all simulated frames multiplied by delta_t",
+                "lane_change_completion_time_s": (
+                    "first accepted lane-change intent to first target-lane observation"
+                ),
+            },
         },
         "route": route_summary,
         "runtime": {
@@ -1256,6 +1402,7 @@ def _build_driving_metrics(
         "artifacts": {
             "ego_trace": str(Path(args.log_dir) / "ego_trace.jsonl"),
             "collision_events": str(Path(args.log_dir) / "collision_events.jsonl"),
+            "collision_episodes": str(Path(args.log_dir) / "collision_episodes.jsonl"),
             "lane_invasion_events": str(Path(args.log_dir) / "lane_invasion_events.jsonl"),
         },
     }
@@ -1641,6 +1788,16 @@ def _assist_lane_transition_completed(
     return bool(current_lane_id) and lateral_error_m <= 0.55
 
 
+def _assist_completion_metadata(
+    active_metadata: Dict[str, Any],
+    tracked_metadata: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Keep target-lane tracking alive after bounded control authority ends."""
+    if active_metadata.get("origin_lane_id"):
+        return active_metadata
+    return tracked_metadata
+
+
 def _can_continue_active_assist(
     *,
     args: argparse.Namespace,
@@ -1679,10 +1836,26 @@ def _summarize_assist_log(
         for r in attempted
         if bool(r.get("agent_fallback_to_baseline")) or r.get("agent_worker_error_type")
     ]
+    fallback_row_ids = {id(row) for row in fallback_frames}
+    timeout_frames = [
+        row
+        for row in fallback_frames
+        if "timeout" in str(
+            row.get("agent_worker_error_type")
+            or row.get("agent_fallback_reason")
+            or ""
+        ).lower()
+    ]
+    arbitration_evaluated = [
+        row for row in attempted if id(row) not in fallback_row_ids
+    ]
     accepted = [r for r in assist_log if r.get("assist_applied")]
     rejected = [
         r for r in assist_log
         if r.get("agent_response_received") and not r.get("assist_applied")
+    ]
+    arbitration_rejected = [
+        row for row in arbitration_evaluated if not row.get("assist_applied")
     ]
     agent_decision_applied = [
         r
@@ -1697,6 +1870,7 @@ def _summarize_assist_log(
     non_query_reason_counts: Dict[str, int] = {}
     intent_counts: Dict[str, int] = {}
     fallback_reason_counts: Dict[str, int] = {}
+    arbitration_rejection_reason_counts: Dict[str, int] = {}
     validation_status_counts: Dict[str, int] = {}
     for row in assist_log:
         if row.get("agent_intent"):
@@ -1715,6 +1889,11 @@ def _summarize_assist_log(
         if row.get("agent_fallback_reason"):
             reason = str(row["agent_fallback_reason"])
             fallback_reason_counts[reason] = fallback_reason_counts.get(reason, 0) + 1
+    for row in arbitration_rejected:
+        reason = str(row.get("assist_reject_reason") or "unspecified")
+        arbitration_rejection_reason_counts[reason] = (
+            arbitration_rejection_reason_counts.get(reason, 0) + 1
+        )
 
     sim_frames = int(stats.get("frames", 0))
     call_latencies = [
@@ -1770,7 +1949,7 @@ def _summarize_assist_log(
         float(value) for value in stats.get("tick_latency_samples_ms", [])
     ]
     return {
-        "schema_version": "stage10_agent_assist_evaluation_v2",
+        "schema_version": "stage10_agent_assist_evaluation_v3",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "sim_frames": sim_frames,
         "random_seed": int(args.seed),
@@ -1778,6 +1957,28 @@ def _summarize_assist_log(
         "agent_response_frames": len(attempted),
         "agent_fallback_frames": len(fallback_frames),
         "agent_fallback_rate": round(len(fallback_frames) / max(len(attempted), 1), 4),
+        "agent_api_failure_frames": len(fallback_frames),
+        "agent_api_failure_rate": round(
+            len(fallback_frames) / max(len(attempted), 1), 4
+        ),
+        "agent_timeout_frames": len(timeout_frames),
+        "agent_timeout_rate": round(
+            len(timeout_frames) / max(len(attempted), 1), 4
+        ),
+        "safety_arbitration_evaluated_frames": len(arbitration_evaluated),
+        "safety_arbitration_rejected_frames": len(arbitration_rejected),
+        "safety_arbitration_rejection_rate": (
+            round(len(arbitration_rejected) / len(arbitration_evaluated), 4)
+            if arbitration_evaluated else None
+        ),
+        "safety_arbitration_acceptance_rate": (
+            round(
+                (len(arbitration_evaluated) - len(arbitration_rejected))
+                / len(arbitration_evaluated),
+                4,
+            )
+            if arbitration_evaluated else None
+        ),
         "assist_applied_frames": len(accepted),
         "agent_decision_applied_frames": len(agent_decision_applied),
         "assist_hold_applied_frames": len(assist_hold_applied),
@@ -1789,6 +1990,10 @@ def _summarize_assist_log(
         "assist_intervention_rate": round(len(accepted) / max(sim_frames, 1), 4),
         "agent_decision_intervention_rate": round(len(agent_decision_applied) / max(sim_frames, 1), 4),
         "agent_query_rate": round(len(submitted) / max(sim_frames, 1), 4),
+        "end_to_end_query_success_rate": (
+            round(len(accepted_query_frames) / len(submitted), 4)
+            if submitted else None
+        ),
         "agent_response_rate": round(len(attempted) / max(sim_frames, 1), 4),
         "stale_response_count": len(stale_responses),
         "stale_response_discard_rate": round(
@@ -1800,6 +2005,7 @@ def _summarize_assist_log(
         "non_query_reason_counts": non_query_reason_counts,
         "agent_validation_status_counts": validation_status_counts,
         "agent_fallback_reason_counts": fallback_reason_counts,
+        "safety_arbitration_rejection_reason_counts": arbitration_rejection_reason_counts,
         "async_worker": dict(worker_stats or {}),
         "control_loop_latency": {
             "sample_count": len(control_loop_latencies),
@@ -2002,11 +2208,14 @@ def run(args: argparse.Namespace) -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     ego_trace_path = log_dir / "ego_trace.jsonl"
     collision_events_path = log_dir / "collision_events.jsonl"
+    collision_episodes_path = log_dir / "collision_episodes.jsonl"
     lane_invasion_events_path = log_dir / "lane_invasion_events.jsonl"
     if ego_trace_path.exists():
         ego_trace_path.unlink()
     if collision_events_path.exists():
         collision_events_path.unlink()
+    if collision_episodes_path.exists():
+        collision_episodes_path.unlink()
     if lane_invasion_events_path.exists():
         lane_invasion_events_path.unlink()
 
@@ -2200,6 +2409,7 @@ def run(args: argparse.Namespace) -> int:
     active_assist_hold_remaining = 0
     active_assist_applied_frames = 0
     active_assist_metadata: Dict[str, Any] = {}
+    assist_maneuver_tracking_metadata: Dict[str, Any] = {}
     assist_lane_change_completed = False
     assist_lane_change_completed_timestamp_s: Optional[float] = None
     agent_lane_change_decision_seen = False
@@ -2334,7 +2544,10 @@ def run(args: argparse.Namespace) -> int:
             if world_state is not None:
                 transition_stable = _assist_lane_transition_completed(
                     world_state=world_state,
-                    active_metadata=active_assist_metadata,
+                    active_metadata=_assist_completion_metadata(
+                        active_assist_metadata,
+                        assist_maneuver_tracking_metadata,
+                    ),
                 )
                 if transition_stable:
                     if not assist_lane_change_completed:
@@ -2620,7 +2833,10 @@ def run(args: argparse.Namespace) -> int:
                     )
                 elif _assist_lane_transition_completed(
                     world_state=world_state,
-                    active_metadata=active_assist_metadata,
+                    active_metadata=_assist_completion_metadata(
+                        active_assist_metadata,
+                        assist_maneuver_tracking_metadata,
+                    ),
                 ):
                     if not assist_lane_change_completed:
                         assist_lane_change_completed = True
@@ -2728,6 +2944,8 @@ def run(args: argparse.Namespace) -> int:
                             "origin_lane_id": str(getattr(world_state, "ego_lane_id", "") or ""),
                             "target_lane_id": str(agent_target_lane_id or ""),
                         }
+                        if not preserve_progress or not assist_maneuver_tracking_metadata:
+                            assist_maneuver_tracking_metadata = dict(active_assist_metadata)
                         active_assist_intent = _retune_active_assist_request(
                             request=active_assist_request,
                             world_state=world_state,
@@ -2832,7 +3050,10 @@ def run(args: argparse.Namespace) -> int:
                 else:
                     if _assist_lane_transition_completed(
                         world_state=world_state,
-                        active_metadata=active_assist_metadata,
+                        active_metadata=_assist_completion_metadata(
+                            active_assist_metadata,
+                            assist_maneuver_tracking_metadata,
+                        ),
                     ):
                         if not assist_lane_change_completed:
                             assist_lane_change_completed = True
@@ -3084,6 +3305,9 @@ def run(args: argparse.Namespace) -> int:
             for event in collision_monitor.events():
                 _append_jsonl(collision_events_path, event)
             collision_events_path.touch(exist_ok=True)
+            for episode in collision_monitor.counted_episodes():
+                _append_jsonl(collision_episodes_path, episode)
+            collision_episodes_path.touch(exist_ok=True)
         if lane_invasion_monitor is not None:
             lane_invasion_monitor.stop()
             for event in lane_invasion_monitor.events():

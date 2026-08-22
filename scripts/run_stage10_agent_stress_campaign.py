@@ -230,6 +230,11 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
     queried_frames = int(evaluation.get("agent_queried_frames") or assist_query_frames or 0)
     sim_frames = int(evaluation.get("sim_frames") or assist_sim_frames or 0)
     collision_count = int(driving.get("collision_count") or 0)
+    collision_episode_count = int(
+        driving.get("collision_episode_count")
+        if driving.get("collision_episode_count") is not None
+        else collision_count
+    )
     query_ratio = round(queried_frames / max(sim_frames, 1), 4) if sim_frames else None
     safety_outcome = "Collision" if collision_count > 0 else "Collision-free"
     route = driving.get("route") or {}
@@ -250,10 +255,30 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "route_progress_m": route.get("route_progress_m"),
             "distance_traveled_m": route.get("distance_traveled_m"),
             "collision_count": collision_count,
+            "collision_episode_count": collision_episode_count,
+            "collision_sensor_event_count": int(
+                driving.get("collision_sensor_event_count")
+                if driving.get("collision_sensor_event_count") is not None
+                else collision_count
+            ),
             "lane_invasion_count": int(driving.get("lane_invasion_count") or 0),
+            "legal_lane_crossing_count": int(
+                driving.get("legal_lane_crossing_count") or 0
+            ),
+            "illegal_lane_invasion_count": int(
+                driving.get("illegal_lane_invasion_count") or 0
+            ),
+            "unknown_lane_crossing_count": int(
+                driving.get("unknown_lane_crossing_count") or 0
+            ),
             "offroad_rate": driving.get("offroad_rate"),
             "mean_abs_longitudinal_jerk_mps3": comfort.get("mean_abs_longitudinal_jerk_mps3"),
             "max_abs_longitudinal_jerk_mps3": comfort.get("max_abs_longitudinal_jerk_mps3"),
+            "episode_duration_s": (
+                driving.get("episode_duration_s")
+                if driving.get("episode_duration_s") is not None
+                else driving.get("maneuver_duration_s")
+            ),
             "low_ttc_frames": int(low_ttc_analysis.get("total_low_ttc_frames") or 0),
             "safety_outcome": safety_outcome,
         },
@@ -264,12 +289,26 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "agent_queried_frames": queried_frames,
             "sim_frames": sim_frames,
             "query_ratio": query_ratio,
-            "agent_fallback_rate": evaluation.get("agent_fallback_rate"),
+            "agent_fallback_rate": (
+                evaluation.get("agent_fallback_rate")
+                if evaluation.get("agent_fallback_rate") is not None
+                else assist.get("agent_fallback_rate")
+            ),
+            "agent_timeout_rate": assist.get("agent_timeout_rate"),
             "low_ttc_agent_cautious_rate": low_ttc_analysis.get("agent_cautious_rate"),
             "low_ttc_baseline_cautious_rate": low_ttc_analysis.get("baseline_cautious_rate"),
             "assist_applied_frames": assist.get("assist_applied_frames"),
             "assist_intervention_rate": assist.get("assist_intervention_rate"),
             "agent_query_rejection_rate": assist.get("agent_query_rejection_rate"),
+            "safety_arbitration_rejection_rate": assist.get(
+                "safety_arbitration_rejection_rate"
+            ),
+            "safety_arbitration_rejection_reason_counts": assist.get(
+                "safety_arbitration_rejection_reason_counts"
+            ),
+            "end_to_end_query_success_rate": assist.get(
+                "end_to_end_query_success_rate"
+            ),
             "query_rejection_reason_counts": assist.get("query_rejection_reason_counts"),
             "p50_api_call_ms": (
                 assist_latency.get("p50_api_call_ms")
@@ -295,6 +334,7 @@ def _load_case_report_summary(stage10_log_dir: Path) -> Dict[str, Any]:
             "control_loop_p95_ms": control_loop_latency.get("p95_ms"),
             "control_loop_over_budget_rate": control_loop_latency.get("over_step_budget_rate"),
             "lane_change_completion_time_s": lane_change_maneuver.get("completion_time_s"),
+            "lane_change_completed": lane_change_maneuver.get("completed"),
             "assist_agent_query_frames": assist_query_frames,
             "assist_agent_query_rate": assist.get("agent_query_rate"),
             "agent_decision_applied_frames": assist.get("agent_decision_applied_frames"),
