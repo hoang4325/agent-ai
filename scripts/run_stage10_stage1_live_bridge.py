@@ -1375,6 +1375,9 @@ def _agent_response_freshness(
 
     intent = str(getattr(result.intent_record, "tactical_intent", "keep_lane"))
     if intent in _ASSIST_LANE_CHANGE_INTENTS:
+        intent_side = _assist_target_lane(intent)
+        if current_preferred_lane in {"left", "right"} and intent_side != current_preferred_lane:
+            return False, "stale_response_lane_change_direction_mismatch", response_age_s
         if not bool(getattr(current_world_state, "lane_change_permission", False)):
             return False, "stale_response_lane_change_not_permitted", response_age_s
         if float(current_min_ttc_s) < float(args.agent_risk_ttc_threshold):
@@ -1451,6 +1454,12 @@ def _agent_assist_allowed(
     if agent_intent in _ASSIST_LANE_CHANGE_INTENTS:
         if lane_change_completed:
             return False, "lane_change_already_completed"
+        preferred_lane = str(
+            getattr(world_state, "agent_preferred_lane", "current") or "current"
+        )
+        intent_side = _assist_target_lane(agent_intent)
+        if preferred_lane in {"left", "right"} and intent_side != preferred_lane:
+            return False, "lane_change_direction_mismatch"
         if not bool(getattr(world_state, "lane_change_permission", False)):
             return False, "lane_change_not_permitted"
         return True, "lane_change_assist"
@@ -2442,7 +2451,10 @@ def run(args: argparse.Namespace) -> int:
                         frame_id=int(live_frame.frame_id),
                         frame_idx=frame_idx,
                         sim_timestamp_s=float(live_frame.timestamp_s),
-                        payload=assist_agent.build_intent_request(world_state),
+                        payload=assist_agent.build_intent_request(
+                            world_state,
+                            baseline_intent=assist_baseline_intent,
+                        ),
                         context=_agent_request_context(
                             baseline_intent=assist_baseline_intent,
                             min_ttc_s=assist_ttc,
@@ -2950,7 +2962,10 @@ def run(args: argparse.Namespace) -> int:
                             frame_id=int(live_frame.frame_id),
                             frame_idx=frame_idx,
                             sim_timestamp_s=float(live_frame.timestamp_s),
-                            payload=compare_agent.build_intent_request(world_state),
+                            payload=compare_agent.build_intent_request(
+                                world_state,
+                                baseline_intent=baseline_intent,
+                            ),
                             context=context,
                         )
                         last_compare_agent_query_wall_s = time.monotonic()

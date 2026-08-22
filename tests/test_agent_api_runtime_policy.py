@@ -9,7 +9,17 @@ from unittest import mock
 from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
 
 
-def _call(adapter: AgentShadowAdapter):
+def _call(
+    adapter: AgentShadowAdapter,
+    *,
+    baseline_intent: str = "stop_before_obstacle",
+    preferred_lane: str = "right",
+    blocked_clear_facts: bool = False,
+):
+    lane_change_permission = {
+        "left": preferred_lane == "left",
+        "right": preferred_lane == "right",
+    }
     return adapter.call(
         case_id="unit",
         frame_id=1,
@@ -21,14 +31,17 @@ def _call(adapter: AgentShadowAdapter):
         lane_context={},
         route_context={
             "route_option": "straight",
-            "preferred_lane": "right",
+            "preferred_lane": preferred_lane,
             "route_conflict_flags": ["blocked_clear_adjacent_lane"],
         },
         stop_context={},
         baseline_context={
-            "requested_behavior": "stop_before_obstacle",
-            "target_lane": "right",
-            "lane_change_permission": {"left": True, "right": True},
+            "requested_behavior": baseline_intent,
+            "target_lane": preferred_lane,
+            "lane_change_permission": lane_change_permission,
+            "current_lane_blocked": blocked_clear_facts,
+            "adjacent_preferred_lane_clear": blocked_clear_facts,
+            "preferred_lane_permission": blocked_clear_facts,
         },
     )
 
@@ -104,6 +117,75 @@ class AgentAPIRuntimePolicyTests(unittest.TestCase):
         self.assertFalse(result.fallback_to_baseline)
         self.assertEqual(result.provenance["backend_model_id"], "provider/backend-fixed")
         self.assertEqual(result.provenance["total_token_count"], 30)
+
+    @mock.patch("urllib.request.urlopen")
+    def test_blocked_clear_prompt_requests_progress_even_when_baseline_keeps_lane(self, urlopen) -> None:
+        captured_payloads: list[dict] = []
+
+        def respond(request, timeout):
+            del timeout
+            captured_payloads.append(json.loads(request.data.decode("utf-8")))
+            return _Response(
+                {
+                    "model": "provider/backend-fixed",
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "tactical_intent": "prepare_lane_change_right",
+                                        "target_lane": "right",
+                                        "confidence": 0.85,
+                                        "reason_tags": ["blocked_clear_recovery"],
+                                    }
+                                )
+                            }
+                        }
+                    ],
+                }
+            )
+
+        urlopen.side_effect = respond
+        result = _call(
+            self._adapter(),
+            baseline_intent="keep_lane",
+            blocked_clear_facts=True,
+        )
+
+        self.assertFalse(result.fallback_to_baseline)
+        self.assertEqual(result.tactical_intent, "prepare_lane_change_right")
+        prompt = captured_payloads[0]["messages"][1]["content"]
+        self.assertIn("blocked_clear_action=prepare_lane_change_right", prompt)
+        self.assertIn("even when baseline=keep_lane", prompt)
+
+    @mock.patch("urllib.request.urlopen")
+    def test_wrong_lane_change_direction_falls_back(self, urlopen) -> None:
+        urlopen.return_value = _Response(
+            {
+                "model": "provider/backend-fixed",
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "tactical_intent": "prepare_lane_change_left",
+                                    "target_lane": "left",
+                                    "confidence": 0.9,
+                                    "reason_tags": ["wrong_side"],
+                                }
+                            )
+                        }
+                    }
+                ],
+            }
+        )
+        result = _call(
+            self._adapter(),
+            baseline_intent="keep_lane",
+            blocked_clear_facts=True,
+        )
+        self.assertTrue(result.fallback_to_baseline)
+        self.assertEqual(result.validation_status, "invalid_intent")
 
 
 if __name__ == "__main__":

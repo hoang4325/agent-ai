@@ -261,6 +261,7 @@ class AgentShadowAdapter:
             raw=raw,
             timeout_flag=timeout_flag,
             lane_change_permission=lane_change_permission,
+            preferred_lane=str(route_context.get("preferred_lane") or "current"),
         )
 
         # If fallback → mirror baseline intent, mark clearly
@@ -330,6 +331,7 @@ class AgentShadowAdapter:
         raw: dict[str, Any],
         timeout_flag: bool,
         lane_change_permission: dict[str, Any],
+        preferred_lane: str = "current",
     ) -> tuple[str, bool, str, str]:
         """Returns (validation_status, fallback_to_baseline, tactical_intent, target_lane)."""
         if timeout_flag or not raw:
@@ -362,6 +364,27 @@ class AgentShadowAdapter:
                 return "invalid_intent", True, "keep_lane", "current"
 
         target_lane = str(raw.get("target_lane", "current"))
+        if intent in {
+            "prepare_lane_change_left",
+            "commit_lane_change_left",
+            "prepare_lane_change_right",
+            "commit_lane_change_right",
+        }:
+            intent_side = "left" if "left" in intent else "right"
+            if preferred_lane in {"left", "right"} and intent_side != preferred_lane:
+                logger.warning(
+                    "[AgentShadow] Agent lane-change side=%s conflicts with preferred_lane=%s — fallback",
+                    intent_side,
+                    preferred_lane,
+                )
+                return "invalid_intent", True, "keep_lane", "current"
+            if target_lane != intent_side:
+                logger.warning(
+                    "[AgentShadow] Agent target_lane=%s conflicts with intent side=%s — fallback",
+                    target_lane,
+                    intent_side,
+                )
+                return "invalid_intent", True, "keep_lane", "current"
         return "valid", False, intent, target_lane
 
     # ── Stub mode ─────────────────────────────────────────────────────────────
@@ -466,6 +489,24 @@ class AgentShadowAdapter:
         lc_perm          = baseline_context.get("lane_change_permission") or {}
         risk_level       = str((ego_state.get("risk_summary") or {}).get("highest_risk_level", "none"))
         front_free_m     = (ego_state.get("scene") or {}).get("front_free_space_m")
+        current_lane_blocked = bool(baseline_context.get("current_lane_blocked", False))
+        adjacent_lane_clear = bool(baseline_context.get("adjacent_preferred_lane_clear", False))
+        preferred_lane_permitted = bool(
+            baseline_context.get(
+                "preferred_lane_permission",
+                lc_perm.get(preferred_lane, False),
+            )
+        )
+        blocked_clear_event = bool(
+            "blocked_clear_adjacent_lane" in route_conflicts
+            and preferred_lane in {"left", "right"}
+            and preferred_lane_permitted
+            and current_lane_blocked
+            and adjacent_lane_clear
+        )
+        blocked_clear_action = (
+            f"prepare_lane_change_{preferred_lane}" if blocked_clear_event else "none"
+        )
 
         active_maneuver = baseline_context.get("active_maneuver")
         maneuver_ctx = f"CRITICAL: You are mid-maneuver '{active_maneuver}'. Continue it unless unsafe! " if active_maneuver else ""
@@ -477,9 +518,15 @@ class AgentShadowAdapter:
             f"Route: option={route_option}, preferred_lane={preferred_lane}, conflicts={route_conflicts}. "
             f"Risk level: {risk_level}. Front free space is {front_free_m} meters. "
             f"Lane change permission left={lc_perm.get('left', True)} right={lc_perm.get('right', True)}. "
-            f"If baseline is stop_before_obstacle and preferred_lane is left or right with permission=true, "
-            f"prefer a bounded prepare_lane_change_<side> or commit_lane_change_<side> to bypass the blocker; "
-            f"otherwise keep the conservative baseline. "
+            f"Scene facts: current_lane_blocked={current_lane_blocked}, "
+            f"adjacent_preferred_lane_clear={adjacent_lane_clear}, "
+            f"preferred_lane_permission={preferred_lane_permitted}. "
+            f"Decision policy: when conflicts contains blocked_clear_adjacent_lane and the three scene facts "
+            f"confirm a permitted clear adjacent lane, this is a blocked-lane recovery event rather than "
+            f"ordinary route following. If risk is not high or critical, choose exactly "
+            f"'{blocked_clear_action}' with target_lane='{preferred_lane}'. Do not choose keep_lane merely "
+            f"because the baseline currently says keep_lane. If risk is high or critical, choose stop or yield. "
+            f"For all other scenes, keep the conservative baseline. "
             f"Return JSON only: {{\"tactical_intent\": \"<intent>\", \"target_lane\": \"<lane>\", "
             f"\"confidence\": <0.0-1.0>, \"reason_tags\": [\"<tag1>\"]}} "
             f"where tactical_intent is one of: keep_lane, follow, slow_down, stop, yield, "
@@ -492,10 +539,12 @@ class AgentShadowAdapter:
             f"baseline={baseline_intent}; preferred_lane={preferred_lane}; route_option={route_option}; "
             f"route_conflicts={route_conflicts}; risk={risk_level}; front_free_m={front_free_m}; "
             f"left_ok={bool(lc_perm.get('left', True))}; right_ok={bool(lc_perm.get('right', True))}; "
+            f"current_lane_blocked={current_lane_blocked}; adjacent_lane_clear={adjacent_lane_clear}; "
+            f"preferred_lane_ok={preferred_lane_permitted}; blocked_clear_action={blocked_clear_action}; "
             f"active_maneuver={active_maneuver or 'none'}. "
-            f"If baseline=stop_before_obstacle and preferred_lane is left or right with permission=true and "
-            f"route_conflicts contains blocked_clear_adjacent_lane, choose bounded prepare_lane_change_<side> "
-            f"or commit_lane_change_<side>; otherwise keep the conservative baseline. "
+            f"If blocked_clear_action is not none and risk is not high or critical, choose exactly that action "
+            f"and set target_lane to preferred_lane even when baseline=keep_lane. If risk is high or critical, "
+            f"choose stop or yield. Otherwise keep the conservative baseline. "
             f"JSON schema: "
             f"{{\"tactical_intent\":\"...\",\"target_lane\":\"...\",\"confidence\":0.0,\"reason_tags\":[\"...\"]}}"
         )
@@ -577,11 +626,7 @@ class AgentShadowAdapter:
 
             rich_variants = _openai_payload_variants(prompt, max_tokens=150, label_prefix="rich")
             compact_variants = _openai_payload_variants(compact_prompt, max_tokens=96, label_prefix="compact")
-            latency_critical_lane_change = (
-                baseline_intent == "stop_before_obstacle"
-                and preferred_lane in {"left", "right"}
-                and "blocked_clear_adjacent_lane" in route_conflicts
-            )
+            latency_critical_lane_change = blocked_clear_event
             if latency_critical_lane_change:
                 # For blocked-clear lane-change cases, prefer the shortest prompt first.
                 # This keeps real API assist intact while reducing the chance that the

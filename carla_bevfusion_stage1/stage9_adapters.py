@@ -385,7 +385,12 @@ class RealAgentAdapter:
         """Return the full shadow intent record for evaluation/logging."""
         return self.observe_intent_request(self.build_intent_request(world))
 
-    def build_intent_request(self, world) -> dict[str, Any]:
+    def build_intent_request(
+        self,
+        world,
+        *,
+        baseline_intent: str | None = None,
+    ) -> dict[str, Any]:
         """Freeze WorldState into primitive values safe for a worker thread."""
         return {
             "case_id": "stage10_live",
@@ -395,7 +400,10 @@ class RealAgentAdapter:
             "lane_context": self._world_to_lane_context(world),
             "route_context": self._world_to_route_context(world),
             "stop_context": {},
-            "baseline_context": self._world_to_baseline_context(world),
+            "baseline_context": self._world_to_baseline_context(
+                world,
+                baseline_intent=baseline_intent,
+            ),
         }
 
     def observe_intent_request(self, request: dict[str, Any]) -> Optional[Any]:
@@ -448,12 +456,10 @@ class RealAgentAdapter:
         }
 
     def _world_to_lane_context(self, world) -> dict:
+        lane_change_permission = self._world_lane_change_permissions(world)
         return {
             "current_lane_id": str(getattr(world, "ego_lane_id", "unknown")),
-            "lane_change_permission": {
-                "left": bool(getattr(world, "lane_change_permission", False)),
-                "right": bool(getattr(world, "lane_change_permission", False)),
-            },
+            "lane_change_permission": lane_change_permission,
         }
 
     def _world_to_route_context(self, world) -> dict:
@@ -465,24 +471,47 @@ class RealAgentAdapter:
             "route_conflict_flags": list(getattr(world, "route_conflict_flags", []) or []),
         }
 
-    def _world_to_baseline_context(self, world) -> dict:
+    def _world_lane_change_permissions(self, world) -> dict[str, bool]:
+        preferred_lane = str(getattr(world, "agent_preferred_lane", "current") or "current")
+        permitted = bool(getattr(world, "lane_change_permission", False))
+        return {
+            "left": permitted and preferred_lane == "left",
+            "right": permitted and preferred_lane == "right",
+        }
+
+    def _world_to_baseline_context(
+        self,
+        world,
+        *,
+        baseline_intent: str | None = None,
+    ) -> dict:
         min_ttc = float(getattr(world, "min_ttc_s", 10.0))
         corridor_clear = bool(getattr(world, "corridor_clear", True))
-        if min_ttc < 1.5 or not corridor_clear:
+        if baseline_intent is not None:
+            baseline = str(baseline_intent)
+        elif min_ttc < 1.5 or not corridor_clear:
             baseline = "stop_before_obstacle"
         elif min_ttc < 4.0:
             baseline = "follow"
         else:
             baseline = "keep_lane"
         preferred_lane = str(getattr(world, "agent_preferred_lane", "current") or "current")
+        route_conflicts = list(getattr(world, "route_conflict_flags", []) or [])
+        lane_change_permission = self._world_lane_change_permissions(world)
+        preferred_lane_permitted = bool(lane_change_permission.get(preferred_lane, False))
+        blocked_clear_event = bool(
+            "blocked_clear_adjacent_lane" in route_conflicts
+            and preferred_lane in {"left", "right"}
+            and preferred_lane_permitted
+        )
         return {
             "requested_behavior": baseline,
             "target_lane": preferred_lane if preferred_lane in {"left", "right"} else "current",
             "active_maneuver": str(getattr(world, "agent_active_maneuver", "") or ""),
-            "lane_change_permission": {
-                "left": bool(getattr(world, "lane_change_permission", False)),
-                "right": bool(getattr(world, "lane_change_permission", False)),
-            },
+            "lane_change_permission": lane_change_permission,
+            "current_lane_blocked": blocked_clear_event,
+            "adjacent_preferred_lane_clear": blocked_clear_event,
+            "preferred_lane_permission": preferred_lane_permitted,
         }
 
     def _pack_contract(self, intent_record, world) -> Any:
