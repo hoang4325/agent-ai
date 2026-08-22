@@ -485,11 +485,39 @@ class Stage10AsyncFreshnessTests(unittest.TestCase):
             local_y_m=-1.18,
             heading_error_rad=0.36,
             max_steer=0.46,
+            cross_lane_max_steer=0.72,
+            cross_lane_min_steer=0.42,
             lane_change_assist=True,
             target_lane_reached=False,
         )
         self.assertEqual(phase, "cross_lane")
-        self.assertLessEqual(steer, -0.24)
+        self.assertLessEqual(steer, -0.42)
+
+    def test_cross_lane_uses_higher_limit_than_target_lane_settling(self) -> None:
+        crossing_steer, crossing_phase = _lane_center_steering_control(
+            local_x_m=3.0,
+            local_y_m=-3.5,
+            heading_error_rad=0.0,
+            max_steer=0.46,
+            cross_lane_max_steer=0.72,
+            cross_lane_min_steer=0.42,
+            lane_change_assist=True,
+            target_lane_reached=False,
+        )
+        settling_steer, settling_phase = _lane_center_steering_control(
+            local_x_m=3.0,
+            local_y_m=-3.5,
+            heading_error_rad=0.0,
+            max_steer=0.46,
+            cross_lane_max_steer=0.72,
+            cross_lane_min_steer=0.42,
+            lane_change_assist=True,
+            target_lane_reached=True,
+        )
+        self.assertEqual(crossing_phase, "cross_lane")
+        self.assertEqual(settling_phase, "settle_target_lane")
+        self.assertEqual(crossing_steer, -0.72)
+        self.assertEqual(settling_steer, -0.46)
 
     def test_lane_change_steering_settles_without_crossing_floor(self) -> None:
         steer, phase = _lane_center_steering_control(

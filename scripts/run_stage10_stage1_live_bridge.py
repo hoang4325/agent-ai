@@ -152,6 +152,10 @@ def _parse_args() -> argparse.Namespace:
                    help="Maximum target-lane lateral error used for stable completion")
     p.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20,
                    help="Maximum absolute heading error used for stable completion")
+    p.add_argument("--agent-cross-lane-max-steer", type=float, default=0.72,
+                   help="Maximum normalized steering while the ego is still outside the target lane")
+    p.add_argument("--agent-cross-lane-min-steer", type=float, default=0.42,
+                   help="Minimum normalized steering magnitude maintained until the target lane ID is reached")
     p.add_argument("--agent-target-corridor-half-width-m", type=float, default=1.60,
                    help="Half-width of the BEVFusion target-lane safety corridor")
     p.add_argument("--agent-target-rear-clearance-m", type=float, default=8.0,
@@ -789,6 +793,8 @@ def _lane_center_steering_control(
     local_y_m: float,
     heading_error_rad: float,
     max_steer: float,
+    cross_lane_max_steer: Optional[float] = None,
+    cross_lane_min_steer: float = 0.42,
     lane_change_assist: bool,
     target_lane_reached: bool,
 ) -> tuple[float, str]:
@@ -801,7 +807,12 @@ def _lane_center_steering_control(
     it never bypasses the live TTC, map-permission, or emergency safety gates
     checked by the caller.
     """
-    max_steer_abs = max(0.0, float(max_steer))
+    settle_max_steer_abs = max(0.0, float(max_steer))
+    cross_max_steer_abs = (
+        settle_max_steer_abs
+        if cross_lane_max_steer is None
+        else max(0.0, float(cross_lane_max_steer))
+    )
     local_x = max(float(local_x_m), 1.0)
     local_y = float(local_y_m)
     if lane_change_assist and not target_lane_reached:
@@ -816,18 +827,24 @@ def _lane_center_steering_control(
         pure_pursuit = math.atan2(4.2 * local_y, max(local_x * local_x, 1.0))
         steer = 0.25 * float(heading_error_rad) + 1.85 * pure_pursuit
         phase = "cross_lane"
-        crossing_floor = min(max_steer_abs, 0.24 if abs(local_y) > 1.0 else 0.18)
+        crossing_floor = min(
+            cross_max_steer_abs,
+            max(0.0, float(cross_lane_min_steer)),
+        )
         if abs(steer) < crossing_floor and abs(local_y) > 1e-3:
             steer = math.copysign(crossing_floor, local_y)
+        steering_limit = cross_max_steer_abs
     elif lane_change_assist:
         pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
         steer = 0.75 * float(heading_error_rad) + 1.25 * pure_pursuit
         phase = "settle_target_lane"
+        steering_limit = settle_max_steer_abs
     else:
         pure_pursuit = math.atan2(2.7 * local_y, max(local_x * local_x, 1.0))
         steer = 0.75 * float(heading_error_rad) + 1.25 * pure_pursuit
         phase = "lane_center"
-    return _clamp(steer, -max_steer_abs, max_steer_abs), phase
+        steering_limit = settle_max_steer_abs
+    return _clamp(steer, -steering_limit, steering_limit), phase
 
 
 def _map_lane_centering_control(
@@ -838,6 +855,8 @@ def _map_lane_centering_control(
     target_speed_mps: float,
     source: str,
     max_steer: float = 0.42,
+    cross_lane_max_steer: Optional[float] = None,
+    cross_lane_min_steer: float = 0.42,
     lane_change_assist: bool = False,
 ) -> Any:
     from stage9.schemas import ActuatorCommand
@@ -881,6 +900,8 @@ def _map_lane_centering_control(
         local_y_m=local_y,
         heading_error_rad=heading_error_rad,
         max_steer=max_steer,
+        cross_lane_max_steer=cross_lane_max_steer,
+        cross_lane_min_steer=cross_lane_min_steer,
         lane_change_assist=lane_change_assist,
         target_lane_reached=target_lane_reached,
     )
@@ -2356,6 +2377,12 @@ def _summarize_assist_log(
             "lane_heading_tolerance_rad": float(
                 getattr(args, "agent_lane_heading_tolerance_rad", 0.20)
             ),
+            "cross_lane_max_steer": float(
+                getattr(args, "agent_cross_lane_max_steer", 0.72)
+            ),
+            "cross_lane_min_steer": float(
+                getattr(args, "agent_cross_lane_min_steer", 0.42)
+            ),
             "target_corridor_half_width_m": float(
                 getattr(args, "agent_target_corridor_half_width_m", 1.60)
             ),
@@ -2625,6 +2652,12 @@ def run(args: argparse.Namespace) -> int:
         raise ValueError("--agent-lane-center-tolerance-m must be non-negative")
     if float(args.agent_lane_heading_tolerance_rad) < 0.0:
         raise ValueError("--agent-lane-heading-tolerance-rad must be non-negative")
+    if not 0.0 < float(args.agent_cross_lane_max_steer) <= 1.0:
+        raise ValueError("--agent-cross-lane-max-steer must be in (0, 1]")
+    if not 0.0 <= float(args.agent_cross_lane_min_steer) <= float(args.agent_cross_lane_max_steer):
+        raise ValueError(
+            "--agent-cross-lane-min-steer must be in [0, --agent-cross-lane-max-steer]"
+        )
     if float(args.agent_target_corridor_half_width_m) <= 0.0:
         raise ValueError("--agent-target-corridor-half-width-m must be positive")
     if float(args.agent_target_rear_clearance_m) < 0.0:
@@ -3556,6 +3589,8 @@ def run(args: argparse.Namespace) -> int:
                             target_speed_mps=float(getattr(assist_req, "target_v_desired_mps", 2.0)),
                             source="MAP_LANE_CENTER_ASSIST",
                             max_steer=0.46,
+                            cross_lane_max_steer=float(args.agent_cross_lane_max_steer),
+                            cross_lane_min_steer=float(args.agent_cross_lane_min_steer),
                             lane_change_assist=True,
                         )
                         if cmd is None:
@@ -3637,6 +3672,8 @@ def run(args: argparse.Namespace) -> int:
                         target_speed_mps=float(getattr(active_assist_request, "target_v_desired_mps", 2.5)),
                         source="MAP_LANE_CENTER_ASSIST_HOLD",
                         max_steer=0.46,
+                        cross_lane_max_steer=float(args.agent_cross_lane_max_steer),
+                        cross_lane_min_steer=float(args.agent_cross_lane_min_steer),
                         lane_change_assist=True,
                     )
                     if cmd is None:

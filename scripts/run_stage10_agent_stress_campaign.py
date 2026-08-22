@@ -88,6 +88,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-lane-stable-frames", type=int, default=5)
     parser.add_argument("--agent-lane-center-tolerance-m", type=float, default=0.60)
     parser.add_argument("--agent-lane-heading-tolerance-rad", type=float, default=0.20)
+    parser.add_argument("--agent-cross-lane-max-steer", type=float, default=0.72)
+    parser.add_argument("--agent-cross-lane-min-steer", type=float, default=0.42)
     parser.add_argument("--agent-target-corridor-half-width-m", type=float, default=1.60)
     parser.add_argument("--agent-target-rear-clearance-m", type=float, default=8.0)
     parser.add_argument("--agent-emergency-ttc-floor-s", type=float, default=0.75)
@@ -627,6 +629,12 @@ def main() -> int:
         raise ValueError("--agent-lane-center-tolerance-m must be non-negative")
     if float(args.agent_lane_heading_tolerance_rad) < 0.0:
         raise ValueError("--agent-lane-heading-tolerance-rad must be non-negative")
+    if not 0.0 < float(args.agent_cross_lane_max_steer) <= 1.0:
+        raise ValueError("--agent-cross-lane-max-steer must be in (0, 1]")
+    if not 0.0 <= float(args.agent_cross_lane_min_steer) <= float(args.agent_cross_lane_max_steer):
+        raise ValueError(
+            "--agent-cross-lane-min-steer must be in [0, --agent-cross-lane-max-steer]"
+        )
     python_exe = sys.executable
     output_root = Path(args.output_root)
     report_root = Path(args.report_root)
@@ -691,6 +699,8 @@ def main() -> int:
                 "--agent-lane-stable-frames", str(args.agent_lane_stable_frames),
                 "--agent-lane-center-tolerance-m", str(args.agent_lane_center_tolerance_m),
                 "--agent-lane-heading-tolerance-rad", str(args.agent_lane_heading_tolerance_rad),
+                "--agent-cross-lane-max-steer", str(args.agent_cross_lane_max_steer),
+                "--agent-cross-lane-min-steer", str(args.agent_cross_lane_min_steer),
                 "--agent-target-corridor-half-width-m", str(args.agent_target_corridor_half_width_m),
                 "--agent-target-rear-clearance-m", str(args.agent_target_rear_clearance_m),
                 "--agent-emergency-ttc-floor-s", str(args.agent_emergency_ttc_floor_s),
