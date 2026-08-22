@@ -6,7 +6,11 @@ import socket
 import unittest
 from unittest import mock
 
-from benchmark.agent_shadow_adapter import AgentShadowAdapter, AgentShadowAdapterConfig
+from benchmark.agent_shadow_adapter import (
+    AgentShadowAdapter,
+    AgentShadowAdapterConfig,
+    _build_bevfusion_prompt_context,
+)
 
 
 def _call(
@@ -157,6 +161,8 @@ class AgentAPIRuntimePolicyTests(unittest.TestCase):
         prompt = captured_payloads[0]["messages"][1]["content"]
         self.assertIn("blocked_clear_state=eligible", prompt)
         self.assertIn("prepare_lane_change_right", prompt)
+        self.assertIn("BEVFUSION_CONTEXT_JSON=", prompt)
+        self.assertIn("bevfusion_tactical_context_v1", prompt)
         self.assertIn("even when baseline=keep_lane", prompt)
         self.assertEqual(captured_payloads[0].get("response_format"), {"type": "json_object"})
         self.assertIn("Never return an ellipsis", captured_payloads[0]["messages"][0]["content"])
@@ -189,6 +195,63 @@ class AgentAPIRuntimePolicyTests(unittest.TestCase):
         )
         self.assertTrue(result.fallback_to_baseline)
         self.assertEqual(result.validation_status, "invalid_intent")
+
+    def test_bevfusion_prompt_context_is_tactical_and_bounded(self) -> None:
+        tracked_objects = [
+            {
+                "track_id": index,
+                "class_name": "car",
+                "position_ego": [float(20 - index), float(index % 2), 0.0],
+                "distance_m": float(20 - index),
+                "ttc_seconds": float(10 - index) if index < 9 else 0.5,
+                "source_confidence": 0.9,
+                "box_half_extents_m": [2.1, 0.9, 0.8],
+                "yaw_rad": 0.05,
+                "source_track": {"raw_tensor": [1] * 1000},
+            }
+            for index in range(10)
+        ]
+        context = _build_bevfusion_prompt_context(
+            ego_state={
+                "speed_mps": 5.0,
+                "risk_summary": {
+                    "highest_risk_level": "medium",
+                    "minimum_ttc_seconds": 2.0,
+                },
+                "scene": {"front_free_space_m": 9.0},
+                "perception": {
+                    "sensor_health": "OK",
+                    "sync_ok": True,
+                    "lidar_point_count": 28000,
+                    "radar_point_count": 612,
+                },
+            },
+            tracked_objects=tracked_objects,
+            lane_context={
+                "current_lane_id": "-1",
+                "corridor_clear": True,
+                "drivable_envelope": {
+                    "left_bound_m": 3.5,
+                    "right_bound_m": 3.5,
+                    "forward_clear_m": 9.0,
+                },
+            },
+            route_context={"route_option": "straight", "preferred_lane": "right"},
+            stop_context={"binding_status": "derived_active", "distance_to_stop_m": 8.0},
+            baseline_context={
+                "requested_behavior": "stop_before_obstacle",
+                "target_lane": "right",
+                "lane_change_permission": {"left": False, "right": True},
+            },
+        )
+
+        self.assertEqual(context["schema"], "bevfusion_tactical_context_v1")
+        self.assertEqual(len(context["objects"]), 6)
+        self.assertEqual(context["objects"][0]["id"], "9")
+        self.assertEqual(context["objects"][0]["box_half_extents_m"], [2.1, 0.9, 0.8])
+        self.assertTrue(context["lanes"]["corridor_clear"])
+        self.assertNotIn("source_track", json.dumps(context))
+        self.assertLess(len(json.dumps(context)), 6000)
 
 
 if __name__ == "__main__":

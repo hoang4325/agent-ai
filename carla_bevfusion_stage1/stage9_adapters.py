@@ -390,20 +390,29 @@ class RealAgentAdapter:
         world,
         *,
         baseline_intent: str | None = None,
+        detections: Optional[list[Any]] = None,
+        sensor_input: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Freeze WorldState into primitive values safe for a worker thread."""
+        resolved_baseline = self._world_to_baseline_context(
+            world,
+            baseline_intent=baseline_intent,
+        )
         return {
             "case_id": "stage10_live",
             "frame_id": int(getattr(world, "frame_id", 0)),
-            "ego_state": self._world_to_ego_state(world),
-            "tracked_objects": [],
+            "ego_state": self._world_to_ego_state(world, sensor_input=sensor_input),
+            "tracked_objects": self._detections_to_tracked_objects(
+                detections or [],
+                ego_v_mps=float(getattr(world, "ego_v_mps", 0.0)),
+            ),
             "lane_context": self._world_to_lane_context(world),
             "route_context": self._world_to_route_context(world),
-            "stop_context": {},
-            "baseline_context": self._world_to_baseline_context(
+            "stop_context": self._world_to_stop_context(
                 world,
-                baseline_intent=baseline_intent,
+                baseline_intent=str(resolved_baseline["requested_behavior"]),
             ),
+            "baseline_context": resolved_baseline,
         }
 
     def observe_intent_request(self, request: dict[str, Any]) -> Optional[Any]:
@@ -441,25 +450,165 @@ class RealAgentAdapter:
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
-    def _world_to_ego_state(self, world) -> dict:
+    @staticmethod
+    def _enum_text(value: Any) -> str:
+        return str(getattr(value, "value", value) or "unknown")
+
+    @staticmethod
+    def _safe_float(value: Any, default: float = 0.0) -> float:
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return float(default)
+        return number if math.isfinite(number) else float(default)
+
+    @staticmethod
+    def _safe_int(value: Any, default: int = 0) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError, OverflowError):
+            return int(default)
+
+    def _world_to_ego_state(
+        self,
+        world,
+        *,
+        sensor_input: Optional[dict[str, Any]] = None,
+    ) -> dict:
+        sensor = dict(sensor_input or {})
+        min_ttc_s = self._safe_float(getattr(world, "min_ttc_s", 99.0), 99.0)
+        perception = {
+            "sensor_health": self._enum_text(getattr(world, "sensor_health", "unknown")),
+            "sync_ok": bool(getattr(world, "sync_ok", False)),
+            "world_age_ms": max(0, self._safe_int(getattr(world, "world_age_ms", 0))),
+            "new_obstacle_score": self._safe_float(
+                getattr(world, "new_obstacle_score", 0.0),
+                0.0,
+            ),
+            "odd_status": self._enum_text(getattr(world, "odd_status", "unknown")),
+            "time_to_odd_exit_s": getattr(world, "time_to_odd_exit_s", None),
+            "preview_feasible": bool(getattr(world, "preview_feasible", False)),
+            "weather_visibility_m": self._safe_float(
+                getattr(world, "weather_visibility_m", 0.0),
+                0.0,
+            ),
+            "inference_time_ms": self._safe_float(sensor.get("inference_time_ms"), 0.0),
+            "num_detections": max(0, self._safe_int(sensor.get("num_detections", 0))),
+            "num_raw_boxes": max(0, self._safe_int(sensor.get("num_raw_boxes", 0))),
+            "lidar_point_count": max(0, self._safe_int(sensor.get("lidar_point_count", 0))),
+            "radar_point_count": max(0, self._safe_int(sensor.get("radar_point_count", 0))),
+        }
         return {
             "speed_mps": float(getattr(world, "ego_v_mps", 0.0)),
             "accel_mps2": float(getattr(world, "ego_a_mps2", 0.0)),
             "lateral_error_m": float(getattr(world, "ego_lateral_error_m", 0.0)),
+            "ego_lane_id": str(getattr(world, "ego_lane_id", "unknown")),
+            "min_ttc_s": min_ttc_s,
+            "new_obstacle_score": perception["new_obstacle_score"],
             "scene": {
                 "front_free_space_m": float(getattr(world, "drivable_envelope", None) and
                                             getattr(world.drivable_envelope, "forward_clear_m", 50.0) or 50.0),
             },
             "risk_summary": {
-                "highest_risk_level": "high" if float(getattr(world, "min_ttc_s", 10.0)) < 3.0 else "none",
+                "highest_risk_level": (
+                    "critical" if min_ttc_s < 1.5
+                    else "high" if min_ttc_s < 3.0
+                    else "medium" if min_ttc_s < 5.0
+                    else "none"
+                ),
+                "minimum_ttc_seconds": min_ttc_s,
             },
+            "perception": perception,
         }
 
     def _world_to_lane_context(self, world) -> dict:
         lane_change_permission = self._world_lane_change_permissions(world)
+        envelope = getattr(world, "drivable_envelope", None)
         return {
             "current_lane_id": str(getattr(world, "ego_lane_id", "unknown")),
             "lane_change_permission": lane_change_permission,
+            "lane_change_rule": str(getattr(world, "lane_change_rule", "unknown")),
+            "origin_lane_id": str(getattr(world, "agent_origin_lane_id", "") or ""),
+            "target_lane_id": str(getattr(world, "agent_target_lane_id", "") or ""),
+            "corridor_clear": bool(getattr(world, "corridor_clear", False)),
+            "drivable_envelope": {
+                "left_bound_m": self._safe_float(getattr(envelope, "left_bound_m", None), 0.0),
+                "right_bound_m": self._safe_float(getattr(envelope, "right_bound_m", None), 0.0),
+                "forward_clear_m": self._safe_float(getattr(envelope, "forward_clear_m", None), 0.0),
+            },
+        }
+
+    def _detections_to_tracked_objects(
+        self,
+        detections: list[Any],
+        *,
+        ego_v_mps: float,
+        max_objects: int = 12,
+    ) -> list[dict[str, Any]]:
+        """Freeze nearest BEVFusion boxes into a bounded primitive snapshot."""
+        objects: list[dict[str, Any]] = []
+        ego_speed_mps = max(0.0, self._safe_float(ego_v_mps, 0.0))
+        for index, detection in enumerate(detections):
+            x = self._safe_float(getattr(detection, "x", None), 0.0)
+            y = self._safe_float(getattr(detection, "y", None), 0.0)
+            z = self._safe_float(getattr(detection, "z", None), 0.0)
+            distance_m = math.hypot(x, y)
+            ttc_s = (
+                max(0.1, distance_m - 1.0) / max(0.5, ego_speed_mps)
+                if x >= 0.5
+                else None
+            )
+            objects.append(
+                {
+                    "detection_id": f"bev_{index}",
+                    "label_idx": self._safe_int(getattr(detection, "label_idx", -1), -1),
+                    "label_name": str(getattr(detection, "label_name", "") or "unknown")[:64],
+                    "score": round(
+                        _clamp(self._safe_float(getattr(detection, "score", 0.0), 0.0), 0.0, 1.0),
+                        4,
+                    ),
+                    "x": round(x, 3),
+                    "y": round(y, 3),
+                    "z": round(z, 3),
+                    "dx": round(self._safe_float(getattr(detection, "dx", None), 0.0), 3),
+                    "dy": round(self._safe_float(getattr(detection, "dy", None), 0.0), 3),
+                    "dz": round(self._safe_float(getattr(detection, "dz", None), 0.0), 3),
+                    "yaw_rad": round(
+                        self._safe_float(getattr(detection, "yaw_rad", None), 0.0),
+                        3,
+                    ),
+                    "distance_m": round(distance_m, 3),
+                    "ttc_s": round(ttc_s, 3) if ttc_s is not None else None,
+                    "relative_sector": (
+                        "rear" if x < 0.0
+                        else "front_left" if y > 1.75
+                        else "front_right" if y < -1.75
+                        else "front"
+                    ),
+                }
+            )
+        objects.sort(
+            key=lambda obj: (
+                obj["ttc_s"] if obj["ttc_s"] is not None else 1e9,
+                obj["distance_m"],
+            )
+        )
+        return objects[:max(0, int(max_objects))]
+
+    def _world_to_stop_context(self, world, *, baseline_intent: str) -> dict[str, Any]:
+        envelope = getattr(world, "drivable_envelope", None)
+        obstacle_distance_m = self._safe_float(
+            getattr(envelope, "forward_clear_m", None),
+            50.0,
+        )
+        stop_active = baseline_intent in {"stop", "stop_before_obstacle", "follow"}
+        return {
+            "binding_status": "derived_active" if stop_active else "inactive",
+            "distance_to_stop_m": obstacle_distance_m if stop_active else None,
+            "distance_to_obstacle_m": obstacle_distance_m,
+            "minimum_ttc_s": self._safe_float(getattr(world, "min_ttc_s", 99.0), 99.0),
+            "reason": "bevfusion_forward_obstacle" if stop_active else "no_active_stop_target",
+            "source": "stage10_bevfusion_world_state",
         }
 
     def _world_to_route_context(self, world) -> dict:

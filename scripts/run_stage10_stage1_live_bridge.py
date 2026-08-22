@@ -1558,6 +1558,17 @@ def _agent_request_context(
     }
 
 
+def _agent_sensor_input(detection_list: Any) -> Dict[str, Any]:
+    """Freeze BEVFusion runtime metadata without copying raw sensor payloads."""
+    return {
+        "inference_time_ms": float(getattr(detection_list, "inference_time_ms", 0.0)),
+        "num_detections": len(list(getattr(detection_list, "detections", []) or [])),
+        "num_raw_boxes": int(getattr(detection_list, "num_raw_boxes", 0)),
+        "lidar_point_count": int(getattr(detection_list, "lidar_point_count", 0)),
+        "radar_point_count": int(getattr(detection_list, "radar_point_count", 0)),
+    }
+
+
 _ASSIST_LANE_CHANGE_INTENTS = {
     "prepare_lane_change_left",
     "prepare_lane_change_right",
@@ -2692,6 +2703,8 @@ def run(args: argparse.Namespace) -> int:
                         payload=assist_agent.build_intent_request(
                             world_state,
                             baseline_intent=assist_baseline_intent,
+                            detections=det_list.detections,
+                            sensor_input=_agent_sensor_input(det_list),
                         ),
                         context=_agent_request_context(
                             baseline_intent=assist_baseline_intent,
@@ -3224,6 +3237,8 @@ def run(args: argparse.Namespace) -> int:
                             payload=compare_agent.build_intent_request(
                                 world_state,
                                 baseline_intent=baseline_intent,
+                                detections=det_list.detections,
+                                sensor_input=_agent_sensor_input(det_list),
                             ),
                             context=context,
                         )
